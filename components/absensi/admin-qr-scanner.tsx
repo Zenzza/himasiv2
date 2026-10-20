@@ -22,6 +22,7 @@ interface AdminQrScannerProps {
   kegiatanTanggal?: string;
   kegiatanJam?: string;
   onAttendanceSuccess?: (log: AbsensiRecord) => void;
+  pengurusList?: PengurusMember[];
 }
 
 export interface AbsensiRecord {
@@ -43,6 +44,7 @@ export default function AdminQrScanner({
   kegiatanTanggal,
   kegiatanJam,
   onAttendanceSuccess,
+  pengurusList,
 }: AdminQrScannerProps) {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -96,13 +98,14 @@ export default function AdminQrScanner({
       setCameraError(null);
       setDuplicateWarning(null);
 
+      const activeList = pengurusList && pengurusList.length > 0 ? pengurusList : DAFTAR_PENGURUS_HIMASI;
       let foundMember: PengurusMember | undefined;
 
       // 1. Coba parse JSON payload QR
       try {
         const parsed = JSON.parse(decodedText);
         if (parsed.nim || parsed.token) {
-          foundMember = DAFTAR_PENGURUS_HIMASI.find(
+          foundMember = activeList.find(
             (p) =>
               p.nim === parsed.nim ||
               p.qrToken === parsed.token ||
@@ -111,7 +114,7 @@ export default function AdminQrScanner({
         }
       } catch (e) {
         // Bukan JSON, cek string token / NIM langsung
-        foundMember = DAFTAR_PENGURUS_HIMASI.find(
+        foundMember = activeList.find(
           (p) =>
             p.qrToken === decodedText.trim() ||
             p.nim === decodedText.trim() ||

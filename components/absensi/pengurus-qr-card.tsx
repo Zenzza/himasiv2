@@ -2,15 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
-import { Download, QrCode as QrIcon, Check, Copy, Sparkles, UserCheck } from "lucide-react";
+import { Download, QrCode as QrIcon, Check, Copy, Sparkles, UserCheck, Edit3, Trash2 } from "lucide-react";
 import type { PengurusMember } from "@/lib/data/pengurus";
 
 interface PengurusQrCardProps {
   member: PengurusMember;
   onClose?: () => void;
+  onEdit?: (member: PengurusMember) => void;
+  onDelete?: (member: PengurusMember) => void;
 }
 
-export default function PengurusQrCard({ member, onClose }: PengurusQrCardProps) {
+export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: PengurusQrCardProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -158,34 +160,62 @@ export default function PengurusQrCard({ member, onClose }: PengurusQrCardProps)
       </div>
 
       {/* Action Buttons */}
-      <div className="w-full mt-4 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleDownloadQr}
-          className="flex-1 py-2.5 px-3 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-        >
-          <Download className="w-4 h-4 text-sky-300" />
-          <span>Unduh QR Code</span>
-        </button>
+      <div className="w-full mt-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadQr}
+            className="flex-1 py-2.5 px-3 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <Download className="w-4 h-4 text-sky-300" />
+            <span>Unduh QR Code</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={handleCopyToken}
-          className="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-          title="Salin Token QR"
-        >
-          {copied ? (
-            <>
-              <Check className="w-4 h-4 text-emerald-600" />
-              <span>Tersalin!</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4" />
-              <span>Token</span>
-            </>
-          )}
-        </button>
+          <button
+            type="button"
+            onClick={handleCopyToken}
+            className="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            title="Salin Token QR"
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>Tersalin!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span>Token</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {(onEdit || onDelete) && (
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(member)}
+                className="flex-1 py-2 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#00296E] text-xs font-bold transition-all border border-sky-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-[#0094E0]" />
+                <span>Edit Data</span>
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(member)}
+                className="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all border border-rose-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                title="Hapus Peserta"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
     </div>

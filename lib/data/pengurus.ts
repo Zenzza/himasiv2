@@ -151,3 +151,34 @@ export const DAFTAR_PENGURUS_HIMASI: PengurusMember[] = [
     email: "dimas@atmaluhur.ac.id",
   },
 ];
+
+export const DAFTAR_DIVISI: string[] = [
+  "BPH",
+  "MEDKOMINFO",
+  "HUMAS",
+  "BISNIS KREATIF",
+  "PENASIHAT",
+];
+
+export const PRESET_AVATAR_LIST: string[] = [
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=800&auto=format&fit=crop",
+];
+
+export function generateQrToken(nim: string, nama: string): string {
+  const initials = nama
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0]?.toUpperCase() || "")
+    .join("")
+    .slice(0, 3);
+  const cleanNim = nim.trim() || "00000";
+  return `HIMASI-QR-${cleanNim}-${initials || "MB"}`;
+}
+

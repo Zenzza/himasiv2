@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -41,12 +41,23 @@ import {
   ChevronDown,
   FileSpreadsheet,
   FileText,
-  ListFilter,
   Eye,
-  Table as TableIcon
+  Table as TableIcon,
+  Edit3,
+  UserPlus,
+  Image as ImageIcon,
+  Upload,
+  Camera,
+  FolderCheck,
+  FolderOpen
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { DAFTAR_PENGURUS_HIMASI, type PengurusMember } from "@/lib/data/pengurus";
+import {
+  DAFTAR_PENGURUS_HIMASI,
+  DAFTAR_DIVISI,
+  generateQrToken,
+  type PengurusMember,
+} from "@/lib/data/pengurus";
 import AdminQrScanner, { type AbsensiRecord } from "@/components/absensi/admin-qr-scanner";
 import PengurusQrCard from "@/components/absensi/pengurus-qr-card";
 import RekapAbsensiView, {
@@ -103,6 +114,19 @@ export default function DashboardPage() {
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Folder Menu State: Absensi (otomatis terbuka jika submenu aktif)
+  const [isAbsensiFolderOpen, setIsAbsensiFolderOpen] = useState(true);
+  const isAbsensiActive =
+    activeTab === "absensi" ||
+    activeTab === "rekap-absensi" ||
+    activeTab === "kartu-qr";
+
+  useEffect(() => {
+    if (isAbsensiActive) {
+      setIsAbsensiFolderOpen(true);
+    }
+  }, [isAbsensiActive]);
+
   // Auth User State
   const [user, setUser] = useState<{ email?: string; id?: string; full_name?: string } | null>(
     null
@@ -129,12 +153,10 @@ export default function DashboardPage() {
   const [formJamKegiatan, setFormJamKegiatan] = useState("09:00 WIB");
   const [absensiLogs, setAbsensiLogs] = useState<AbsensiRecord[]>([]);
 
-  // Modal Konfirmasi Hapus Kegiatan & Kelola Kegiatan
+  // Modal Konfirmasi Hapus Kegiatan
   const [kegiatanToDelete, setKegiatanToDelete] = useState<KegiatanItem | null>(null);
-  const [isKelolaKegiatanModalOpen, setIsKelolaKegiatanModalOpen] = useState(false);
   const [deletingKegiatan, setDeletingKegiatan] = useState(false);
   const [searchKegiatanOverview, setSearchKegiatanOverview] = useState("");
-  const [searchKegiatanModal, setSearchKegiatanModal] = useState("");
 
   // Filter Kegiatan untuk Overview Dashboard
   const filteredKegiatanOverview = useMemo(() => {
@@ -147,18 +169,6 @@ export default function DashboardPage() {
         k.jam.toLowerCase().includes(q)
     );
   }, [kegiatanList, searchKegiatanOverview]);
-
-  // Filter Kegiatan untuk Modal Kelola Kegiatan
-  const filteredKegiatanModal = useMemo(() => {
-    if (!searchKegiatanModal.trim()) return kegiatanList;
-    const q = searchKegiatanModal.toLowerCase();
-    return kegiatanList.filter(
-      (k) =>
-        k.nama.toLowerCase().includes(q) ||
-        k.tanggal.includes(q) ||
-        k.jam.toLowerCase().includes(q)
-    );
-  }, [kegiatanList, searchKegiatanModal]);
 
   // Modal Konfirmasi Hapus Aspirasi & Feedback Toast
   const [aspirasiToDelete, setAspirasiToDelete] = useState<AspirasiItem | null>(null);
@@ -176,6 +186,41 @@ export default function DashboardPage() {
   const [selectedPengurusCard, setSelectedPengurusCard] = useState<PengurusMember | null>(null);
   const [divisiFilterCard, setDivisiFilterCard] = useState<string>("SEMUA");
   const [searchPengurus, setSearchPengurus] = useState("");
+
+  // Data Peserta / Pengurus State (Dynamic CRUD dengan Supabase & LocalStorage)
+  const [pengurusList, setPengurusList] = useState<PengurusMember[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("himasi_pengurus_list");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {
+          console.warn("Gagal parse cache pengurus:", e);
+        }
+      }
+    }
+    return DAFTAR_PENGURUS_HIMASI;
+  });
+  const [loadingPengurus, setLoadingPengurus] = useState(false);
+
+  // Modal Tambah / Edit Peserta Pengurus
+  const [isPengurusModalOpen, setIsPengurusModalOpen] = useState(false);
+  const [editingPengurus, setEditingPengurus] = useState<PengurusMember | null>(null);
+  const [formPengurusNama, setFormPengurusNama] = useState("");
+  const [formPengurusNim, setFormPengurusNim] = useState("");
+  const [formPengurusDivisi, setFormPengurusDivisi] = useState<string>("BPH");
+  const [formPengurusJabatan, setFormPengurusJabatan] = useState("");
+  const [formPengurusEmail, setFormPengurusEmail] = useState("");
+  const [formPengurusImage, setFormPengurusImage] = useState<string>("/DSC01203.png");
+  const [formPengurusToken, setFormPengurusToken] = useState("");
+  const [savingPengurus, setSavingPengurus] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Modal Konfirmasi Hapus Peserta Pengurus
+  const [pengurusToDelete, setPengurusToDelete] = useState<PengurusMember | null>(null);
+  const [deletingPengurus, setDeletingPengurus] = useState(false);
 
   // SQL Copy Feedback
   const [copiedSQL, setCopiedSQL] = useState(false);
@@ -367,11 +412,17 @@ export default function DashboardPage() {
       if (!error && data) {
         isDbSuccess = true;
         logs = data.map((row) => {
-          const pengurus = DAFTAR_PENGURUS_HIMASI.find(
-            (p) =>
-              p.nim === row.nim ||
-              p.nama.toLowerCase() === row.nama_pengurus.toLowerCase()
-          );
+          const pengurus =
+            pengurusList.find(
+              (p) =>
+                p.nim === row.nim ||
+                p.nama.toLowerCase() === row.nama_pengurus.toLowerCase()
+            ) ||
+            DAFTAR_PENGURUS_HIMASI.find(
+              (p) =>
+                p.nim === row.nim ||
+                p.nama.toLowerCase() === row.nama_pengurus.toLowerCase()
+            );
           const scanTime = new Date(row.waktu_scan);
           const waktuFormat = isNaN(scanTime.getTime())
             ? "-"
@@ -460,12 +511,70 @@ export default function DashboardPage() {
     if (typeof window !== "undefined" && isDbSuccess) {
       localStorage.setItem("himasi_absensi_logs", JSON.stringify(logs));
     }
+  }, [pengurusList]);
+
+  // 4B. Ambil Data Peserta / Pengurus dari Supabase Cloud (dengan auto-migration & cache)
+  const fetchPengurus = useCallback(async () => {
+    setLoadingPengurus(true);
+    let loaded: PengurusMember[] = [];
+    let isDbSuccess = false;
+
+    try {
+      const { data, error } = await supabase
+        .from("pengurus")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        isDbSuccess = true;
+        loaded = data.map((row) => ({
+          id: row.id,
+          nim: row.nim,
+          nama: row.nama,
+          jabatan: row.jabatan,
+          divisi: row.divisi,
+          qrToken: row.qr_token || row.qrToken || generateQrToken(row.nim, row.nama),
+          image: row.foto_url || row.image || "/DSC01203.png",
+          email: row.email || `${row.nim}@atmaluhur.ac.id`,
+        }));
+      } else if (!error && data && data.length === 0) {
+        isDbSuccess = true;
+      }
+    } catch (err) {
+      console.warn("Koneksi Supabase pengurus:", err);
+    }
+
+    if (!isDbSuccess || loaded.length === 0) {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("himasi_pengurus_list");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              loaded = parsed;
+            }
+          } catch (e) {
+            console.warn("Gagal parse cache pengurus:", e);
+          }
+        }
+      }
+      if (loaded.length === 0) {
+        loaded = DAFTAR_PENGURUS_HIMASI;
+      }
+    }
+
+    setPengurusList(loaded);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("himasi_pengurus_list", JSON.stringify(loaded));
+    }
+    setLoadingPengurus(false);
   }, []);
 
   // Realtime Subscription Supabase (Multi-Device Auto-Sync)
   useEffect(() => {
     fetchKegiatan();
     fetchAbsensiLogs();
+    fetchPengurus();
 
     const channel = supabase
       .channel("himasi_realtime_dashboard")
@@ -490,12 +599,19 @@ export default function DashboardPage() {
           fetchAspirasi();
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pengurus" },
+        () => {
+          fetchPengurus();
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchKegiatan, fetchAbsensiLogs, fetchAspirasi]);
+  }, [fetchKegiatan, fetchAbsensiLogs, fetchAspirasi, fetchPengurus]);
 
   // 5. Handler saat scan absensi berhasil
   const handleAttendanceSuccess = (record: AbsensiRecord) => {
@@ -613,11 +729,6 @@ export default function DashboardPage() {
     // 3. Update activeKegiatan jika kegiatan yang dihapus sedang aktif
     if (activeKegiatan?.id === targetId) {
       setActiveKegiatan(updatedList.length > 0 ? updatedList[0] : null);
-    }
-
-    // Tutup modal kelola kegiatan jika daftar kegiatan sudah kosong
-    if (updatedList.length === 0) {
-      setIsKelolaKegiatanModalOpen(false);
     }
 
     // 4. Hapus dari Supabase jika tabel sudah dibuat
@@ -744,7 +855,297 @@ export default function DashboardPage() {
     }
   };
 
-  // 7. Logout Pengurus
+  // 11. Handler CRUD Peserta / Pengurus HIMASI
+  const handleOpenTambahPengurus = () => {
+    setEditingPengurus(null);
+    setFormPengurusNama("");
+    setFormPengurusNim("");
+    setFormPengurusDivisi(DAFTAR_DIVISI[0] || "BPH");
+    setFormPengurusJabatan("");
+    setFormPengurusEmail("");
+    setFormPengurusImage("/DSC01203.png");
+    setFormPengurusToken("");
+    setIsPengurusModalOpen(true);
+  };
+
+  const handleOpenEditPengurus = (member: PengurusMember) => {
+    setEditingPengurus(member);
+    setFormPengurusNama(member.nama);
+    setFormPengurusNim(member.nim);
+    setFormPengurusDivisi(member.divisi);
+    setFormPengurusJabatan(member.jabatan);
+    setFormPengurusEmail(member.email || `${member.nim}@atmaluhur.ac.id`);
+    setFormPengurusImage(member.image || "/DSC01203.png");
+    setFormPengurusToken(member.qrToken || generateQrToken(member.nim, member.nama));
+    setIsPengurusModalOpen(true);
+  };
+
+  // Helper Upload & Kompresi Foto Profil Peserta
+  const processAndUploadImage = async (file: File) => {
+    setUploadingImage(true);
+    try {
+      if (!file.type.startsWith("image/")) {
+        showToast("File yang dipilih harus berupa gambar (JPG, PNG, atau WebP)");
+        return;
+      }
+
+      // Kompresi gambar via HTML Canvas (max 600x600 px, kualitas 82%)
+      const { optimizedBlob, base64Url } = await new Promise<{
+        optimizedBlob: Blob;
+        base64Url: string;
+      }>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.createElement("img");
+          img.onload = () => {
+            const maxDim = 600;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+              if (width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              }
+            } else {
+              if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              resolve({
+                optimizedBlob: file,
+                base64Url: e.target?.result as string,
+              });
+              return;
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+            const b64 = canvas.toDataURL("image/jpeg", 0.82);
+            canvas.toBlob(
+              (blob) => {
+                resolve({
+                  optimizedBlob: blob || file,
+                  base64Url: b64,
+                });
+              },
+              "image/jpeg",
+              0.82
+            );
+          };
+          img.onerror = reject;
+          img.src = e.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Tampilkan preview instan
+      setFormPengurusImage(base64Url);
+
+      // Coba upload ke Supabase Storage (bucket: 'foto-pengurus')
+      const cleanNim = formPengurusNim.trim() || "pengurus";
+      const filePath = `foto_${cleanNim}_${Date.now()}.jpg`;
+
+      const { data, error } = await supabase.storage
+        .from("foto-pengurus")
+        .upload(filePath, optimizedBlob, {
+          contentType: "image/jpeg",
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage
+          .from("foto-pengurus")
+          .getPublicUrl(filePath);
+
+        if (publicUrlData?.publicUrl) {
+          setFormPengurusImage(publicUrlData.publicUrl);
+          showToast("Foto berhasil diunggah ke Supabase Storage!");
+        }
+      } else {
+        // Fallback Base64 (jika storage bucket Supabase belum dibuat di project)
+        console.warn("Storage upload note (fallback to base64):", error?.message);
+        showToast("Foto berhasil dimuat & siap disimpan!");
+      }
+    } catch (err) {
+      console.error("Gagal memproses upload foto:", err);
+      showToast("Gagal memproses file foto.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleSavePengurus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formPengurusNama.trim() || !formPengurusNim.trim()) {
+      showToast("Nama lengkap dan NIM wajib diisi!");
+      return;
+    }
+
+    const cleanNama = formPengurusNama.trim().toUpperCase();
+    const cleanNim = formPengurusNim.trim();
+    const cleanDivisi = formPengurusDivisi || "BPH";
+    const cleanJabatan = formPengurusJabatan.trim() || `Pengurus ${cleanDivisi}`;
+    const cleanEmail = formPengurusEmail.trim() || `${cleanNim}@atmaluhur.ac.id`;
+    const cleanImage = formPengurusImage.trim() || "/DSC01203.png";
+    const cleanToken = formPengurusToken.trim() || generateQrToken(cleanNim, cleanNama);
+
+    // Cek duplikasi NIM
+    const duplicate = pengurusList.some(
+      (p) =>
+        p.nim.toLowerCase() === cleanNim.toLowerCase() &&
+        (!editingPengurus || p.id !== editingPengurus.id)
+    );
+    if (duplicate) {
+      showToast(`Error: NIM "${cleanNim}" sudah terdaftar untuk anggota lain!`);
+      return;
+    }
+
+    setSavingPengurus(true);
+
+    if (editingPengurus) {
+      // Mode Edit
+      const updatedMember: PengurusMember = {
+        ...editingPengurus,
+        nama: cleanNama,
+        nim: cleanNim,
+        divisi: cleanDivisi,
+        jabatan: cleanJabatan,
+        email: cleanEmail,
+        image: cleanImage,
+        qrToken: cleanToken,
+      };
+
+      const updatedList = pengurusList.map((p) =>
+        p.id === editingPengurus.id ? updatedMember : p
+      );
+      setPengurusList(updatedList);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("himasi_pengurus_list", JSON.stringify(updatedList));
+      }
+
+      if (selectedPengurusCard?.id === editingPengurus.id) {
+        setSelectedPengurusCard(updatedMember);
+      }
+
+      // Sync ke Supabase (jika tabel sudah ada)
+      try {
+        await supabase
+          .from("pengurus")
+          .update({
+            nama: cleanNama,
+            nim: cleanNim,
+            divisi: cleanDivisi,
+            jabatan: cleanJabatan,
+            email: cleanEmail,
+            foto_url: cleanImage,
+            qr_token: cleanToken,
+          })
+          .match({ nim: editingPengurus.nim });
+      } catch (err) {
+        console.warn("Supabase update pengurus error:", err);
+      }
+
+      showToast(`Data peserta "${cleanNama}" berhasil diperbarui!`);
+    } else {
+      // Mode Tambah Baru
+      let generatedId = `pengurus-${Date.now()}`;
+      let isDbSaved = false;
+
+      try {
+        const { data, error } = await supabase
+          .from("pengurus")
+          .insert([
+            {
+              nama: cleanNama,
+              nim: cleanNim,
+              divisi: cleanDivisi,
+              jabatan: cleanJabatan,
+              email: cleanEmail,
+              foto_url: cleanImage,
+              qr_token: cleanToken,
+            },
+          ])
+          .select();
+
+        if (!error && data && data.length > 0 && data[0].id) {
+          generatedId = data[0].id;
+          isDbSaved = true;
+        }
+      } catch (err) {
+        console.warn("Supabase insert pengurus error:", err);
+      }
+
+      const newMember: PengurusMember = {
+        id: generatedId,
+        nama: cleanNama,
+        nim: cleanNim,
+        divisi: cleanDivisi,
+        jabatan: cleanJabatan,
+        email: cleanEmail,
+        image: cleanImage,
+        qrToken: cleanToken,
+      };
+
+      const updatedList = [newMember, ...pengurusList];
+      setPengurusList(updatedList);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("himasi_pengurus_list", JSON.stringify(updatedList));
+      }
+
+      if (isDbSaved) {
+        showToast(`Peserta "${cleanNama}" berhasil ditambahkan & tersimpan ke Cloud!`);
+      } else {
+        showToast(`Peserta "${cleanNama}" berhasil ditambahkan! Kartu QR siap digunakan.`);
+      }
+    }
+
+    setSavingPengurus(false);
+    setIsPengurusModalOpen(false);
+  };
+
+  const handleRequestDeletePengurus = (member: PengurusMember) => {
+    setSelectedPengurusCard(null);
+    setPengurusToDelete(member);
+  };
+
+  const handleConfirmDeletePengurus = async () => {
+    if (!pengurusToDelete) return;
+    setDeletingPengurus(true);
+
+    const targetId = pengurusToDelete.id;
+    const targetNim = pengurusToDelete.nim;
+    const targetNama = pengurusToDelete.nama;
+
+    const updatedList = pengurusList.filter((p) => p.id !== targetId);
+    setPengurusList(updatedList);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("himasi_pengurus_list", JSON.stringify(updatedList));
+    }
+
+    if (selectedPengurusCard?.id === targetId) {
+      setSelectedPengurusCard(null);
+    }
+
+    // Sync ke Supabase (jika tabel sudah ada)
+    try {
+      await supabase.from("pengurus").delete().match({ nim: targetNim });
+    } catch (err) {
+      console.warn("Supabase delete pengurus error:", err);
+    }
+
+    setDeletingPengurus(false);
+    setPengurusToDelete(null);
+    showToast(`Peserta "${targetNama}" berhasil dihapus.`);
+  };
+
+  // 12. Logout Pengurus
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -754,7 +1155,7 @@ export default function DashboardPage() {
     }
   };
 
-  // 8. Copy SQL Script
+  // 13. Copy SQL Script
   const sqlScriptContent = `-- ====================================================================
 -- SKEMA LENGKAP DATABASE SUPABASE HIMASI ISB ATMA LUHUR
 -- Kabinet REKSABUDAYA - Sistem Absensi QR, Rekap Kegiatan, & Portal Pengurus
@@ -808,20 +1209,98 @@ CREATE TABLE IF NOT EXISTS public.aspirasi (
 CREATE INDEX IF NOT EXISTS idx_aspirasi_status ON public.aspirasi(status);
 CREATE INDEX IF NOT EXISTS idx_aspirasi_created ON public.aspirasi(created_at DESC);
 
--- 5. HAK AKSES API & IZIN PERANGKAT (GRANT & RLS)
+-- 5. TABEL: pengurus (Master Data Peserta / Anggota HIMASI & QR Token)
+CREATE TABLE IF NOT EXISTS public.pengurus (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nim TEXT UNIQUE NOT NULL,
+    nama TEXT NOT NULL,
+    jabatan TEXT NOT NULL,
+    divisi TEXT NOT NULL,
+    qr_token TEXT UNIQUE NOT NULL,
+    foto_url TEXT,
+    email TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pengurus_nim ON public.pengurus(nim);
+CREATE INDEX IF NOT EXISTS idx_pengurus_divisi ON public.pengurus(divisi);
+
+-- 6. HAK AKSES API & IZIN PERANGKAT (GRANT & RLS)
 GRANT ALL ON TABLE public.kegiatan_absensi TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.absensi_log TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.aspirasi TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.pengurus TO anon, authenticated, service_role;
 
 ALTER TABLE public.kegiatan_absensi DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.absensi_log DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.aspirasi DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pengurus DISABLE ROW LEVEL SECURITY;
 
--- 7. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
+-- 7. SUPABASE STORAGE BUCKET: foto-pengurus (Penyimpanan Berkas Foto Profil)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) 
+VALUES (
+    'foto-pengurus', 
+    'foto-pengurus', 
+    true, 
+    3145728, -- Maksimum 3MB per berkas foto
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET 
+    public = true,
+    file_size_limit = 3145728,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+
+-- Hapus kebijakan lama jika ada untuk pembaruan
+DROP POLICY IF EXISTS "Public Access Foto Pengurus" ON storage.objects;
+DROP POLICY IF EXISTS "Upload Foto Pengurus" ON storage.objects;
+DROP POLICY IF EXISTS "Update Foto Pengurus" ON storage.objects;
+DROP POLICY IF EXISTS "Delete Foto Pengurus" ON storage.objects;
+DROP POLICY IF EXISTS "Public Read Foto Pengurus" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Upload Foto Pengurus" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Update Foto Pengurus" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Delete Foto Pengurus" ON storage.objects;
+
+-- Kebijakan Hak Akses Aman (Hardened Security):
+-- a. Semua orang (Public) HANYA BISA MELIHAT foto profil (Read-Only untuk ID Card & Scanner)
+CREATE POLICY "Public Read Foto Pengurus" 
+ON storage.objects FOR SELECT 
+TO public
+USING (bucket_id = 'foto-pengurus');
+
+-- b. HANYA PENGURUS TERAUTENTIKASI (Login) yang dapat mengunggah berkas foto
+CREATE POLICY "Authenticated Upload Foto Pengurus" 
+ON storage.objects FOR INSERT 
+TO authenticated 
+WITH CHECK (
+    bucket_id = 'foto-pengurus' AND 
+    auth.role() = 'authenticated'
+);
+
+-- c. HANYA PENGURUS TERAUTENTIKASI yang dapat memperbarui berkas foto
+CREATE POLICY "Authenticated Update Foto Pengurus" 
+ON storage.objects FOR UPDATE 
+TO authenticated 
+USING (
+    bucket_id = 'foto-pengurus' AND 
+    auth.role() = 'authenticated'
+);
+
+-- d. HANYA PENGURUS TERAUTENTIKASI yang dapat menghapus berkas foto
+CREATE POLICY "Authenticated Delete Foto Pengurus" 
+ON storage.objects FOR DELETE 
+TO authenticated 
+USING (
+    bucket_id = 'foto-pengurus' AND 
+    auth.role() = 'authenticated'
+);
+
+-- 8. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
 DO $$
 BEGIN
   BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus;
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
@@ -846,7 +1325,7 @@ NOTIFY pgrst, 'reload schema';`;
   });
 
   // Filter Pengurus untuk Kartu QR
-  const filteredPengurusCards = DAFTAR_PENGURUS_HIMASI.filter((p) => {
+  const filteredPengurusCards = pengurusList.filter((p) => {
     const matchDivisi =
       divisiFilterCard === "SEMUA" || p.divisi === divisiFilterCard;
     const matchSearch =
@@ -961,68 +1440,114 @@ NOTIFY pgrst, 'reload schema';`;
                 </div>
               </button>
 
-              {/* MENU 1: SCAN ABSENSI QR */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("absensi");
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === "absensi"
-                    ? "bg-[#00296E] text-white shadow-sm border border-emerald-400/50 font-bold"
-                    : "text-slate-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <ScanLine className="w-4 h-4 text-emerald-400" />
-                  <span>Scan Absensi QR</span>
-                </div>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500 text-white uppercase tracking-wider">
-                  Kamera
-                </span>
-              </button>
+              {/* FOLDER MENU: ABSENSI */}
+              <div className="pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAbsensiFolderOpen((prev) => !prev)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
+                    isAbsensiActive
+                      ? "bg-white/[0.08] text-white border border-sky-400/30 font-bold shadow-sm"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
+                  }`}
+                  aria-expanded={isAbsensiFolderOpen}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-1 rounded-lg transition-colors ${
+                        isAbsensiActive
+                          ? "bg-sky-500/20 text-sky-400"
+                          : "bg-white/5 text-sky-300 group-hover:bg-white/10"
+                      }`}
+                    >
+                      {isAbsensiFolderOpen ? (
+                        <FolderOpen className="w-3.5 h-3.5" />
+                      ) : (
+                        <FolderCheck className="w-3.5 h-3.5" />
+                      )}
+                    </div>
+                    <span>Absensi</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                      3 Menu
+                    </span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                        isAbsensiFolderOpen ? "rotate-180 text-sky-300" : ""
+                      }`}
+                    />
+                  </div>
+                </button>
 
-              {/* MENU BARU 2: REKAP ABSENSI (KOP SURAT & CETAK PDF) */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("rekap-absensi");
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === "rekap-absensi"
-                    ? "bg-[#00296E] text-white shadow-sm border border-sky-400/50 font-bold"
-                    : "text-slate-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <FileSpreadsheet className="w-4 h-4 text-sky-300" />
-                  <span>Rekap Absensi (PDF)</span>
-                </div>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-sky-500 text-white uppercase tracking-wider">
-                  Cetak
-                </span>
-              </button>
+                {/* SUBMENU ITEMS */}
+                {isAbsensiFolderOpen && (
+                  <div className="ml-3 pl-2.5 my-1 space-y-1 border-l-2 border-white/10">
+                    {/* SUB-MENU 1: SCAN ABSENSI QR */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("absensi");
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                        activeTab === "absensi"
+                          ? "bg-[#00296E] text-white shadow-sm border border-emerald-400/50 font-bold"
+                          : "text-slate-300 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <ScanLine className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span className="truncate">Scan Absensi QR</span>
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500 text-white uppercase tracking-wider shrink-0">
+                        Kamera
+                      </span>
+                    </button>
 
-              {/* MENU 3: KARTU QR PENGURUS */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("kartu-qr");
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === "kartu-qr"
-                    ? "bg-[#00296E] text-white shadow-sm border border-sky-400/30 font-bold"
-                    : "text-slate-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <IdCard className="w-4 h-4 text-sky-400" />
-                  <span>Kartu QR Pengurus</span>
-                </div>
-              </button>
+                    {/* SUB-MENU 2: REKAP ABSENSI (KOP SURAT & CETAK PDF) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("rekap-absensi");
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                        activeTab === "rekap-absensi"
+                          ? "bg-[#00296E] text-white shadow-sm border border-sky-400/50 font-bold"
+                          : "text-slate-300 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FileSpreadsheet className="w-4 h-4 text-sky-300 shrink-0" />
+                        <span className="truncate">Rekap Absensi (PDF)</span>
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-sky-500 text-white uppercase tracking-wider shrink-0">
+                        Cetak
+                      </span>
+                    </button>
+
+                    {/* SUB-MENU 3: KARTU QR PENGURUS */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("kartu-qr");
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                        activeTab === "kartu-qr"
+                          ? "bg-[#00296E] text-white shadow-sm border border-sky-400/30 font-bold"
+                          : "text-slate-300 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <IdCard className="w-4 h-4 text-sky-400 shrink-0" />
+                        <span className="truncate">Kartu QR Pengurus</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* MENU 4: ASPIRASI MAHASISWA */}
               <button
@@ -1300,7 +1825,7 @@ NOTIFY pgrst, 'reload schema';`;
                     <div>
                       <span className="text-xs font-medium text-slate-500">Total Pengurus</span>
                       <h3 className="text-2xl font-black text-[#00296E] mt-1">
-                        {DAFTAR_PENGURUS_HIMASI.length} Anggota
+                        {pengurusList.length} Anggota
                       </h3>
                       <div className="flex items-center gap-1 text-[11px] text-indigo-600 font-semibold mt-1">
                         <QrCode className="w-3 h-3" />
@@ -1389,7 +1914,7 @@ NOTIFY pgrst, 'reload schema';`;
                       </p>
 
                       <div className="mt-4 grid grid-cols-2 gap-2">
-                        {DAFTAR_PENGURUS_HIMASI.slice(0, 4).map((p) => (
+                        {pengurusList.slice(0, 4).map((p) => (
                           <button
                             key={p.id}
                             type="button"
@@ -1415,7 +1940,7 @@ NOTIFY pgrst, 'reload schema';`;
                       className="mt-4 w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#00296E] font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <IdCard className="w-4 h-4 text-sky-600" />
-                      <span>Lihat Semua Kartu Pengurus ({DAFTAR_PENGURUS_HIMASI.length})</span>
+                      <span>Lihat Semua Kartu Pengurus ({pengurusList.length})</span>
                     </button>
                   </div>
                 </div>
@@ -1530,7 +2055,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 <td className="py-3 px-4 text-center">
                                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    {logCount} / {DAFTAR_PENGURUS_HIMASI.length} Hadir
+                                    {logCount} / {pengurusList.length} Hadir
                                   </span>
                                 </td>
                                 <td className="py-3 px-4 text-center">
@@ -1634,7 +2159,7 @@ NOTIFY pgrst, 'reload schema';`;
 
                             <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
                               <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                {logCount} / {DAFTAR_PENGURUS_HIMASI.length} Hadir
+                                {logCount} / {pengurusList.length} Hadir
                               </span>
 
                               <div className="flex items-center gap-1.5">
@@ -1684,9 +2209,6 @@ NOTIFY pgrst, 'reload schema';`;
                 {/* Header Pemilihan Kegiatan & Tombol Tambah Kegiatan */}
                 <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 inline-block mb-1.5">
-                      Portal Pemindai Kamera
-                    </span>
                     <h2 className="text-lg sm:text-2xl font-extrabold text-[#00296E]">
                       Scan QR Code Absensi Pengurus
                     </h2>
@@ -1696,7 +2218,7 @@ NOTIFY pgrst, 'reload schema';`;
                   </div>
 
                   {/* Tombol Tambah Kegiatan & Selector */}
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
                     {/* Selector Kegiatan */}
                     {kegiatanList.length > 0 && activeKegiatan && (
                       <div className="relative">
@@ -1717,24 +2239,11 @@ NOTIFY pgrst, 'reload schema';`;
                       </div>
                     )}
 
-                    {/* Tombol Kelola Semua Kegiatan */}
-                    {kegiatanList.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setIsKelolaKegiatanModalOpen(true)}
-                        className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
-                        title="Kelola semua daftar agenda kegiatan"
-                      >
-                        <ListFilter className="w-4 h-4 text-[#0094E0]" />
-                        <span className="hidden sm:inline">Daftar Kegiatan ({kegiatanList.length})</span>
-                      </button>
-                    )}
-
                     {/* Tombol Tambah Kegiatan Baru */}
                     <button
                       type="button"
                       onClick={() => setIsTambahKegiatanModalOpen(true)}
-                      className="px-4 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+                      className="px-3.5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                     >
                       <Plus className="w-4 h-4 text-sky-300" />
                       <span>Tambah Kegiatan</span>
@@ -1745,11 +2254,11 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => handleRequestDeleteKegiatan(activeKegiatan.id)}
-                        className="px-3.5 py-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        className="px-3.5 py-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                         title={`Hapus kegiatan "${activeKegiatan.nama}"`}
                       >
                         <Trash2 className="w-4 h-4" />
-                        <span className="hidden sm:inline">Hapus Kegiatan</span>
+                        <span>Hapus</span>
                       </button>
                     )}
                   </div>
@@ -1818,6 +2327,7 @@ NOTIFY pgrst, 'reload schema';`;
                       kegiatanTanggal={formatTanggalIndo(activeKegiatan.tanggal)}
                       kegiatanJam={activeKegiatan.jam}
                       onAttendanceSuccess={handleAttendanceSuccess}
+                      pengurusList={pengurusList}
                     />
                   </>
                 )}
@@ -1863,6 +2373,7 @@ NOTIFY pgrst, 'reload schema';`;
                   onDeleteKegiatan={handleDeleteKegiatan}
                   onDeleteAbsensiLog={handleDeleteSingleAbsensiLog}
                   onResetAllAbsensiLogs={handleResetAllAbsensiLogs}
+                  pengurusList={pengurusList}
                 />
               </div>
             )}
@@ -1882,8 +2393,19 @@ NOTIFY pgrst, 'reload schema';`;
                     </p>
                   </div>
 
-                  <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                    Total: <strong className="text-[#00296E]">{DAFTAR_PENGURUS_HIMASI.length} Kartu Terbit</strong>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
+                      Total: <strong className="text-[#00296E]">{pengurusList.length} Peserta Terdaftar</strong>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenTambahPengurus}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00296E] to-[#004bb5] hover:from-[#001f54] hover:to-[#00388a] text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <UserPlus className="w-4 h-4 text-sky-300" />
+                      <span>+ Tambah Peserta</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1901,72 +2423,115 @@ NOTIFY pgrst, 'reload schema';`;
                   </div>
 
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-                    {["SEMUA", "BPH", "MEDKOMINFO", "HUMAS", "BISNIS KREATIF", "PENASIHAT"].map(
-                      (divisi) => (
-                        <button
-                          key={divisi}
-                          type="button"
-                          onClick={() => setDivisiFilterCard(divisi)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                            divisiFilterCard === divisi
-                              ? "bg-[#00296E] text-white shadow-xs"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                          }`}
-                        >
-                          {divisi}
-                        </button>
-                      )
-                    )}
+                    {["SEMUA", ...DAFTAR_DIVISI].map((divisi) => (
+                      <button
+                        key={divisi}
+                        type="button"
+                        onClick={() => setDivisiFilterCard(divisi)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                          divisiFilterCard === divisi
+                            ? "bg-[#00296E] text-white shadow-xs"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {divisi}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 {/* Grid Kartu Pengurus */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filteredPengurusCards.map((member) => (
-                    <div
-                      key={member.id}
-                      className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:shadow-lg hover:border-sky-300 transition-all flex flex-col justify-between"
+                {filteredPengurusCards.length === 0 ? (
+                  <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+                    <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <h4 className="text-sm font-bold text-slate-700">Tidak Ada Peserta Ditemukan</h4>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      Tidak ada peserta yang cocok dengan kata kunci atau filter divisi saat ini.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleOpenTambahPengurus}
+                      className="mt-4 px-4 py-2 rounded-xl bg-[#00296E] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs"
                     >
-                      <div>
-                        {/* Member Thumbnail & Info */}
-                        <div className="flex items-center gap-3">
-                          <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                            <img
-                              src={member.image}
-                              alt={member.nama}
-                              className="w-full h-full object-cover object-top"
-                            />
+                      <UserPlus className="w-4 h-4" />
+                      <span>Tambah Peserta Sekarang</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filteredPengurusCards.map((member) => (
+                      <div
+                        key={member.id}
+                        className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:shadow-lg hover:border-sky-300 transition-all flex flex-col justify-between group"
+                      >
+                        <div>
+                          {/* Member Thumbnail & Info */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                              <img
+                                src={member.image}
+                                alt={member.nama}
+                                className="w-full h-full object-cover object-top"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                                }}
+                              />
+                            </div>
+                            <div className="overflow-hidden flex-1">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-50 text-[#00296E] border border-sky-100">
+                                {member.divisi}
+                              </span>
+                              <h4 className="text-xs font-extrabold text-slate-900 truncate mt-1">
+                                {member.nama}
+                              </h4>
+                              <p className="text-[11px] text-slate-500 truncate">{member.jabatan}</p>
+                            </div>
                           </div>
-                          <div className="overflow-hidden flex-1">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-50 text-[#00296E] border border-sky-100">
-                              {member.divisi}
-                            </span>
-                            <h4 className="text-xs font-extrabold text-slate-900 truncate mt-1">
-                              {member.nama}
-                            </h4>
-                            <p className="text-[11px] text-slate-500 truncate">{member.jabatan}</p>
+
+                          {/* Token & NIM Tag */}
+                          <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                            <span className="text-slate-400">NIM:</span>
+                            <span className="font-mono font-bold text-slate-700">{member.nim}</span>
                           </div>
                         </div>
 
-                        {/* Token Tag */}
-                        <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400">NIM:</span>
-                          <span className="font-mono font-bold text-slate-700">{member.nim}</span>
+                        {/* Action Buttons: Lihat Card, Edit, Hapus */}
+                        <div className="mt-3 space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPengurusCard(member)}
+                            className="w-full py-2 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                          >
+                            <QrCode className="w-3.5 h-3.5 text-sky-300" />
+                            <span>Lihat QR Code & ID Card</span>
+                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditPengurus(member)}
+                              className="flex-1 py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-sky-50 text-slate-600 hover:text-[#00296E] text-[11px] font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer border border-slate-200/60"
+                              title="Edit Data Peserta"
+                            >
+                              <Edit3 className="w-3 h-3 text-[#0094E0]" />
+                              <span>Edit</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRequestDeletePengurus(member)}
+                              className="py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 text-[11px] font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer border border-slate-200/60"
+                              title="Hapus Peserta"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Hapus</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Tombol Buka Kartu ID & QR Code */}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPengurusCard(member)}
-                        className="mt-3 w-full py-2 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                      >
-                        <QrCode className="w-3.5 h-3.5 text-sky-300" />
-                        <span>Lihat QR Code & ID Card</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
               </div>
             )}
@@ -2302,7 +2867,364 @@ NOTIFY pgrst, 'reload schema';`;
               <X className="w-4 h-4" />
             </button>
 
-            <PengurusQrCard member={selectedPengurusCard} />
+            <PengurusQrCard
+              member={selectedPengurusCard}
+              onClose={() => setSelectedPengurusCard(null)}
+              onEdit={(m) => handleOpenEditPengurus(m)}
+              onDelete={(m) => handleRequestDeletePengurus(m)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: TAMBAH / EDIT PESERTA PENGURUS */}
+      {isPengurusModalOpen && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200"
+          onClick={() => !savingPengurus && setIsPengurusModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 my-8 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-sky-100 text-[#00296E] flex items-center justify-center shrink-0">
+                  {editingPengurus ? (
+                    <Edit3 className="w-5 h-5 text-[#0094E0]" />
+                  ) : (
+                    <UserPlus className="w-5 h-5 text-[#0094E0]" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#00296E]">
+                    {editingPengurus ? "Edit Data Peserta" : "Tambah Peserta Baru"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {editingPengurus
+                      ? `Perbarui identitas & profil ${editingPengurus.nama}`
+                      : "Daftarkan anggota baru untuk menerbitkan kartu identitas dan QR Code"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={savingPengurus}
+                onClick={() => setIsPengurusModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePengurus} className="mt-5 space-y-4">
+              {/* Field 1: Nama Lengkap */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Nama Lengkap Peserta <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: AHMAD FAUZI"
+                  value={formPengurusNama}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormPengurusNama(val);
+                    if (!editingPengurus) {
+                      setFormPengurusToken(generateQrToken(formPengurusNim, val));
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all uppercase font-semibold"
+                />
+              </div>
+
+              {/* Grid 2 kolom: NIM & Divisi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    NIM Mahasiswa <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: 231150020"
+                    value={formPengurusNim}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormPengurusNim(val);
+                      if (!editingPengurus) {
+                        setFormPengurusToken(generateQrToken(val, formPengurusNama));
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 text-xs font-mono font-bold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Divisi Organisasi <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formPengurusDivisi}
+                    onChange={(e) => setFormPengurusDivisi(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all bg-white cursor-pointer"
+                  >
+                    {DAFTAR_DIVISI.map((div) => (
+                      <option key={div} value={div}>
+                        {div}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Grid 2 kolom: Jabatan & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Jabatan / Peran <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Anggota Medkominfo"
+                    value={formPengurusJabatan}
+                    onChange={(e) => setFormPengurusJabatan(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Email Mahasiswa (Opsional)
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="nama@atmaluhur.ac.id"
+                    value={formPengurusEmail}
+                    onChange={(e) => setFormPengurusEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Field Avatar & Upload Foto */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Foto Profil Peserta
+                </label>
+
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      processAndUploadImage(file);
+                    }
+                  }}
+                />
+
+                {/* Main Upload Box */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* Live Preview Avatar */}
+                    <div className="relative group shrink-0">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-slate-200 border-2 border-sky-400 shadow-sm flex items-center justify-center">
+                        {formPengurusImage ? (
+                          <img
+                            src={formPengurusImage}
+                            alt="Preview"
+                            className="w-full h-full object-cover object-top"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                            }}
+                          />
+                        ) : (
+                          <Camera className="w-8 h-8 text-slate-400" />
+                        )}
+                      </div>
+                      {uploadingImage && (
+                        <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
+                          <RefreshCw className="w-5 h-5 text-white animate-spin" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Upload & Info */}
+                    <div className="flex-1 text-center sm:text-left space-y-2">
+                      <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                        <button
+                          type="button"
+                          disabled={uploadingImage}
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-4 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                        >
+                          <Upload className="w-4 h-4 text-sky-300" />
+                          <span>{uploadingImage ? "Mengunggah..." : "Unggah Foto dari Perangkat"}</span>
+                        </button>
+
+                        {formPengurusImage && formPengurusImage !== "/DSC01203.png" && (
+                          <button
+                            type="button"
+                            onClick={() => setFormPengurusImage("/DSC01203.png")}
+                            className="px-3 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 text-xs font-semibold border border-slate-200 transition-colors cursor-pointer"
+                          >
+                            Reset Default
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Pilih foto peserta dari perangkat Anda (mendukung JPG, PNG, atau WebP). Berkas akan otomatis dikompres dan disimpan.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Field QR Token */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <QrCode className="w-3.5 h-3.5 text-[#0094E0]" />
+                    <span>QR Code Token</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setFormPengurusToken(generateQrToken(formPengurusNim, formPengurusNama))}
+                    className="text-[10px] font-bold text-sky-600 hover:text-sky-800 transition-colors cursor-pointer"
+                  >
+                    Generate Ulang
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={formPengurusToken}
+                  onChange={(e) => setFormPengurusToken(e.target.value)}
+                  placeholder="Auto-generated dari NIM dan Nama"
+                  className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Token unik ini di-encode ke dalam QR Code kartu identitas untuk dipindai oleh admin saat absensi.
+                </p>
+              </div>
+
+              {/* Tombol Aksi */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={savingPengurus}
+                  onClick={() => setIsPengurusModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPengurus}
+                  className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  {savingPengurus ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{editingPengurus ? "Simpan Perubahan" : "Terbitkan Kartu & Simpan"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: KONFIRMASI HAPUS PESERTA PENGURUS */}
+      {pengurusToDelete && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => !deletingPengurus && setPengurusToDelete(null)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <h3 className="text-base font-extrabold text-slate-900">
+              Hapus Data Peserta?
+            </h3>
+
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Anda akan menghapus peserta berikut dari daftar pengurus HIMASI:
+            </p>
+
+            {/* Preview Peserta yang akan dihapus */}
+            <div className="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3 text-left">
+              <div className="w-11 h-11 rounded-xl overflow-hidden bg-slate-200 shrink-0">
+                <img
+                  src={pengurusToDelete.image}
+                  alt={pengurusToDelete.nama}
+                  className="w-full h-full object-cover object-top"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                  }}
+                />
+              </div>
+              <div className="overflow-hidden flex-1">
+                <h4 className="text-xs font-black text-slate-900 truncate">
+                  {pengurusToDelete.nama}
+                </h4>
+                <p className="text-[11px] text-slate-500 font-mono">
+                  {pengurusToDelete.nim} • {pengurusToDelete.divisi}
+                </p>
+                <p className="text-[10px] text-slate-400 truncate">
+                  {pengurusToDelete.jabatan}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium text-left">
+              Kartu identitas dan QR Code untuk peserta ini tidak akan bisa dipindai lagi pada agenda absensi mendatang.
+            </div>
+
+            <div className="mt-6 flex items-center gap-2.5">
+              <button
+                type="button"
+                disabled={deletingPengurus}
+                onClick={() => setPengurusToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deletingPengurus}
+                onClick={handleConfirmDeletePengurus}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+              >
+                {deletingPengurus ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Ya, Hapus</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2547,275 +3469,7 @@ NOTIFY pgrst, 'reload schema';`;
         </div>
       )}
 
-      {/* MODAL 4: KELOLA SEMUA KEGIATAN (TABEL MULTI-DEVICE RESPONSIF) */}
-      {isKelolaKegiatanModalOpen && (
-        <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-200"
-          onClick={() => setIsKelolaKegiatanModalOpen(false)}
-        >
-          <div
-            className="relative w-full max-w-3xl rounded-3xl bg-white p-5 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-sky-50 text-[#00296E] flex items-center justify-center border border-sky-100">
-                  <Calendar className="w-5 h-5 text-[#0094E0]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-[#00296E]">
-                    Tabel Kelola Seluruh Kegiatan ({kegiatanList.length})
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Pilih kegiatan aktif pemindaian, buka rekapitulasi, atau kelola agenda
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsKelolaKegiatanModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Toolbar Filter Pencarian */}
-            <div className="py-3 shrink-0 flex items-center justify-between gap-3">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Cari kegiatan atau tanggal..."
-                  value={searchKegiatanModal}
-                  onChange={(e) => setSearchKegiatanModal(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#00296E]"
-                />
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsKelolaKegiatanModalOpen(false);
-                  setIsTambahKegiatanModalOpen(true);
-                }}
-                className="px-3.5 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5 text-sky-300" />
-                <span>+ Tambah Baru</span>
-              </button>
-            </div>
-
-            {/* TABEL KEGIATAN DESKTOP & TABLET */}
-            <div className="hidden md:block overflow-y-auto flex-1 my-1 border border-slate-100 rounded-2xl">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 z-10">
-                  <tr>
-                    <th className="py-2.5 px-3.5 w-10 text-center">No</th>
-                    <th className="py-2.5 px-3.5">Nama Kegiatan</th>
-                    <th className="py-2.5 px-3.5">Tanggal & Waktu</th>
-                    <th className="py-2.5 px-3.5 text-center">Presensi Hadir</th>
-                    <th className="py-2.5 px-3.5 text-center">Status</th>
-                    <th className="py-2.5 px-3.5 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {filteredKegiatanModal.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">
-                        Belum ada kegiatan yang cocok dengan pencarian.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredKegiatanModal.map((k, index) => {
-                      const isActive = activeKegiatan?.id === k.id;
-                      const logCount = absensiLogs.filter(
-                        (l) => l.kegiatan.trim().toLowerCase() === k.nama.trim().toLowerCase()
-                      ).length;
-
-                      return (
-                        <tr
-                          key={k.id}
-                          className={`transition-colors hover:bg-slate-50 ${
-                            isActive ? "bg-sky-50/60" : ""
-                          }`}
-                        >
-                          <td className="py-3 px-3.5 text-center font-mono text-slate-400">
-                            {index + 1}
-                          </td>
-                          <td className="py-3 px-3.5">
-                            <span className="font-extrabold text-slate-900 block">{k.nama}</span>
-                          </td>
-                          <td className="py-3 px-3.5 text-slate-600">
-                            <span className="font-semibold block">{formatTanggalIndo(k.tanggal)}</span>
-                            <span className="text-[11px] text-slate-400">{k.jam}</span>
-                          </td>
-                          <td className="py-3 px-3.5 text-center">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              {logCount} / {DAFTAR_PENGURUS_HIMASI.length}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3.5 text-center">
-                            {isActive ? (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#00296E] text-white uppercase">
-                                Aktif
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-slate-100 text-slate-600">
-                                Tersimpan
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3.5 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {!isActive ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveKegiatan(k);
-                                    setIsKelolaKegiatanModalOpen(false);
-                                  }}
-                                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-[#00296E] hover:text-white text-slate-700 text-[11px] font-bold transition-all cursor-pointer"
-                                >
-                                  Pilih
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsKelolaKegiatanModalOpen(false);
-                                    setActiveTab("rekap-absensi");
-                                  }}
-                                  className="px-2.5 py-1 rounded-lg bg-sky-100 hover:bg-sky-200 text-[#00296E] text-[11px] font-bold transition-colors cursor-pointer"
-                                >
-                                  Lihat Rekap
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setKegiatanToDelete(k)}
-                                className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
-                                title={`Hapus ${k.nama}`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* TABEL FORMAT KARTU RESPONSIF (UNTUK HP / SMARTPHONE LAYAR KECIL) */}
-            <div className="md:hidden overflow-y-auto flex-1 my-1 space-y-2.5 py-1">
-              {filteredKegiatanModal.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  Belum ada agenda kegiatan yang cocok.
-                </div>
-              ) : (
-                filteredKegiatanModal.map((k) => {
-                  const isActive = activeKegiatan?.id === k.id;
-                  const logCount = absensiLogs.filter(
-                    (l) => l.kegiatan.trim().toLowerCase() === k.nama.trim().toLowerCase()
-                  ).length;
-
-                  return (
-                    <div
-                      key={k.id}
-                      className={`p-3.5 rounded-2xl border transition-all ${
-                        isActive
-                          ? "bg-sky-50/70 border-sky-200 shadow-2xs"
-                          : "bg-white border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="overflow-hidden">
-                          <p className="text-xs font-bold text-slate-900 truncate">{k.nama}</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {formatTanggalIndo(k.tanggal)} • {k.jam}
-                          </p>
-                        </div>
-                        {isActive ? (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#00296E] text-white uppercase shrink-0">
-                            Aktif
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-slate-100 text-slate-600 shrink-0">
-                            Tersimpan
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          {logCount} / {DAFTAR_PENGURUS_HIMASI.length} Hadir
-                        </span>
-
-                        <div className="flex items-center gap-1.5">
-                          {!isActive ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveKegiatan(k);
-                                setIsKelolaKegiatanModalOpen(false);
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-bold hover:bg-slate-200 cursor-pointer"
-                            >
-                              Pilih
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsKelolaKegiatanModalOpen(false);
-                                setActiveTab("rekap-absensi");
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-[#00296E] text-white text-[11px] font-bold cursor-pointer"
-                            >
-                              Rekap
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setKegiatanToDelete(k)}
-                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 cursor-pointer"
-                            title={`Hapus ${k.nama}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsKelolaKegiatanModalOpen(false);
-                  setActiveTab("rekap-absensi");
-                }}
-                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
-              >
-                Buka Tab Rekap Absensi
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsKelolaKegiatanModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* FLOATING TOAST NOTIFICATION */}
       {toastMessage && (
