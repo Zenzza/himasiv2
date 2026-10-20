@@ -150,9 +150,10 @@ export default function Footer() {
           </p>
 
           <Link
-            href="/profil#kontak"
-            className="underline underline-offset-4 hover:text-[#00296E] transition-colors order-3"
+            href="/login"
+            className="hover:text-[#00296E] transition-colors order-3 text-[11px] font-semibold text-slate-500 hover:underline flex items-center gap-1"
           >
+            <span>Portal Pengurus</span>
           </Link>
         </div>
 

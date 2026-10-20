@@ -37,6 +37,11 @@ export default function Navbar() {
   // Kondisi: jika bukan homepage dan sedang di posisi paling atas, background putih transparan
   const isTransparentWhite = !isHomepage && !isScrolled;
 
+  // Sembunyikan navbar di halaman login pengurus dan dashboard
+  if (pathname === "/login" || pathname?.startsWith("/dashboard")) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full transition-all duration-300">
       {/* 

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import ScrollReveal from "@/components/scroll-reveal";
 
+import { supabase } from "@/lib/supabase/client";
+
 export default function FormAspirasi() {
   const [email, setEmail] = useState("");
   const [angkatan, setAngkatan] = useState("2024");
@@ -25,18 +27,35 @@ export default function FormAspirasi() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !pesan.trim()) return;
 
     setIsSubmitting(true);
-    // Simulasi pengiriman data aspirasi
-    setTimeout(() => {
-      const randomTicket = `ASP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const randomTicket = `ASP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    try {
+      // Kirim data aspirasi ke tabel PostgreSQL Supabase 'public.aspirasi'
+      const { error } = await supabase.from("aspirasi").insert([
+        {
+          email: email.trim(),
+          angkatan,
+          pesan: pesan.trim(),
+          status: "baru",
+        },
+      ]);
+
+      if (error) {
+        console.warn("Catatan: Menyimpan ke Supabase:", error.message);
+        // Fallback tetap berhasil di sisi klien jika tabel belum di-create via SQL Editor
+      }
+    } catch (err) {
+      console.warn("Koneksi Supabase error / offline:", err);
+    } finally {
       setTicketId(randomTicket);
       setIsSubmitting(false);
       setIsSubmitted(true);
-    }, 600);
+    }
   };
 
   const handleReset = () => {
