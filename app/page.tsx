@@ -626,11 +626,11 @@ export default function Home() {
 
       {/* SECTION: HIMASI DALAM ANGKA */}
       <section id="himasi-angka" className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
-        <ScrollReveal className="relative max-w-6xl mx-auto">
+        <div className="relative max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 items-stretch">
             
             {/* Kolom Kiri: Header 'HIMASI dalam Angka' */}
-            <div className="sm:col-span-2 lg:col-span-1 flex flex-col justify-center py-2 pr-2">
+            <ScrollReveal direction="up" className="sm:col-span-2 lg:col-span-1 flex flex-col justify-center py-2 pr-2">
               <div className="flex items-center gap-2 text-4xl font-extrabold text-[#00296E] uppercase">
                 <span>HIMASI</span>
               </div>
@@ -640,9 +640,9 @@ export default function Home() {
               <p className="text-xs sm:text-sm text-slate-500 mt-2.5 leading-relaxed font-normal">
                 Lebih dari sekadar angka, ini adalah tentang perjalanan dan kontribusi.
               </p>
-            </div>
+            </ScrollReveal>
 
-            {/* Kolom Kanan: 4 Metric Cards (Warna Tetap Sesuai Yang Ada) */}
+            {/* Kolom Kanan: 3 Metric Cards (Animasi kotak muncul satu persatu) */}
             {[
               {
                 number: "",
@@ -668,87 +668,97 @@ export default function Home() {
             ].map((card, idx) => {
               const IconComponent = card.icon;
               return (
-                <div
+                <ScrollReveal
                   key={idx}
-                  className="relative rounded-2xl bg-[#00296E] border border-white/10 p-5 sm:p-6 flex flex-col justify-between shadow-xl hover:-translate-y-1 hover:border-[#0094E0]/40 transition-all duration-300 group"
+                  direction="card-pop"
+                  delay={idx * 160}
+                  className="h-full"
                 >
-                  {/* Top Row: Icon on Left, Number on Right */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-11 h-11 rounded-xl ${card.iconStyle} flex items-center justify-center transition-transform group-hover:scale-105 shrink-0`}>
-                      <IconComponent className="w-5 h-5 stroke-[2.2]" />
+                  <div
+                    className="h-full relative rounded-2xl bg-[#00296E] border border-white/10 p-5 sm:p-6 flex flex-col justify-between shadow-xl hover:-translate-y-1 hover:border-[#0094E0]/40 transition-all duration-300 group"
+                  >
+                    {/* Top Row: Icon on Left, Number on Right */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`w-11 h-11 rounded-xl ${card.iconStyle} flex items-center justify-center transition-transform group-hover:scale-105 shrink-0`}>
+                        <IconComponent className="w-5 h-5 stroke-[2.2]" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-bold text-[#0094E0]/80 tracking-wider font-mono">
+                        {card.number}
+                      </span>
                     </div>
-                    <span className="text-xs sm:text-sm font-bold text-[#0094E0]/80 tracking-wider font-mono">
-                      {card.number}
-                    </span>
-                  </div>
 
-                  {/* Content: Title, Underline, Subtitle */}
-                  <div>
-                    <h4 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                      {card.title}
-                    </h4>
-                    <div className="w-7 h-0.5 bg-[#0094E0] my-2 rounded-full" />
-                    <p className="text-slate-300/90 text-xs mt-1.5 leading-relaxed font-normal">
-                      {card.subtitle}
-                    </p>
+                    {/* Content: Title, Underline, Subtitle */}
+                    <div>
+                      <h4 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                        {card.title}
+                      </h4>
+                      <div className="w-7 h-0.5 bg-[#0094E0] my-2 rounded-full" />
+                      <p className="text-slate-300/90 text-xs mt-1.5 leading-relaxed font-normal">
+                        {card.subtitle}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </ScrollReveal>
               );
             })}
 
           </div>
-        </ScrollReveal>
+        </div>
       </section>
 
       {/* SECTION: VISI & MISI HIMASI */}
       <section id="visi-misi" className="relative py-12 sm:py-18 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
-        <ScrollReveal className="relative max-w-6xl mx-auto">
+        <div className="relative max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
             
-            {/* Kolom Kiri: VISI (Bentuk Trapesium Presisi Sesuai Gambar Referensi) */}
-            <div className="lg:col-span-5 relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-visible">
-              {/* Background SVG Trapesium with exact path - Single Solid Color #00296E */}
-              <svg
-                className="absolute inset-0 w-full h-full -z-0"
-                viewBox="0 0 500 400"
-                preserveAspectRatio="none"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M 28,0.75 L 335,0.75 C 370,0.75 398,15.75 428,48.75 L 472,92.75 C 492,112.75 499.25,128 499.25,150 L 499.25,372 C 499.25,389.5 487.5,399.25 468,399.25 L 28,399.25 C 12.5,399.25 0.75,387.5 0.75,372 L 0.75,28 C 0.75,12.5 12.5,0.75 28,0.75 Z"
-                  fill="#00296E"
-                  stroke="rgba(255,255,255,0.15)"
-                  strokeWidth="1.5"
-                />
-              </svg>
+            {/* Kolom Kiri: VISI (Bentuk Trapesium Presisi Sesuai Gambar Referensi - Card Pop) */}
+            <ScrollReveal direction="card-pop" className="lg:col-span-5 h-full">
+              <div className="relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-visible h-full">
+                {/* Background SVG Trapesium with exact path - Single Solid Color #00296E */}
+                <svg
+                  className="absolute inset-0 w-full h-full -z-0"
+                  viewBox="0 0 500 400"
+                  preserveAspectRatio="none"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M 28,0.75 L 335,0.75 C 370,0.75 398,15.75 428,48.75 L 472,92.75 C 492,112.75 499.25,128 499.25,150 L 499.25,372 C 499.25,389.5 487.5,399.25 468,399.25 L 28,399.25 C 12.5,399.25 0.75,387.5 0.75,372 L 0.75,28 C 0.75,12.5 12.5,0.75 28,0.75 Z"
+                    fill="#00296E"
+                    stroke="rgba(255,255,255,0.15)"
+                    strokeWidth="1.5"
+                  />
+                </svg>
 
-              {/* Content within Trapezoid */}
-              <div className="relative z-10 flex flex-col justify-between h-full">
-                <div>
-                  {/* Header: ── VISI */}
-                  <div className="flex items-center gap-2 text-xl font-bold tracking-[0.25em] text-[#FFFFFF] uppercase mb-4 sm:mb-6">
-                    <span>VISI HIMASI</span>
-                  </div>
+                {/* Content within Trapezoid */}
+                <div className="relative z-10 flex flex-col justify-between h-full">
+                  <div>
+                    {/* Header: ── VISI */}
+                    <div className="flex items-center gap-2 text-xl font-bold tracking-[0.25em] text-[#FFFFFF] uppercase mb-4 sm:mb-6">
+                      <span>VISI HIMASI</span>
+                    </div>
 
-                  {/* Quote Icon & Content */}
-                  <div className="pr-6 sm:pr-12 lg:pr-16">
-                    <p className="text-white text-base sm:text-lg lg:text-xl font-medium leading-relaxed tracking-normal">
-                      Menjadi lembaga keilmuan yang <strong className="font-extrabold text-white">unggul</strong> dalam pengembangan potensi mahasiswa Sistem Informasi yang berdaya saing, berintegritas, dan berkontribusi bagi masyarakat.
-                    </p>
+                    {/* Quote Icon & Content */}
+                    <div className="pr-6 sm:pr-12 lg:pr-16">
+                      <p className="text-white text-base sm:text-lg lg:text-xl font-medium leading-relaxed tracking-normal">
+                        Menjadi lembaga keilmuan yang <strong className="font-extrabold text-white">unggul</strong> dalam pengembangan potensi mahasiswa Sistem Informasi yang berdaya saing, berintegritas, dan berkontribusi bagi masyarakat.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </ScrollReveal>
 
-            {/* Kolom Kanan: MISI (4 Pill Horizontal Sesuai Gambar) */}
+            {/* Kolom Kanan: MISI (4 Pill Horizontal Sesuai Gambar - Muncul Satu Persatu) */}
             <div className="lg:col-span-7 flex flex-col justify-center py-2">
               {/* Header: ── MISI */}
-              <div className="flex items-center gap-2 text-xl font-bold tracking-[0.25em] text-[#00296E] uppercase mb-4 sm:mb-5">
-                <span>MISI HIMASI</span>
-              </div>
+              <ScrollReveal direction="up">
+                <div className="flex items-center gap-2 text-xl font-bold tracking-[0.25em] text-[#00296E] uppercase mb-4 sm:mb-5">
+                  <span>MISI HIMASI</span>
+                </div>
+              </ScrollReveal>
 
-              {/* 4 Misi Items with Numbered Circle Badges */}
+              {/* 4 Misi Items with Numbered Circle Badges (Muncul satu persatu bergantian) */}
               <div className="space-y-3 sm:space-y-3.5">
                 {[
                   {
@@ -772,25 +782,28 @@ export default function Home() {
                     highlight: false,
                   },
                 ].map((misi, idx) => (
-                  <div key={idx} className="flex items-center gap-3 sm:gap-4 group">
-                    {/* Circle Badge 01, 02, 03, 04 */}
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#00296E] text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 shadow-md transition-all duration-200">
-                      {misi.no}
-                    </div>
+                  <ScrollReveal key={idx} direction="left" delay={idx * 140}>
+                    <div className="flex items-center gap-3 sm:gap-4 group">
+                      {/* Circle Badge 01, 02, 03, 04 */}
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#00296E] text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 shadow-md transition-all duration-200">
+                        {misi.no}
+                      </div>
 
-                    {/* Pill Text Container */}
-                    <div className="flex-1 py-3 px-4 sm:px-5 rounded-2xl sm:rounded-full bg-slate-50 border border-slate-100 transition-all duration-200">
-                      <p className={`text-xs sm:text-sm leading-relaxed ${misi.highlight ? "text-[#0094E0] font-semibold" : "text-slate-700 font-medium"}`}>
-                        {misi.text}
-                      </p>
+                      {/* Pill Text Container */}
+                      <div className="flex-1 py-3 px-4 sm:px-5 rounded-2xl sm:rounded-full bg-slate-50 border border-slate-100 transition-all duration-200">
+                        <p className={`text-xs sm:text-sm leading-relaxed ${misi.highlight ? "text-[#0094E0] font-semibold" : "text-slate-700 font-medium"}`}>
+                          {misi.text}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  </ScrollReveal>
                 ))}
               </div>
             </div>
           </div>
-        </ScrollReveal>
-      </section>  
+        </div>
+      </section>
+
       {/* SECTION: DAFTAR FITUR UTAMA */}
       <section id="fitur-utama" className="relative py-8 sm:py-2 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
         <ScrollReveal className="relative max-w-6xl mx-auto">

@@ -442,7 +442,7 @@ export default function KalenderPage() {
       {/* Navigasi Bulan, Hari Mon-Sun, Tanggal Border Squircle + Dot */}
       {/* ============================================================ */}
       <section className="relative py-8 sm:py-12 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full">
-        <ScrollReveal className="max-w-xl mx-auto">
+        <ScrollReveal direction="card-pop" className="max-w-xl mx-auto">
           
           {/* Card Kalender Widget */}
           <div className="bg-white rounded-[28px] sm:rounded-[36px] p-6 sm:p-9 border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow">
@@ -700,61 +700,62 @@ export default function KalenderPage() {
           {/* List Event Cards */}
           {displayedEvents.length > 0 ? (
             <div className="space-y-4">
-              {displayedEvents.map((evt) => (
-                <div
-                  key={evt.id}
-                  className="group relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 hover:border-[#0094E0]/40 p-5 sm:p-6 shadow-xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-5"
-                >
-                  <div className="flex items-start sm:items-center gap-4 sm:gap-5">
-                    {/* Kotak Tanggal di Kiri */}
-                    <div
-                      className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border-2 flex flex-col items-center justify-center shrink-0 ${evt.color.border} bg-white shadow-xs`}
-                    >
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        {formatDayName(evt.dateStr).slice(0, 3)}
-                      </span>
-                      <span className="text-xl sm:text-2xl font-black text-[#00296E] leading-tight">
-                        {evt.dateStr.split("-")[2]}
-                      </span>
-                      <span className="text-[9px] font-semibold text-slate-400 uppercase">
-                        {MONTH_SHORT_ID[parseInt(evt.dateStr.split("-")[1], 10) - 1]}
-                      </span>
-                    </div>
-
-                    {/* Rincian Keterangan Event */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${evt.color.bgBadge} ${evt.color.textBadge}`}
-                        >
-                          {evt.categoryLabel}
+              {displayedEvents.map((evt, idx) => (
+                <ScrollReveal key={evt.id} direction="left" delay={idx * 100}>
+                  <div
+                    className="group relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 hover:border-[#0094E0]/40 p-5 sm:p-6 shadow-xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-5"
+                  >
+                    <div className="flex items-start sm:items-center gap-4 sm:gap-5">
+                      {/* Kotak Tanggal di Kiri */}
+                      <div
+                        className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border-2 flex flex-col items-center justify-center shrink-0 ${evt.color.border} bg-white shadow-xs`}
+                      >
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          {formatDayName(evt.dateStr).slice(0, 3)}
+                        </span>
+                        <span className="text-xl sm:text-2xl font-black text-[#00296E] leading-tight">
+                          {evt.dateStr.split("-")[2]}
+                        </span>
+                        <span className="text-[9px] font-semibold text-slate-400 uppercase">
+                          {MONTH_SHORT_ID[parseInt(evt.dateStr.split("-")[1], 10) - 1]}
                         </span>
                       </div>
 
-                      <h3 className="text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-snug">
-                        {evt.title}
-                      </h3>
+                      {/* Rincian Keterangan Event */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${evt.color.bgBadge} ${evt.color.textBadge}`}
+                          >
+                            {evt.categoryLabel}
+                          </span>
+                        </div>
 
-                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-2xl">
-                        {evt.desc}
-                      </p>
+                        <h3 className="text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-snug">
+                          {evt.title}
+                        </h3>
+
+                        <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-2xl">
+                          {evt.desc}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Tombol Simpan ke Google Calendar di Kanan */}
+                    <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+                      <a
+                        href={getGoogleCalendarUrl(evt)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-[#00296E] bg-slate-100 hover:bg-[#00296E] hover:text-white transition-all shadow-xs cursor-pointer group/cal"
+                      >
+                        <CalendarIcon className="w-3.5 h-3.5 text-[#0094E0] group-hover/cal:text-white" />
+                        <span>Simpan ke Kalender</span>
+                        <ExternalLink className="w-3 h-3 opacity-60" />
+                      </a>
                     </div>
                   </div>
-
-                  {/* Tombol Simpan ke Google Calendar di Kanan */}
-                  <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
-                    <a
-                      href={getGoogleCalendarUrl(evt)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-[#00296E] bg-slate-100 hover:bg-[#00296E] hover:text-white transition-all shadow-xs cursor-pointer group/cal"
-                    >
-                      <CalendarIcon className="w-3.5 h-3.5 text-[#0094E0] group-hover/cal:text-white" />
-                      <span>Simpan ke Kalender</span>
-                      <ExternalLink className="w-3 h-3 opacity-60" />
-                    </a>
-                  </div>
-                </div>
+                </ScrollReveal>
               ))}
             </div>
           ) : (

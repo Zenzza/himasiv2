@@ -303,77 +303,78 @@ export default function BeritaPage() {
               {/* Grid Artikel (2 Kolom di sisi kiri) */}
               {paginatedArticles.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-7 sm:gap-8">
-                  {paginatedArticles.map((article) => (
-                    <article
-                      key={article.id}
-                      className="group flex flex-col items-start select-none"
-                    >
-                      {/* Gambar Artikel dengan Sudut Melengkung & Aksen Bentuk Geometris */}
-                      <div className="relative w-full aspect-[16/10.5] rounded-[22px] sm:rounded-[24px] overflow-hidden bg-slate-100 border border-slate-100 shadow-xs group-hover:shadow-lg transition-all duration-300">
-                        <img
-                          src={article.image}
-                          alt={article.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
+                  {paginatedArticles.map((article, idx) => (
+                    <ScrollReveal key={article.id} direction="card-pop" delay={(idx % 2) * 150} className="w-full">
+                      <article
+                        className="group flex flex-col items-start select-none"
+                      >
+                        {/* Gambar Artikel dengan Sudut Melengkung & Aksen Bentuk Geometris */}
+                        <div className="relative w-full aspect-[16/10.5] rounded-[22px] sm:rounded-[24px] overflow-hidden bg-slate-100 border border-slate-100 shadow-xs group-hover:shadow-lg transition-all duration-300">
+                          <img
+                            src={article.image}
+                            alt={article.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
 
-                        {/* Ornamen Bentuk Geometris Warna-Warni Sesuai Referensi Gambar */}
-                        <div
-                          className={`absolute ${article.cornerPosition} w-14 h-14 sm:w-16 sm:h-16 ${article.cornerShape} ${article.cornerColor} opacity-90 transition-transform group-hover:scale-110 duration-300 pointer-events-none shadow-sm`}
-                        />
-                      </div>
+                          {/* Ornamen Bentuk Geometris Warna-Warni Sesuai Referensi Gambar */}
+                          <div
+                            className={`absolute ${article.cornerPosition} w-14 h-14 sm:w-16 sm:h-16 ${article.cornerShape} ${article.cornerColor} opacity-90 transition-transform group-hover:scale-110 duration-300 pointer-events-none shadow-sm`}
+                          />
+                        </div>
 
-                      {/* Kategori Badge Pill */}
-                      <div className="mt-4">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCategory(article.categoryKey);
-                            setCurrentPage(1);
-                          }}
-                          className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-[#00296E] hover:text-white text-slate-700 transition-colors cursor-pointer"
-                        >
-                          {article.categoryLabel}
-                        </button>
-                      </div>
+                        {/* Kategori Badge Pill */}
+                        <div className="mt-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(article.categoryKey);
+                              setCurrentPage(1);
+                            }}
+                            className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-[#00296E] hover:text-white text-slate-700 transition-colors cursor-pointer"
+                          >
+                            {article.categoryLabel}
+                          </button>
+                        </div>
 
-                      {/* Meta Row: Tanggal & Waktu Baca */}
-                      <div className="mt-2.5 flex items-center gap-2 text-xs text-slate-500 font-medium">
-                        <span>{article.date}</span>
-                        <span>&bull;</span>
-                        <span>{article.readTime}</span>
-                      </div>
+                        {/* Meta Row: Tanggal & Waktu Baca */}
+                        <div className="mt-2.5 flex items-center gap-2 text-xs text-slate-500 font-medium">
+                          <span>{article.date}</span>
+                          <span>&bull;</span>
+                          <span>{article.readTime}</span>
+                        </div>
 
-                      {/* Judul Artikel */}
-                      <h3 className="mt-2 text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-snug line-clamp-2">
-                        {article.title}
-                      </h3>
+                        {/* Judul Artikel */}
+                        <h3 className="mt-2 text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-snug line-clamp-2">
+                          {article.title}
+                        </h3>
 
-                      {/* Ringkasan / Excerpt */}
-                      <p className="mt-2 text-slate-600 text-xs sm:text-sm leading-relaxed line-clamp-2 font-normal">
-                        {article.excerpt}
-                      </p>
+                        {/* Ringkasan / Excerpt */}
+                        <p className="mt-2 text-slate-600 text-xs sm:text-sm leading-relaxed line-clamp-2 font-normal">
+                          {article.excerpt}
+                        </p>
 
-                      {/* Tombol Aksi: Baca Selengkapnya & Bagikan */}
-                      <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors">
-                          <span>Baca Selengkapnya</span>
-                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShare(article);
-                          }}
-                          className="w-8 h-8 rounded-full bg-slate-100 hover:bg-[#00296E] text-slate-600 hover:text-white flex items-center justify-center transition-all cursor-pointer"
-                          title="Bagikan Artikel"
-                          aria-label="Bagikan Artikel"
-                        >
-                          <Share2 className="w-3.5 h-3.5 stroke-[2]" />
-                        </button>
-                      </div>
+                        {/* Tombol Aksi: Baca Selengkapnya & Bagikan */}
+                        <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors">
+                            <span>Baca Selengkapnya</span>
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShare(article);
+                            }}
+                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-[#00296E] text-slate-600 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                            title="Bagikan Artikel"
+                            aria-label="Bagikan Artikel"
+                          >
+                            <Share2 className="w-3.5 h-3.5 stroke-[2]" />
+                          </button>
+                        </div>
 
-                    </article>
+                      </article>
+                    </ScrollReveal>
                   ))}
                 </div>
               ) : (

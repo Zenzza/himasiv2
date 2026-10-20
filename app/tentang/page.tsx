@@ -395,27 +395,33 @@ export default function TentangPage() {
             ].map((card, idx) => {
               const IconComponent = card.icon;
               return (
-                <div
+                <ScrollReveal
                   key={idx}
-                  className="relative rounded-2xl sm:rounded-3xl bg-[#002257] border border-white/10 p-5 sm:p-6 flex flex-col justify-between shadow-xl hover:-translate-y-1 hover:border-[#0094E0]/40 transition-all duration-300 group"
+                  direction="card-pop"
+                  delay={idx * 160}
+                  className="h-full"
                 >
-                  {/* Top Row: Icon Container */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-11 h-11 rounded-xl ${card.iconStyle} flex items-center justify-center transition-transform group-hover:scale-105 shrink-0`}>
-                      <IconComponent className="w-5 h-5 stroke-[2.2]" />
+                  <div
+                    className="h-full relative rounded-2xl sm:rounded-3xl bg-[#00296E] border border-white/10 p-5 sm:p-6 flex flex-col justify-between shadow-xl hover:-translate-y-1 hover:border-[#0094E0]/40 transition-all duration-300 group"
+                  >
+                    {/* Top Row: Icon Container */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`w-11 h-11 rounded-xl ${card.iconStyle} flex items-center justify-center transition-transform group-hover:scale-105 shrink-0`}>
+                        <IconComponent className="w-5 h-5 stroke-[2.2]" />
+                      </div>
+                    </div>
+
+                    {/* Content: Title & Subtitle */}
+                    <div>
+                      <h4 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                        {card.title}
+                      </h4>
+                      <p className="text-slate-300/90 text-xs mt-2 leading-relaxed font-normal">
+                        {card.subtitle}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Content: Title & Subtitle */}
-                  <div>
-                    <h4 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                      {card.title}
-                    </h4>
-                    <p className="text-slate-300/90 text-xs mt-2 leading-relaxed font-normal">
-                      {card.subtitle}
-                    </p>
-                  </div>
-                </div>
+                </ScrollReveal>
               );
             })}
 
@@ -442,7 +448,7 @@ export default function TentangPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
               
               {/* CARD VISI 1 */}
-              <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#002257] p-7 sm:p-9 text-white shadow-xl border border-white/10 overflow-hidden flex flex-col justify-between group hover:border-[#0094E0]/40 transition-all duration-300">
+              <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#00296E] p-7 sm:p-9 text-white shadow-xl border border-white/10 overflow-hidden flex flex-col justify-between group hover:border-[#0094E0]/40 transition-all duration-300">
                 {/* Giant watermark number */}
                 <span className="absolute -bottom-6 -right-3 text-[140px] font-black text-white/[0.04] select-none pointer-events-none font-mono leading-none">
                   01
@@ -462,7 +468,7 @@ export default function TentangPage() {
               </div>
 
               {/* CARD VISI 2 */}
-              <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#002257] p-7 sm:p-9 text-white shadow-xl border border-white/10 overflow-hidden flex flex-col justify-between group hover:border-[#0094E0]/40 transition-all duration-300">
+              <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#00296E] p-7 sm:p-9 text-white shadow-xl border border-white/10 overflow-hidden flex flex-col justify-between group hover:border-[#0094E0]/40 transition-all duration-300">
                 {/* Giant watermark number */}
                 <span className="absolute -bottom-6 -right-3 text-[140px] font-black text-white/[0.04] select-none pointer-events-none font-mono leading-none">
                   02
@@ -577,7 +583,7 @@ export default function TentangPage() {
             </div>
 
             {/* Motto Card - Style seragam dengan kartu Visi */}
-            <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#002257] p-7 sm:p-10 text-white shadow-xl border border-white/10 overflow-hidden text-center group hover:border-[#0094E0]/40 transition-all duration-300">
+            <div className="relative rounded-[28px] sm:rounded-[32px] bg-[#00296E] p-7 sm:p-10 text-white shadow-xl border border-white/10 overflow-hidden text-center group hover:border-[#0094E0]/40 transition-all duration-300">
               <p className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-snug sm:leading-relaxed">
                 &ldquo;MENJEMBATANI TEKNOLOGI DAN STRATEGI, MEMBANGUN MASA DEPAN&rdquo;
               </p>
@@ -796,63 +802,64 @@ export default function TentangPage() {
 
           {/* Grid 6 Kartu Kontak & Media Sosial (Hanya Nama Media Sosial & Nama Akun) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {CONTACT_CHANNELS.map((channel) => (
-              <a
-                key={channel.id}
-                href={channel.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`group relative flex items-center justify-between p-5 sm:p-6 rounded-[22px] bg-white border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 ${channel.accentColor} hover:-translate-y-1`}
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  {/* Icon Media Sosial */}
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${channel.iconBg} transition-transform duration-300 group-hover:scale-105`}>
-                    {channel.id === "instagram" && (
-                      <svg className="w-5 h-5 fill-none stroke-current stroke-[2]" viewBox="0 0 24 24">
-                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                      </svg>
-                    )}
-                    {channel.id === "tiktok" && (
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.89 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.3 0 .58.05.85.14V9.45a6.37 6.37 0 0 0-.85-.06A6.34 6.34 0 0 0 3 15.73 6.34 6.34 0 0 0 9.34 22a6.34 6.34 0 0 0 6.34-6.27V9.06a8.28 8.28 0 0 0 3.91 1V6.69z" />
-                      </svg>
-                    )}
-                    {channel.id === "youtube" && (
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                      </svg>
-                    )}
-                    {channel.id === "website" && (
-                      <Globe className="w-5 h-5 text-white" />
-                    )}
-                    {channel.id === "alamat" && (
-                      <MapPin className="w-5 h-5 text-white" />
-                    )}
-                    {channel.id === "whatsapp" && (
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M20.52 3.48A11.93 11.93 0 0 0 12.06 0C5.46 0 .09 5.37.09 11.97c0 2.11.55 4.16 1.6 5.97L0 24l6.23-1.63a11.93 11.93 0 0 0 5.83 1.51h.01c6.6 0 11.97-5.37 11.97-11.97 0-3.2-1.25-6.21-3.52-8.43zM12.07 21.87h-.01a9.9 9.9 0 0 1-5.05-1.39l-.36-.22-3.75.98 1-3.66-.24-.38a9.92 9.92 0 0 1-1.52-5.23c0-5.48 4.46-9.94 9.95-9.94 2.65 0 5.15 1.03 7.02 2.91a9.88 9.88 0 0 1 2.91 7.03c0 5.48-4.46 9.94-9.95 9.94zm5.45-7.44c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.79-1.67-2.09-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.05 1.03-1.05 2.51s1.07 2.91 1.22 3.11c.15.2 2.11 3.22 5.11 4.51.71.31 1.27.49 1.7.63.72.23 1.37.2 1.88.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z"/>
-                      </svg>
-                    )}
+            {CONTACT_CHANNELS.map((channel, idx) => (
+              <ScrollReveal key={channel.id} delay={(idx % 3) * 100}>
+                <a
+                  href={channel.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group relative flex items-center justify-between p-5 sm:p-6 rounded-[22px] bg-white border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 ${channel.accentColor} hover:-translate-y-1`}
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    {/* Icon Media Sosial */}
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${channel.iconBg} transition-transform duration-300 group-hover:scale-105`}>
+                      {channel.id === "instagram" && (
+                        <svg className="w-5 h-5 fill-none stroke-current stroke-[2]" viewBox="0 0 24 24">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                      )}
+                      {channel.id === "tiktok" && (
+                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.89 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.3 0 .58.05.85.14V9.45a6.37 6.37 0 0 0-.85-.06A6.34 6.34 0 0 0 3 15.73 6.34 6.34 0 0 0 9.34 22a6.34 6.34 0 0 0 6.34-6.27V9.06a8.28 8.28 0 0 0 3.91 1V6.69z" />
+                        </svg>
+                      )}
+                      {channel.id === "youtube" && (
+                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                      )}
+                      {channel.id === "website" && (
+                        <Globe className="w-5 h-5 text-white" />
+                      )}
+                      {channel.id === "alamat" && (
+                        <MapPin className="w-5 h-5 text-white" />
+                      )}
+                      {channel.id === "whatsapp" && (
+                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                          <path d="M20.52 3.48A11.93 11.93 0 0 0 12.06 0C5.46 0 .09 5.37.09 11.97c0 2.11.55 4.16 1.6 5.97L0 24l6.23-1.63a11.93 11.93 0 0 0 5.83 1.51h.01c6.6 0 11.97-5.37 11.97-11.97 0-3.2-1.25-6.21-3.52-8.43zM12.07 21.87h-.01a9.9 9.9 0 0 1-5.05-1.39l-.36-.22-3.75.98 1-3.66-.24-.38a9.92 9.92 0 0 1-1.52-5.23c0-5.48 4.46-9.94 9.95-9.94 2.65 0 5.15 1.03 7.02 2.91a9.88 9.88 0 0 1 2.91 7.03c0 5.48-4.46 9.94-9.95 9.94zm5.45-7.44c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.79-1.67-2.09-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.05 1.03-1.05 2.51s1.07 2.91 1.22 3.11c.15.2 2.11 3.22 5.11 4.51.71.31 1.27.49 1.7.63.72.23 1.37.2 1.88.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z"/>
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Nama Media Sosial & Nama Akun */}
+                    <div className="min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-tight">
+                        {channel.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1 leading-snug break-words">
+                        {channel.handle}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Nama Media Sosial & Nama Akun */}
-                  <div className="min-w-0">
-                    <h3 className="text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-tight">
-                      {channel.name}
-                    </h3>
-                    <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1 leading-snug break-words">
-                      {channel.handle}
-                    </p>
+                  {/* Panah Indikator Link */}
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 ml-3 group-hover:bg-[#00296E] group-hover:text-white transition-all duration-300">
+                    <ArrowUpRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </div>
-                </div>
-
-                {/* Panah Indikator Link */}
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 ml-3 group-hover:bg-[#00296E] group-hover:text-white transition-all duration-300">
-                  <ArrowUpRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </div>
-              </a>
+                </a>
+              </ScrollReveal>
             ))}
           </div>
 
