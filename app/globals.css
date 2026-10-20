@@ -11,17 +11,10 @@
 }
 
 :root {
-  --background: #f8fbfe;
+  --background: #ffffff;
   --foreground: #091e42;
   --himasi-blue: #0094e0;
   --himasi-navy: #00296e;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #020b18;
-    --foreground: #f1f5f9;
-  }
 }
 
 html {

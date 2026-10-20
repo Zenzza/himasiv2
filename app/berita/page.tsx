@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Search,
   ArrowRight,
@@ -9,6 +10,7 @@ import {
   X
 } from "lucide-react";
 import Footer from "@/components/footer";
+import ScrollReveal from "@/components/scroll-reveal";
 
 // Kategori & Topik Sesuai Referensi Gambar
 const CATEGORIES = [
@@ -218,23 +220,35 @@ export default function BeritaPage() {
   return (
     <div className="flex flex-col w-full bg-white text-[#091e42] min-h-screen">
       
-      {/* SECTION HEADER: BERSIH & ELEGAN TANPA GAMBAR */}
-      <section className="relative pt-10 sm:pt-14 pb-6 sm:pb-8 px-4 sm:px-6 lg:px-12 bg-white w-full border-b border-slate-100">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col text-left">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#00296E] tracking-tight leading-tight">
-              Berita dan Informasi
+      {/* SECTION HEADER: SESUAI REFERENSI (BREADCRUMB, JUDUL TENGAH BESAR, SUBJUDUL) */}
+      <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full">
+        <ScrollReveal className="max-w-6xl mx-auto">
+          <div className="relative text-center max-w-2xl mx-auto">
+            {/* Breadcrumb Sesuai Referensi: HOME / BERITA */}
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
+              <Link href="/" className="text-[#0094E0] hover:underline">
+                HOME
+              </Link>
+              <span className="text-slate-300">/</span>
+              <span className="text-slate-600">BERITA</span>
+            </div>
+
+            {/* Judul Utama: Berita */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-[#00296E] tracking-tight leading-tight">
+              Berita
             </h1>
+
+            {/* Subjudul Sesuai Referensi */}
             <p className="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed font-normal">
-              Kupas tuntas warta terkini, publikasi inovasi teknologi, liputan kegiatan himpunan, dan insight mendalam seputar ekosistem Sistem Informasi.
+              Kupas tuntas warta terkini dan kegiatan Himpunan Mahasiswa Sistem Informasi
             </p>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* SECTION UTAMA: 2 KOLOM (GRID ARTIKEL DI KIRI, SIDEBAR KATEGORI & BERITA TERBARU DI KANAN) */}
       <section className="relative py-8 sm:py-10 px-4 sm:px-6 lg:px-12 bg-white w-full">
-        <div className="max-w-6xl mx-auto">
+        <ScrollReveal className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
             
             {/* ============================================================ */}
@@ -505,7 +519,7 @@ export default function BeritaPage() {
             </aside>
 
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* Toast Notifikasi Berhasil Salin Tautan */}

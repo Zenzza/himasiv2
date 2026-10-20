@@ -30,6 +30,8 @@ import {
   PlayCircle
 } from "lucide-react";
 import Footer from "@/components/footer";
+import FormAspirasi from "@/components/form-aspirasi";
+import ScrollReveal from "@/components/scroll-reveal";
 
 // URL Video YouTube Company Profile HIMASI (Ganti link di sini sesuai kebutuhan)
 const YOUTUBE_VIDEO_URL = "https://youtu.be/Q-SbWMLlmoI?si=5uNeFPoj9BzOo0bT";
@@ -490,7 +492,7 @@ export default function Home() {
       {/* SECTION: TENTANG KAMI & COMPANY PROFILE VIDEO (Sesuai Referensi) */}
       <section id="ikhtisar" className="relative py-16 sm:py-18 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
 
-        <div className="relative max-w-6xl mx-auto">
+        <ScrollReveal className="relative max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
             
             {/* Kiri: Video Mockup Card (YouTube Player Style) */}
@@ -619,83 +621,89 @@ export default function Home() {
             </div>
 
           </div>
+        </ScrollReveal>
+      </section>
 
-          {/* Card Component Baris 1: HIMASI dalam Angka + 4 Metric Cards (Layout Sesuai Referensi Gambar) */}
-          <div className="pt-12 sm:pt-16">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 items-stretch">
-              
-              {/* Kolom Kiri: Header 'HIMASI dalam Angka' */}
-              <div className="sm:col-span-2 lg:col-span-1 flex flex-col justify-center py-2 pr-2">
-                <div className="flex items-center gap-2 text-4xl font-extrabold text-[#00296E] uppercase">
-                  <span>HIMASI</span>
-                </div>
-                <h3 className="text-2xl sm:text-3xl lg:text-[28px] xl:text-3xl font-bold tracking-tight text-[#00296E] leading-tight">
-                  dalam <span className="text-[#0094E0]">Angka</span>
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-500 mt-2.5 leading-relaxed font-normal">
-                  Lebih dari sekadar angka, ini adalah tentang perjalanan dan kontribusi.
-                </p>
+      {/* SECTION: HIMASI DALAM ANGKA */}
+      <section id="himasi-angka" className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
+        <ScrollReveal className="relative max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 items-stretch">
+            
+            {/* Kolom Kiri: Header 'HIMASI dalam Angka' */}
+            <div className="sm:col-span-2 lg:col-span-1 flex flex-col justify-center py-2 pr-2">
+              <div className="flex items-center gap-2 text-4xl font-extrabold text-[#00296E] uppercase">
+                <span>HIMASI</span>
               </div>
-
-              {/* Kolom Kanan: 4 Metric Cards (Warna Tetap Sesuai Yang Ada) */}
-              {[
-                {
-                  number: "",
-                  icon: Calendar,
-                  title: "Est. 2010",
-                  subtitle: "16 tahun telah bersama dalam mengembangkan bakat dan minat mahasiswa Sistem Informasi.",
-                  iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
-                },
-                {
-                  number: "",
-                  icon: Users,
-                  title: "3 Divisi",
-                  subtitle: "Divisi yang telah bersatu dalam mengembangkan HIMASI dan Sistem Informasi.",
-                  iconStyle: "bg-[#0094E0] text-[#002257] shadow-md shadow-[#0094E0]/25",
-                },
-                {
-                  number: "",
-                  icon: Award,
-                  title: "30 Anggota Aktif",
-                  subtitle: "30 anggota yang aktif dalam mengembangkan HIMASI dan Sistem Informasi.",
-                  iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
-                },
-              ].map((card, idx) => {
-                const IconComponent = card.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="relative rounded-2xl bg-[#00296E] border border-white/10 p-5 sm:p-6 flex flex-col justify-between shadow-xl hover:-translate-y-1 hover:border-[#0094E0]/40 transition-all duration-300 group"
-                  >
-                    {/* Top Row: Icon on Left, Number on Right */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-11 h-11 rounded-xl ${card.iconStyle} flex items-center justify-center transition-transform group-hover:scale-105 shrink-0`}>
-                        <IconComponent className="w-5 h-5 stroke-[2.2]" />
-                      </div>
-                      <span className="text-xs sm:text-sm font-bold text-[#0094E0]/80 tracking-wider font-mono">
-                        {card.number}
-                      </span>
-                    </div>
-
-                    {/* Content: Title, Underline, Subtitle */}
-                    <div>
-                      <h4 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                        {card.title}
-                      </h4>
-                      <div className="w-7 h-0.5 bg-[#0094E0] my-2 rounded-full" />
-                      <p className="text-slate-300/90 text-xs mt-1.5 leading-relaxed font-normal">
-                        {card.subtitle}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-
+              <h3 className="text-2xl sm:text-3xl lg:text-[28px] xl:text-3xl font-bold tracking-tight text-[#00296E] leading-tight">
+                dalam <span className="text-[#0094E0]">Angka</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-2.5 leading-relaxed font-normal">
+                Lebih dari sekadar angka, ini adalah tentang perjalanan dan kontribusi.
+              </p>
             </div>
-          </div>
 
-          {/* Card Component Baris 2: VISI (Kiri) & MISI (Kanan) Sesuai Referensi Gambar */}
-          <div className="mt-10 sm:mt-14 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+            {/* Kolom Kanan: 4 Metric Cards (Warna Tetap Sesuai Yang Ada) */}
+            {[
+              {
+                number: "",
+                icon: Calendar,
+                title: "Est. 2010",
+                subtitle: "16 tahun telah bersama dalam mengembangkan bakat dan minat mahasiswa Sistem Informasi.",
+                iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
+              },
+              {
+                number: "",
+                icon: Users,
+                title: "3 Divisi",
+                subtitle: "Divisi yang telah bersatu dalam mengembangkan HIMASI dan Sistem Informasi.",
+                iconStyle: "bg-[#0094E0] text-[#002257] shadow-md shadow-[#0094E0]/25",
+              },
+              {
+                number: "",
+                icon: Award,
+                title: "30 Anggota Aktif",
+                subtitle: "30 anggota yang aktif dalam mengembangkan HIMASI dan Sistem Informasi.",
+                iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
+              },
+            ].map((card, idx) => {
+              const IconComponent = card.icon;
+              return (
+                <div
+                  key={idx}
+                  className="relative rounded-2xl bg-[#00296E] border border-white/10 p-5 sm:p-6 flex flex-col justify-between shadow-xl hover:-translate-y-1 hover:border-[#0094E0]/40 transition-all duration-300 group"
+                >
+                  {/* Top Row: Icon on Left, Number on Right */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-11 h-11 rounded-xl ${card.iconStyle} flex items-center justify-center transition-transform group-hover:scale-105 shrink-0`}>
+                      <IconComponent className="w-5 h-5 stroke-[2.2]" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-bold text-[#0094E0]/80 tracking-wider font-mono">
+                      {card.number}
+                    </span>
+                  </div>
+
+                  {/* Content: Title, Underline, Subtitle */}
+                  <div>
+                    <h4 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                      {card.title}
+                    </h4>
+                    <div className="w-7 h-0.5 bg-[#0094E0] my-2 rounded-full" />
+                    <p className="text-slate-300/90 text-xs mt-1.5 leading-relaxed font-normal">
+                      {card.subtitle}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* SECTION: VISI & MISI HIMASI */}
+      <section id="visi-misi" className="relative py-12 sm:py-18 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
+        <ScrollReveal className="relative max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
             
             {/* Kolom Kiri: VISI (Bentuk Trapesium Presisi Sesuai Gambar Referensi) */}
             <div className="lg:col-span-5 relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-visible">
@@ -780,14 +788,12 @@ export default function Home() {
                 ))}
               </div>
             </div>
-
           </div>
-
-        </div>
-      </section>
+        </ScrollReveal>
+      </section>  
       {/* SECTION: DAFTAR FITUR UTAMA */}
       <section id="fitur-utama" className="relative py-8 sm:py-2 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
-        <div className="relative max-w-6xl mx-auto">
+        <ScrollReveal className="relative max-w-6xl mx-auto">
           <div className="mb-6 sm:mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#00296E] tracking-tight">
               Daftar Fitur Utama
@@ -855,12 +861,12 @@ export default function Home() {
             })}
           </div>
 
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* SECTION: BERITA & INFORMASI TERKINI (CAROUSEL SESUAI REFERENSI) */}
       <section id="berita-informasi" className="relative py-14 sm:py-20 px-4 sm:px-6 lg:px-12 bg-[#FFFFFF] w-full overflow-hidden ">
-        <div className="relative max-w-6xl mx-auto">
+        <ScrollReveal className="relative max-w-6xl mx-auto">
           {/* Header Section dengan Navigasi Carousel */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 sm:mb-10">
             <div>
@@ -1031,12 +1037,12 @@ export default function Home() {
             </Link>
           </div>
 
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* SECTION: PENGURUS HIMASI (INFINITE SMOOTH CAROUSEL BERJALAN SENDIRI) */}
       <section id="pengurus-himasi" className="relative py-8 sm:py-10 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
-        <div className="relative max-w-6xl mx-auto">
+        <ScrollReveal className="relative max-w-6xl mx-auto">
           {/* Header Section dengan Kontrol Arah & Link Struktur */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 sm:mb-10">
             <div>
@@ -1083,8 +1089,8 @@ export default function Home() {
                     key={`track1-${item.id}`}
                     className="w-[280px] sm:w-[320px] md:w-[350px] shrink-0"
                   >
-                    <div className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end">
-                      {/* Foto Pengurus */}
+                    <div className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end">
+                      {/* Foto Pengurus Full Tanpa Gradasi */}
                       <div className="absolute inset-0 bg-slate-100 overflow-hidden">
                         <img
                           src={item.image}
@@ -1092,8 +1098,6 @@ export default function Home() {
                           draggable={false}
                           className="w-full h-full object-cover object-top group-hover/card:scale-105 transition-transform duration-500 pointer-events-none"
                         />
-                        {/* Gradient Fade di Bawah */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent pointer-events-none" />
                       </div>
 
                       {/* Konten Bawah: Banner Biru untuk Nama + Subtitle Jabatan Sesuai Gambar Referensi */}
@@ -1103,7 +1107,7 @@ export default function Home() {
                             {item.name}
                           </h3>
                         </div>
-                        <p className="mt-1.5 sm:mt-2 text-slate-700 font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+                        <p className="mt-1.5 sm:mt-2 text-white font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5">
                           {item.role}
                         </p>
                       </div>
@@ -1126,7 +1130,7 @@ export default function Home() {
                     key={`track2-${item.id}`}
                     className="w-[280px] sm:w-[320px] md:w-[350px] shrink-0"
                   >
-                    <div className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end">
+                    <div className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end">
                       {/* Foto Pengurus */}
                       <div className="absolute inset-0 bg-slate-100 overflow-hidden">
                         <img
@@ -1146,7 +1150,7 @@ export default function Home() {
                             {item.name}
                           </h3>
                         </div>
-                        <p className="mt-1.5 sm:mt-2 text-slate-700 font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+                        <p className="mt-1.5 sm:mt-2 text-white font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5">
                           {item.role}
                         </p>
                       </div>
@@ -1169,15 +1173,18 @@ export default function Home() {
             </Link>
           </div>
 
-        </div>
+        </ScrollReveal>
       </section>
+
+      {/* SECTION: FORM ASPIRASI MAHASISWA */}
+      <FormAspirasi />
 
       {/* SECTION: FREQUENTLY ASKED QUESTIONS (FAQ DENGAN SHAPE BOX & LEFT ALIGN) */}
       <section
         id="faq"
         className="relative py-2 sm:py-10 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16"
       >
-        <div className="relative max-w-6xl mx-auto">
+        <ScrollReveal className="relative max-w-6xl mx-auto">
           {/* Header Left-Aligned Selaras dengan Section Lainnya */}
           <div className="mb-6 sm:mb-8 text-left">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#00296E] tracking-tight leading-tight">
@@ -1252,7 +1259,7 @@ export default function Home() {
             })}
           </div>
 
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* Toast Notifikasi Berhasil Salin Link */}

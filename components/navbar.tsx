@@ -45,9 +45,9 @@ export default function Navbar() {
         - Jika HOMEPAGE atau di-scroll: warna biru navy (#00296E) dengan teks putih
       */}
       <div
-        className={`w-full backdrop-blur-md transition-all duration-300 ${
+        className={`w-full transition-all duration-300 ${
           isTransparentWhite
-            ? "bg-white/85 text-[#00296E]"
+            ? "bg-white text-[#00296E]"
             : "bg-[#00296E] text-white"
         }`}
       >
@@ -111,7 +111,7 @@ export default function Navbar() {
           <div className="flex items-center flex-1 justify-end gap-3 sm:gap-4">
             {/* Tombol Contact Us */}
             <Link
-              href="/profil#kontak"
+              href="/tentang#ko"
               className={`inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 shadow-sm hover:shadow active:scale-95 select-none ${
                 isTransparentWhite
                   ? "bg-[#00296E] hover:bg-[#0094E0] text-white"
@@ -143,7 +143,7 @@ export default function Navbar() {
           <div
             className={`md:hidden w-full px-5 py-4 border-t animate-in fade-in slide-in-from-top-2 duration-150 ${
               isTransparentWhite
-                ? "bg-white/95 text-slate-800 border-slate-200 shadow-lg"
+                ? "bg-white text-slate-800 border-slate-200 shadow-lg"
                 : "bg-[#001e52] text-white border-white/15"
             }`}
           >
