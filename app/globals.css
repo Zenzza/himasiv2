@@ -103,3 +103,51 @@ body {
     margin: 10mm 15mm 15mm 15mm;
   }
 }
+
+/* ==========================================================================
+   HIMASI Cyber-Luxe Intro Loading Screen Animations (Walbi-inspired)
+   ========================================================================== */
+
+/* Preloader State: Kunci background solid #00296E */
+body:has(#himasi-preloader-root) {
+  background-color: #00296E !important;
+}
+
+@keyframes introRayPulse {
+  0%, 100% {
+    opacity: 0.15;
+    transform: scaleY(0.92);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scaleY(1.06);
+  }
+}
+
+.intro-ray-anim-1 {
+  transform-origin: bottom center;
+  will-change: transform, opacity;
+  animation: introRayPulse 2.4s ease-in-out infinite;
+}
+
+.intro-ray-anim-2 {
+  transform-origin: bottom center;
+  will-change: transform, opacity;
+  animation: introRayPulse 3.1s ease-in-out infinite 0.4s;
+}
+
+.intro-ray-anim-3 {
+  transform-origin: bottom center;
+  will-change: transform, opacity;
+  animation: introRayPulse 1.9s ease-in-out infinite 0.8s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-ray-anim-1,
+  .intro-ray-anim-2,
+  .intro-ray-anim-3 {
+    animation: none !important;
+    opacity: 0.2 !important;
+  }
+}
+

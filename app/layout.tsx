@@ -3,6 +3,7 @@ import { Poppins, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import BackToTop from "@/components/back-to-top";
+import LoadingScreen from "@/components/loading-screen";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -31,10 +32,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${poppins.variable} ${playfair.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans bg-white text-[#091e42] selection:bg-[#0094E0]/20 selection:text-[#00296E]">
-        <Navbar />
-        <main className="flex-1 w-full">{children}</main>
-        <BackToTop />
+      <head>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              body {
+                background-color: #00296E;
+              }
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col font-sans bg-[#00296E] text-[#091e42] selection:bg-[#0094E0]/20 selection:text-[#00296E]">
+        <LoadingScreen>
+          <Navbar />
+          <main className="flex-1 w-full">{children}</main>
+          <BackToTop />
+        </LoadingScreen>
       </body>
     </html>
   );
