@@ -151,3 +151,25 @@ body:has(#himasi-preloader-root) {
   }
 }
 
+/* Html5Qrcode Scanner Video Styles */
+#qr-camera-element {
+  position: relative;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+#qr-camera-element video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 1rem;
+}
+
+#qr-camera-element canvas {
+  max-width: 100% !important;
+}
+

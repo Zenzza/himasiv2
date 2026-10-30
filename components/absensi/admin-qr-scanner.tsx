@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
 import {
   Camera,
   CameraOff,
@@ -12,7 +12,9 @@ import {
   Upload,
   Calendar,
   Clock,
-  X
+  X,
+  SwitchCamera,
+  Loader2,
 } from "lucide-react";
 import { DAFTAR_PENGURUS_HIMASI, type PengurusMember } from "@/lib/data/pengurus";
 import { supabase } from "@/lib/supabase/client";
@@ -47,23 +49,36 @@ export default function AdminQrScanner({
   pengurusList,
 }: AdminQrScannerProps) {
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isStartingCamera, setIsStartingCamera] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastScannedResult, setLastScannedResult] = useState<AbsensiRecord | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [statusMode, setStatusMode] = useState<"Hadir" | "Terlambat">("Hadir");
+  const [availableCameras, setAvailableCameras] = useState<CameraDevice[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannedHistory = useRef<Set<string>>(new Set());
+  const isProcessingRef = useRef(false);
+  const lastScannedTextRef = useRef<string>("");
+  const lastScannedTimeRef = useRef<number>(0);
 
   // Web Audio Beep Feedback
   const playBeep = useCallback(
     (type: "success" | "warning" = "success") => {
       if (!soundEnabled) return;
       try {
-        const audioCtx = new (window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext)();
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        const audioCtx = new AudioContextClass();
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
@@ -85,7 +100,7 @@ export default function AdminQrScanner({
           osc.start();
           osc.stop(audioCtx.currentTime + 0.3);
         }
-      } catch (err) {
+      } catch {
         // Browser policy fallback
       }
     },
@@ -95,161 +110,302 @@ export default function AdminQrScanner({
   // Proses Data QR Code yang Berhasil Di-scan
   const handleProcessScan = useCallback(
     async (decodedText: string) => {
+      if (!decodedText || isProcessingRef.current) return;
+
+      const trimmedText = decodedText.trim();
+      const now = Date.now();
+
+      // Debounce: cegah scan berulang untuk kode yang sama dalam 2.5 detik
+      if (
+        trimmedText === lastScannedTextRef.current &&
+        now - lastScannedTimeRef.current < 2500
+      ) {
+        return;
+      }
+
+      isProcessingRef.current = true;
+      lastScannedTextRef.current = trimmedText;
+      lastScannedTimeRef.current = now;
+
       setCameraError(null);
       setDuplicateWarning(null);
 
-      const activeList = pengurusList && pengurusList.length > 0 ? pengurusList : DAFTAR_PENGURUS_HIMASI;
-      let foundMember: PengurusMember | undefined;
-
-      // 1. Coba parse JSON payload QR
       try {
-        const parsed = JSON.parse(decodedText);
-        if (parsed.nim || parsed.token) {
-          foundMember = activeList.find(
-            (p) =>
-              p.nim === parsed.nim ||
-              p.qrToken === parsed.token ||
-              p.nama.toLowerCase() === parsed.nama?.toLowerCase()
-          );
+        const activeList =
+          pengurusList && pengurusList.length > 0
+            ? pengurusList
+            : DAFTAR_PENGURUS_HIMASI;
+        let foundMember: PengurusMember | undefined;
+
+        // 1. Coba parse JSON payload QR
+        try {
+          const parsed = JSON.parse(trimmedText);
+          const parsedNim = parsed.nim ? String(parsed.nim).trim() : "";
+          const parsedToken = parsed.token ? String(parsed.token).trim() : "";
+          const parsedNama = parsed.nama
+            ? String(parsed.nama).trim().toLowerCase()
+            : "";
+
+          foundMember = activeList.find((p) => {
+            const matchNim = parsedNim && String(p.nim).trim() === parsedNim;
+            const matchToken =
+              parsedToken &&
+              p.qrToken &&
+              p.qrToken.trim().toLowerCase() === parsedToken.toLowerCase();
+            const matchNama =
+              parsedNama && p.nama.trim().toLowerCase() === parsedNama;
+            return matchNim || matchToken || matchNama;
+          });
+        } catch {
+          // Bukan format JSON, parsing sebagai teks biasa
         }
-      } catch (e) {
-        // Bukan JSON, cek string token / NIM langsung
-        foundMember = activeList.find(
-          (p) =>
-            p.qrToken === decodedText.trim() ||
-            p.nim === decodedText.trim() ||
-            p.nama.toLowerCase().includes(decodedText.toLowerCase().trim())
-        );
-      }
 
-      if (!foundMember) {
-        playBeep("warning");
-        setCameraError(
-          "QR Code tidak dikenali sebagai anggota resmi HIMASI Kabinet REKSABUDAYA."
-        );
-        return;
-      }
+        // 2. Jika belum ditemukan, cek string token / NIM / Nama secara langsung
+        if (!foundMember) {
+          const lowerText = trimmedText.toLowerCase();
+          foundMember = activeList.find((p) => {
+            const pNim = String(p.nim).trim();
+            const pToken = (p.qrToken || "").trim().toLowerCase();
+            const pNama = p.nama.trim().toLowerCase();
 
-      // 2. Cek apakah sudah pernah absen di sesi ini
-      const sessionKey = `${foundMember.id}-${kegiatanAktif}`;
-      if (scannedHistory.current.has(sessionKey)) {
-        playBeep("warning");
-        setDuplicateWarning(
-          `Pengurus "${foundMember.nama}" sudah tercatat hadir untuk kegiatan "${kegiatanAktif}"!`
-        );
-        return;
-      }
+            return (
+              pNim === trimmedText ||
+              (pToken && pToken === lowerText) ||
+              (pToken && lowerText.includes(pToken)) ||
+              pNama === lowerText ||
+              (pNama.length > 4 && lowerText.includes(pNama))
+            );
+          });
+        }
 
-      scannedHistory.current.add(sessionKey);
-      playBeep("success");
+        if (!foundMember) {
+          playBeep("warning");
+          setCameraError(
+            `QR Code tidak dikenali (${trimmedText.slice(0, 30)}...). Pastikan menggunakan QR Code resmi pengurus HIMASI.`
+          );
+          return;
+        }
 
-      const now = new Date();
-      const waktuFormat = now.toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
+        // 3. Cek apakah sudah pernah absen di kegiatan ini (sesi ini)
+        const sessionKey = `${foundMember.id}-${kegiatanAktif}`;
+        if (scannedHistory.current.has(sessionKey)) {
+          playBeep("warning");
+          setDuplicateWarning(
+            `Pengurus "${foundMember.nama}" sudah tercatat hadir untuk kegiatan "${kegiatanAktif}"!`
+          );
+          return;
+        }
 
-      const newRecord: AbsensiRecord = {
-        id: `scan-${Date.now()}`,
-        pengurusId: foundMember.id,
-        nama: foundMember.nama,
-        nim: foundMember.nim,
-        divisi: foundMember.divisi,
-        jabatan: foundMember.jabatan,
-        image: foundMember.image,
-        kegiatan: kegiatanAktif,
-        waktu: waktuFormat,
-        status: statusMode,
-      };
+        scannedHistory.current.add(sessionKey);
+        playBeep("success");
 
-      setLastScannedResult(newRecord);
+        const currentDate = new Date();
+        const waktuFormat = currentDate.toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
 
-      // Simpan ke database Supabase
-      try {
-        await supabase.from("absensi_log").insert([
-          {
-            nama_pengurus: foundMember.nama,
-            nim: foundMember.nim,
-            divisi: foundMember.divisi,
-            nama_kegiatan: kegiatanAktif,
-            status: statusMode,
-            waktu_scan: now.toISOString(),
-          },
-        ]);
-      } catch (err) {
-        console.warn("Catatan: Menyimpan log absensi ke Supabase:", err);
-      }
+        const newRecord: AbsensiRecord = {
+          id: `scan-${Date.now()}`,
+          pengurusId: foundMember.id,
+          nama: foundMember.nama,
+          nim: foundMember.nim,
+          divisi: foundMember.divisi,
+          jabatan: foundMember.jabatan,
+          image: foundMember.image,
+          kegiatan: kegiatanAktif,
+          waktu: waktuFormat,
+          status: statusMode,
+        };
 
-      if (onAttendanceSuccess) {
-        onAttendanceSuccess(newRecord);
+        setLastScannedResult(newRecord);
+
+        // Simpan ke database Supabase
+        try {
+          await supabase.from("absensi_log").insert([
+            {
+              nama_pengurus: foundMember.nama,
+              nim: foundMember.nim,
+              divisi: foundMember.divisi,
+              nama_kegiatan: kegiatanAktif,
+              status: statusMode,
+              waktu_scan: currentDate.toISOString(),
+            },
+          ]);
+        } catch (err) {
+          console.warn("Catatan: Menyimpan log absensi ke Supabase:", err);
+        }
+
+        if (onAttendanceSuccess) {
+          onAttendanceSuccess(newRecord);
+        }
+      } finally {
+        setTimeout(() => {
+          isProcessingRef.current = false;
+        }, 800);
       }
     },
-    [kegiatanAktif, statusMode, playBeep, onAttendanceSuccess]
+    [kegiatanAktif, statusMode, playBeep, onAttendanceSuccess, pengurusList]
   );
 
-  // Jalankan Scanner Kamera
-  const startCamera = async () => {
-    setCameraError(null);
+  // Ambil daftar kamera yang tersedia di perangkat
+  const getCameras = useCallback(async () => {
     try {
+      const devices = await Html5Qrcode.getCameras();
+      if (devices && devices.length > 0) {
+        setAvailableCameras(devices);
+        return devices;
+      }
+    } catch (e) {
+      console.warn("Tidak dapat mengambil daftar kamera:", e);
+    }
+    return [];
+  }, []);
+
+  // Jalankan Scanner Kamera
+  const startCamera = async (targetCameraId?: string) => {
+    setCameraError(null);
+    setIsStartingCamera(true);
+
+    try {
+      // Inisialisasi scanner jika belum ada
       if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode("qr-camera-element");
+        scannerRef.current = new Html5Qrcode("qr-camera-element", {
+          verbose: false,
+        });
+      }
+
+      // Jika scanner sedang aktif, matikan terlebih dahulu
+      if (scannerRef.current.isScanning) {
+        await scannerRef.current.stop();
+      }
+
+      // Deteksi kamera jika belum ada pilihan
+      let camId = targetCameraId || selectedCameraId;
+      if (!camId) {
+        const devices = await getCameras();
+        if (devices.length > 0) {
+          // Prioritaskan kamera belakang / environment untuk mobile
+          const backCam = devices.find((d) =>
+            /back|rear|environment|belakang/i.test(d.label)
+          );
+          camId = backCam ? backCam.id : devices[0].id;
+          setSelectedCameraId(camId);
+        }
       }
 
       const qrConfig = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
+        fps: 15,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const edge = Math.min(viewfinderWidth, viewfinderHeight);
+          const boxSize = Math.floor(edge * 0.72);
+          return {
+            width: Math.max(boxSize, 180),
+            height: Math.max(boxSize, 180),
+          };
+        },
       };
 
-      await scannerRef.current.start(
-        { facingMode: "environment" },
-        qrConfig,
-        (decodedText) => {
-          handleProcessScan(decodedText);
-        },
-        () => {
-          // Sedang memindai frame
-        }
-      );
+      // Konfigurasi target kamera (ID kamera atau constraint)
+      const cameraConfig: string | MediaTrackConstraints = camId
+        ? camId
+        : { facingMode: "environment" };
 
-      setIsCameraActive(true);
+      try {
+        await scannerRef.current.start(
+          cameraConfig,
+          qrConfig,
+          (decodedText) => {
+            handleProcessScan(decodedText);
+          },
+          () => {
+            // Frame tick scanning loop
+          }
+        );
+        setIsCameraActive(true);
+      } catch (firstErr) {
+        // Fallback untuk webcam laptop / PC jika facingMode environment ditolak
+        console.warn("Kamera utama gagal dimulai, mencoba fallback user-facing:", firstErr);
+        await scannerRef.current.start(
+          { facingMode: "user" },
+          qrConfig,
+          (decodedText) => {
+            handleProcessScan(decodedText);
+          },
+          () => {}
+        );
+        setIsCameraActive(true);
+      }
     } catch (err: unknown) {
       console.error("Gagal memulai kamera:", err);
       const msg =
         err instanceof Error ? err.message : "Tidak dapat mengakses kamera perangkat.";
       setCameraError(
-        `${msg}. Pastikan Anda telah memberikan izin kamera pada browser Anda.`
+        `${msg}. Pastikan Anda telah memberikan izin (allow permission) akses kamera pada browser Anda.`
       );
       setIsCameraActive(false);
+    } finally {
+      setIsStartingCamera(false);
     }
   };
 
   // Matikan Scanner Kamera
   const stopCamera = async () => {
     try {
-      if (scannerRef.current && isCameraActive) {
+      if (scannerRef.current && scannerRef.current.isScanning) {
         await scannerRef.current.stop();
-        setIsCameraActive(false);
       }
     } catch (err) {
-      console.warn("Gagal stop kamera:", err);
+      console.warn("Gagal menghentikan kamera:", err);
+    } finally {
+      setIsCameraActive(false);
+    }
+  };
+
+  // Ganti ke kamera lain jika ada beberapa perangkat kamera
+  const handleSwitchCamera = async () => {
+    if (availableCameras.length <= 1) return;
+    const currentIndex = availableCameras.findIndex(
+      (c) => c.id === selectedCameraId
+    );
+    const nextIndex = (currentIndex + 1) % availableCameras.length;
+    const nextCamera = availableCameras[nextIndex];
+    setSelectedCameraId(nextCamera.id);
+
+    if (isCameraActive) {
+      await startCamera(nextCamera.id);
     }
   };
 
   // Bersihkan saat unmount
   useEffect(() => {
+    // Muat daftar kamera saat pertama kali mount
+    getCameras();
+
     return () => {
       if (scannerRef.current) {
-        scannerRef.current
-          .stop()
-          .catch(() => {})
-          .finally(() => {
-            scannerRef.current?.clear();
-          });
+        if (scannerRef.current.isScanning) {
+          scannerRef.current
+            .stop()
+            .catch(() => {})
+            .finally(() => {
+              try {
+                scannerRef.current?.clear();
+              } catch {
+                // ignore
+              }
+            });
+        } else {
+          try {
+            scannerRef.current.clear();
+          } catch {
+            // ignore
+          }
+        }
       }
     };
-  }, []);
+  }, [getCameras]);
 
   // Upload Gambar QR Code
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,25 +413,42 @@ export default function AdminQrScanner({
     if (!file) return;
 
     try {
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode("qr-camera-element");
+      // Jika kamera aktif, hentikan sejenak agar scanFile tidak bentrok
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        await scannerRef.current.stop();
+        setIsCameraActive(false);
       }
+
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode("qr-camera-element", {
+          verbose: false,
+        });
+      }
+
       const result = await scannerRef.current.scanFile(file, true);
       handleProcessScan(result);
     } catch (err) {
+      console.warn("Gagal memindai file QR code:", err);
       playBeep("warning");
-      setCameraError("Tidak dapat membaca QR code dari gambar yang diunggah.");
+      setCameraError(
+        "Tidak dapat membaca QR code dari gambar yang diunggah. Pastikan QR code terlihat jelas dan tidak terpotong."
+      );
+    } finally {
+      e.target.value = "";
     }
   };
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-6 max-w-3xl mx-auto">
-      
       {/* Header Scanner & Kontrol Kegiatan */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                isCameraActive ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
+              }`}
+            />
             <h3 className="text-base sm:text-lg font-black text-[#00296E]">
               Pemindai Kamera QR Code Absensi
             </h3>
@@ -283,7 +456,10 @@ export default function AdminQrScanner({
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 mt-0.5">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-sky-600" />
-              <span>Kegiatan Aktif: <strong className="text-slate-800">{kegiatanAktif}</strong></span>
+              <span>
+                Kegiatan Aktif:{" "}
+                <strong className="text-slate-800">{kegiatanAktif}</strong>
+              </span>
             </span>
             {kegiatanTanggal && (
               <span className="text-slate-400">• {kegiatanTanggal}</span>
@@ -339,19 +515,18 @@ export default function AdminQrScanner({
         </div>
       </div>
 
-      {/* Area Kamera Viewfinder Terfokus */}
+      {/* Area Kamera Viewfinder */}
       <div className="flex flex-col items-center">
-        
-        <div className="w-full relative aspect-video max-h-[380px] rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-800 flex flex-col items-center justify-center text-white shadow-md">
-          
-          {/* Target element untuk html5-qrcode */}
+        <div className="w-full relative aspect-video min-h-[300px] max-h-[400px] rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-800 flex items-center justify-center text-white shadow-md">
+          {/* Target element untuk html5-qrcode (WAJIB selalu ter-render dengan dimensi nyata) */}
           <div
             id="qr-camera-element"
-            className={`w-full h-full ${isCameraActive ? "block" : "hidden"}`}
+            className="w-full h-full flex items-center justify-center overflow-hidden"
           />
 
+          {/* Placeholder saat kamera belum aktif */}
           {!isCameraActive && (
-            <div className="p-6 text-center space-y-3">
+            <div className="absolute inset-0 z-10 bg-slate-950/95 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center space-y-3">
               <div className="w-16 h-16 rounded-2xl bg-white/10 mx-auto flex items-center justify-center text-sky-400">
                 <Camera className="w-8 h-8" />
               </div>
@@ -366,11 +541,19 @@ export default function AdminQrScanner({
 
           {/* Viewfinder Reticle Overlay saat kamera aktif */}
           {isCameraActive && (
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div className="w-52 h-52 border-2 border-[#0094E0] rounded-2xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]">
+            <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+              <div className="w-56 h-56 sm:w-64 sm:h-64 border-2 border-[#0094E0] rounded-2xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.52)]">
+                {/* Laser scan line animation */}
                 <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-[#0094E0] to-transparent animate-bounce shadow-[0_0_12px_#0094E0]" />
-                <div className="absolute top-1 left-2 text-[10px] font-bold text-sky-400 uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded">
-                  Arahkan QR Code Pengurus
+
+                {/* Corner highlights */}
+                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-3 border-l-3 border-sky-300 rounded-tl-sm" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 border-t-3 border-r-3 border-sky-300 rounded-tr-sm" />
+                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-3 border-l-3 border-sky-300 rounded-bl-sm" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-3 border-r-3 border-sky-300 rounded-br-sm" />
+
+                <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-sky-300 uppercase tracking-widest bg-black/75 px-2.5 py-1 rounded-md border border-sky-500/30 whitespace-nowrap">
+                  Arahkan QR Code ke Sini
                 </div>
               </div>
             </div>
@@ -379,15 +562,25 @@ export default function AdminQrScanner({
 
         {/* Kontrol Kamera & Upload File */}
         <div className="w-full mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!isCameraActive ? (
               <button
                 type="button"
-                onClick={startCamera}
-                className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+                onClick={() => startCamera()}
+                disabled={isStartingCamera}
+                className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
               >
-                <Camera className="w-4 h-4 text-sky-300" />
-                <span>Aktifkan Kamera Pemindai</span>
+                {isStartingCamera ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-sky-300" />
+                    <span>Mempersiapkan Kamera...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera className="w-4 h-4 text-sky-300" />
+                    <span>Aktifkan Kamera Pemindai</span>
+                  </>
+                )}
               </button>
             ) : (
               <button
@@ -397,6 +590,19 @@ export default function AdminQrScanner({
               >
                 <CameraOff className="w-4 h-4" />
                 <span>Matikan Kamera</span>
+              </button>
+            )}
+
+            {/* Tombol Ganti Kamera jika ada lebih dari 1 kamera */}
+            {availableCameras.length > 1 && (
+              <button
+                type="button"
+                onClick={handleSwitchCamera}
+                className="px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Ganti Kamera (Depan / Belakang)"
+              >
+                <SwitchCamera className="w-4 h-4 text-sky-600" />
+                <span>Ganti Kamera</span>
               </button>
             )}
 
@@ -414,7 +620,7 @@ export default function AdminQrScanner({
           </div>
 
           <span className="text-[11px] text-slate-400">
-            Arahkan kamera ke layar HP / kartu cetak pengurus
+            Arahkan kamera ke layar HP / ID card pengurus
           </span>
         </div>
 
@@ -443,7 +649,10 @@ export default function AdminQrScanner({
                   {lastScannedResult.nama} ({lastScannedResult.nim})
                 </h4>
                 <p className="text-xs text-slate-600 font-medium">
-                  {lastScannedResult.jabatan} • <span className="font-bold text-[#0094E0]">{lastScannedResult.divisi}</span>
+                  {lastScannedResult.jabatan} •{" "}
+                  <span className="font-bold text-[#0094E0]">
+                    {lastScannedResult.divisi}
+                  </span>
                 </p>
               </div>
             </div>
@@ -451,7 +660,7 @@ export default function AdminQrScanner({
             <button
               type="button"
               onClick={() => setLastScannedResult(null)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-emerald-100"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-emerald-100 cursor-pointer"
               aria-label="Tutup"
             >
               <X className="w-4 h-4" />
@@ -473,9 +682,7 @@ export default function AdminQrScanner({
             <span>{duplicateWarning}</span>
           </div>
         )}
-
       </div>
-
     </div>
   );
 }

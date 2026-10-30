@@ -187,22 +187,27 @@ export default function DashboardPage() {
   const [divisiFilterCard, setDivisiFilterCard] = useState<string>("SEMUA");
   const [searchPengurus, setSearchPengurus] = useState("");
 
-  // Data Peserta / Pengurus State (Dynamic CRUD dengan Supabase & LocalStorage)
-  const [pengurusList, setPengurusList] = useState<PengurusMember[]>(() => {
+  // Data Peserta / Pengurus State (Dynamic CRUD dengan Supabase)
+  const [pengurusList, setPengurusList] = useState<PengurusMember[]>(DAFTAR_PENGURUS_HIMASI);
+  const [loadingPengurus, setLoadingPengurus] = useState(false);
+  const pengurusListRef = useRef<PengurusMember[]>(pengurusList);
+
+  useEffect(() => {
+    pengurusListRef.current = pengurusList;
+  }, [pengurusList]);
+
+  // Bersihkan cache lokal usang (kegiatan, logs, & pengurus) agar tidak ada data zombie / desinkronisasi
+  useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("himasi_pengurus_list");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        } catch (e) {
-          console.warn("Gagal parse cache pengurus:", e);
-        }
+      try {
+        localStorage.removeItem("himasi_kegiatan_list");
+        localStorage.removeItem("himasi_absensi_logs");
+        localStorage.removeItem("himasi_pengurus_list");
+      } catch (e) {
+        console.warn("Purge cache warning:", e);
       }
     }
-    return DAFTAR_PENGURUS_HIMASI;
-  });
-  const [loadingPengurus, setLoadingPengurus] = useState(false);
+  }, []);
 
   // Modal Tambah / Edit Peserta Pengurus
   const [isPengurusModalOpen, setIsPengurusModalOpen] = useState(false);
@@ -309,11 +314,10 @@ export default function DashboardPage() {
     fetchAspirasi();
   }, [fetchAspirasi]);
 
-  // 3. Ambil Kegiatan Absensi dari Supabase Cloud (dengan sinkronisasi Realtime & Fallback)
+  // 3. Ambil Kegiatan Absensi dari Supabase Cloud (dengan sinkronisasi Realtime & Deduplikasi)
   const fetchKegiatan = useCallback(async () => {
     setLoadingKegiatan(true);
     let loaded: KegiatanItem[] = [];
-    let isDbSuccess = false;
 
     try {
       const { data, error } = await supabase
@@ -322,70 +326,29 @@ export default function DashboardPage() {
         .order("created_at", { ascending: false });
 
       if (!error && data) {
-        isDbSuccess = true;
-        loaded = data.map((row) => ({
-          id: row.id,
-          nama: row.nama_kegiatan,
-          tanggal: row.tanggal,
-          jam: row.jam || row.keterangan || "09:00 WIB",
-        }));
+        // Deduplikasi item berdasarkan nama dan tanggal agar tampilan bersih dan akurat
+        const seen = new Set<string>();
+        const uniqueItems: KegiatanItem[] = [];
+
+        for (const row of data) {
+          const key = `${(row.nama_kegiatan || "").trim().toLowerCase()}_${row.tanggal}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueItems.push({
+              id: row.id,
+              nama: row.nama_kegiatan,
+              tanggal: row.tanggal,
+              jam: row.jam || row.keterangan || "09:00 WIB",
+            });
+          }
+        }
+        loaded = uniqueItems;
       }
     } catch (err) {
       console.warn("Koneksi Supabase kegiatan_absensi:", err);
     }
 
-    // Jika di Supabase belum ada agenda tapi di localStorage ada data sebelumnya,
-    // kita migrasikan otomatis ke Supabase agar tersimpan ke cloud!
-    if (isDbSuccess && loaded.length === 0 && typeof window !== "undefined") {
-      const saved = localStorage.getItem("himasi_kegiatan_list");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const rowsToInsert = parsed.map((k) => ({
-              nama_kegiatan: k.nama,
-              tanggal: k.tanggal,
-              jam: k.jam,
-              keterangan: k.jam,
-            }));
-            const { data: migratedData, error: migError } = await supabase
-              .from("kegiatan_absensi")
-              .insert(rowsToInsert)
-              .select();
-
-            if (!migError && migratedData && migratedData.length > 0) {
-              loaded = migratedData.map((row) => ({
-                id: row.id,
-                nama: row.nama_kegiatan,
-                tanggal: row.tanggal,
-                jam: row.jam || row.keterangan || "09:00 WIB",
-              }));
-              showToast("Data kegiatan lokal berhasil disinkronkan ke Supabase Cloud!");
-            }
-          }
-        } catch (e) {
-          console.warn("Gagal migrasi kegiatan ke DB:", e);
-        }
-      }
-    } else if (!isDbSuccess && typeof window !== "undefined") {
-      // Fallback cadangan hanya jika koneksi Supabase terputus
-      const saved = localStorage.getItem("himasi_kegiatan_list");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            loaded = parsed;
-          }
-        } catch (e) {
-          console.warn("Gagal parse cache kegiatan:", e);
-        }
-      }
-    }
-
     setKegiatanList(loaded);
-    if (typeof window !== "undefined" && isDbSuccess) {
-      localStorage.setItem("himasi_kegiatan_list", JSON.stringify(loaded));
-    }
 
     if (loaded.length > 0) {
       setActiveKegiatan((prev) => {
@@ -398,10 +361,9 @@ export default function DashboardPage() {
     setLoadingKegiatan(false);
   }, []);
 
-  // 4. Ambil Log Absensi dari Supabase Cloud (dengan sinkronisasi Realtime & Fallback)
+  // 4. Ambil Log Absensi dari Supabase Cloud (dengan sinkronisasi Realtime)
   const fetchAbsensiLogs = useCallback(async () => {
     let logs: AbsensiRecord[] = [];
-    let isDbSuccess = false;
 
     try {
       const { data, error } = await supabase
@@ -410,10 +372,14 @@ export default function DashboardPage() {
         .order("waktu_scan", { ascending: false });
 
       if (!error && data) {
-        isDbSuccess = true;
+        const currentPengurus =
+          pengurusListRef.current && pengurusListRef.current.length > 0
+            ? pengurusListRef.current
+            : DAFTAR_PENGURUS_HIMASI;
+
         logs = data.map((row) => {
           const pengurus =
-            pengurusList.find(
+            currentPengurus.find(
               (p) =>
                 p.nim === row.nim ||
                 p.nama.toLowerCase() === row.nama_pengurus.toLowerCase()
@@ -451,73 +417,13 @@ export default function DashboardPage() {
       console.warn("Koneksi Supabase absensi_log:", err);
     }
 
-    if (isDbSuccess && logs.length === 0 && typeof window !== "undefined") {
-      const saved = localStorage.getItem("himasi_absensi_logs");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const rowsToInsert = parsed.map((l) => ({
-              nama_pengurus: l.nama,
-              nim: l.nim,
-              divisi: l.divisi,
-              nama_kegiatan: l.kegiatan,
-              status: l.status,
-              waktu_scan: new Date().toISOString(),
-            }));
-            const { data: migratedLogs, error: migError } = await supabase
-              .from("absensi_log")
-              .insert(rowsToInsert)
-              .select();
-
-            if (!migError && migratedLogs && migratedLogs.length > 0) {
-              logs = migratedLogs.map((row) => ({
-                id: row.id,
-                pengurusId: `pengurus-${row.nim}`,
-                nama: row.nama_pengurus,
-                nim: row.nim,
-                divisi: row.divisi,
-                jabatan: "Pengurus HIMASI",
-                image: "/DSC01203.png",
-                kegiatan: row.nama_kegiatan,
-                waktu: new Date(row.waktu_scan).toLocaleTimeString("id-ID", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                }),
-                status: (row.status as AbsensiRecord["status"]) || "Hadir",
-              }));
-            }
-          }
-        } catch (e) {
-          console.warn("Gagal migrasi absensi log:", e);
-        }
-      }
-    } else if (!isDbSuccess && typeof window !== "undefined") {
-      const saved = localStorage.getItem("himasi_absensi_logs");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            logs = parsed;
-          }
-        } catch (e) {
-          console.warn("Gagal parse cache absensi:", e);
-        }
-      }
-    }
-
     setAbsensiLogs(logs);
-    if (typeof window !== "undefined" && isDbSuccess) {
-      localStorage.setItem("himasi_absensi_logs", JSON.stringify(logs));
-    }
-  }, [pengurusList]);
+  }, []);
 
-  // 4B. Ambil Data Peserta / Pengurus dari Supabase Cloud (dengan auto-migration & cache)
+  // 4B. Ambil Data Peserta / Pengurus dari Supabase Cloud (Single Source of Truth)
   const fetchPengurus = useCallback(async () => {
     setLoadingPengurus(true);
     let loaded: PengurusMember[] = [];
-    let isDbSuccess = false;
 
     try {
       const { data, error } = await supabase
@@ -526,7 +432,6 @@ export default function DashboardPage() {
         .order("created_at", { ascending: true });
 
       if (!error && data && data.length > 0) {
-        isDbSuccess = true;
         loaded = data.map((row) => ({
           id: row.id,
           nim: row.nim,
@@ -537,35 +442,46 @@ export default function DashboardPage() {
           image: row.foto_url || row.image || "/DSC01203.png",
           email: row.email || `${row.nim}@atmaluhur.ac.id`,
         }));
-      } else if (!error && data && data.length === 0) {
-        isDbSuccess = true;
+      } else if (!error && (!data || data.length === 0)) {
+        // Otomatis lakukan SEEDING data pengurus master ke Supabase jika tabel masih kosong
+        console.info("Tabel pengurus kosong, melakukan seeding otomatis dari master data...");
+        const seedPayload = DAFTAR_PENGURUS_HIMASI.map((p) => ({
+          nim: p.nim,
+          nama: p.nama,
+          jabatan: p.jabatan,
+          divisi: p.divisi,
+          qr_token: p.qrToken,
+          foto_url: p.image,
+          email: p.email,
+        }));
+
+        const { data: seeded, error: seedError } = await supabase
+          .from("pengurus")
+          .upsert(seedPayload, { onConflict: "nim" })
+          .select();
+
+        if (!seedError && seeded && seeded.length > 0) {
+          loaded = seeded.map((row) => ({
+            id: row.id,
+            nim: row.nim,
+            nama: row.nama,
+            jabatan: row.jabatan,
+            divisi: row.divisi,
+            qrToken: row.qr_token || generateQrToken(row.nim, row.nama),
+            image: row.foto_url || "/DSC01203.png",
+            email: row.email || `${row.nim}@atmaluhur.ac.id`,
+          }));
+        } else {
+          loaded = DAFTAR_PENGURUS_HIMASI;
+        }
       }
     } catch (err) {
       console.warn("Koneksi Supabase pengurus:", err);
+      loaded = DAFTAR_PENGURUS_HIMASI;
     }
 
-    if (!isDbSuccess || loaded.length === 0) {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("himasi_pengurus_list");
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              loaded = parsed;
-            }
-          } catch (e) {
-            console.warn("Gagal parse cache pengurus:", e);
-          }
-        }
-      }
-      if (loaded.length === 0) {
-        loaded = DAFTAR_PENGURUS_HIMASI;
-      }
-    }
-
-    setPengurusList(loaded);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("himasi_pengurus_list", JSON.stringify(loaded));
+    if (loaded.length > 0) {
+      setPengurusList(loaded);
     }
     setLoadingPengurus(false);
   }, []);
@@ -615,13 +531,7 @@ export default function DashboardPage() {
 
   // 5. Handler saat scan absensi berhasil
   const handleAttendanceSuccess = (record: AbsensiRecord) => {
-    setAbsensiLogs((prev) => {
-      const updated = [record, ...prev];
-      if (typeof window !== "undefined") {
-        localStorage.setItem("himasi_absensi_logs", JSON.stringify(updated));
-      }
-      return updated;
-    });
+    setAbsensiLogs((prev) => [record, ...prev]);
     showToast(`Presensi ${record.nama} (${record.status}) berhasil disimpan ke Supabase!`);
   };
 
@@ -668,11 +578,12 @@ export default function DashboardPage() {
     };
 
     setKegiatanList((prev) => {
-      const updated = [newKegiatan, ...prev.filter((k) => k.id !== generatedId)];
-      if (typeof window !== "undefined") {
-        localStorage.setItem("himasi_kegiatan_list", JSON.stringify(updated));
-      }
-      return updated;
+      const filtered = prev.filter(
+        (k) =>
+          k.id !== generatedId &&
+          !(k.nama.trim().toLowerCase() === namaTrim.toLowerCase() && k.tanggal === tglVal)
+      );
+      return [newKegiatan, ...filtered];
     });
     setActiveKegiatan(newKegiatan);
 
@@ -684,7 +595,7 @@ export default function DashboardPage() {
     if (isDbSaved) {
       showToast(`Kegiatan "${namaTrim}" berhasil disimpan ke Database Cloud Supabase!`);
     } else {
-      showToast(`Kegiatan "${namaTrim}" tersimpan di cache lokal.`);
+      showToast(`Kegiatan "${namaTrim}" berhasil dibuat.`);
     }
   };
 
@@ -710,30 +621,41 @@ export default function DashboardPage() {
     const targetNama = kegiatanToDelete.nama.trim();
     const targetNamaLower = targetNama.toLowerCase();
 
-    // 1. Update kegiatanList & localStorage secara sinkron
-    const updatedList = kegiatanList.filter((k) => k.id !== targetId);
-    setKegiatanList(updatedList);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("himasi_kegiatan_list", JSON.stringify(updatedList));
-    }
-
-    // 2. Update absensiLogs & localStorage secara sinkron
-    const updatedLogs = absensiLogs.filter(
-      (l) => l.kegiatan.trim().toLowerCase() !== targetNamaLower
+    // 1. Bersihkan kegiatan dari state secara instan
+    setKegiatanList((prev) =>
+      prev.filter(
+        (k) => k.id !== targetId && k.nama.trim().toLowerCase() !== targetNamaLower
+      )
     );
-    setAbsensiLogs(updatedLogs);
+
+    // 2. Bersihkan absensiLogs dari state secara instan
+    setAbsensiLogs((prev) =>
+      prev.filter((l) => l.kegiatan.trim().toLowerCase() !== targetNamaLower)
+    );
+
+    // 3. Pastikan storage lokal bersih dari cache usang
     if (typeof window !== "undefined") {
-      localStorage.setItem("himasi_absensi_logs", JSON.stringify(updatedLogs));
+      try {
+        localStorage.removeItem("himasi_kegiatan_list");
+        localStorage.removeItem("himasi_absensi_logs");
+      } catch {}
     }
 
-    // 3. Update activeKegiatan jika kegiatan yang dihapus sedang aktif
-    if (activeKegiatan?.id === targetId) {
-      setActiveKegiatan(updatedList.length > 0 ? updatedList[0] : null);
-    }
+    // 4. Update activeKegiatan jika kegiatan yang dihapus sedang aktif
+    setActiveKegiatan((prev) => {
+      if (!prev) return null;
+      if (prev.id === targetId || prev.nama.trim().toLowerCase() === targetNamaLower) {
+        const remaining = kegiatanList.filter(
+          (k) => k.id !== targetId && k.nama.trim().toLowerCase() !== targetNamaLower
+        );
+        return remaining.length > 0 ? remaining[0] : null;
+      }
+      return prev;
+    });
 
     // 4. Hapus dari Supabase jika tabel sudah dibuat
     try {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
       if (isUuid) {
         await supabase.from("kegiatan_absensi").delete().eq("id", targetId);
       }
@@ -760,9 +682,6 @@ export default function DashboardPage() {
         )
     );
     setAbsensiLogs(updatedLogs);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("himasi_absensi_logs", JSON.stringify(updatedLogs));
-    }
 
     try {
       await supabase
@@ -782,9 +701,6 @@ export default function DashboardPage() {
       (l) => l.kegiatan.trim().toLowerCase() !== namaKegiatan.trim().toLowerCase()
     );
     setAbsensiLogs(updatedLogs);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("himasi_absensi_logs", JSON.stringify(updatedLogs));
-    }
 
     try {
       await supabase
@@ -1026,33 +942,47 @@ export default function DashboardPage() {
         p.id === editingPengurus.id ? updatedMember : p
       );
       setPengurusList(updatedList);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("himasi_pengurus_list", JSON.stringify(updatedList));
-      }
 
       if (selectedPengurusCard?.id === editingPengurus.id) {
         setSelectedPengurusCard(updatedMember);
       }
 
-      // Sync ke Supabase (jika tabel sudah ada)
+      // Sync update ke Supabase tabel pengurus
       try {
-        await supabase
-          .from("pengurus")
-          .update({
-            nama: cleanNama,
-            nim: cleanNim,
-            divisi: cleanDivisi,
-            jabatan: cleanJabatan,
-            email: cleanEmail,
-            foto_url: cleanImage,
-            qr_token: cleanToken,
-          })
-          .match({ nim: editingPengurus.nim });
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(editingPengurus.id);
+        const query = isUuid
+          ? supabase.from("pengurus").update({
+              nama: cleanNama,
+              nim: cleanNim,
+              divisi: cleanDivisi,
+              jabatan: cleanJabatan,
+              email: cleanEmail,
+              foto_url: cleanImage,
+              qr_token: cleanToken,
+              updated_at: new Date().toISOString(),
+            }).eq("id", editingPengurus.id)
+          : supabase.from("pengurus").update({
+              nama: cleanNama,
+              nim: cleanNim,
+              divisi: cleanDivisi,
+              jabatan: cleanJabatan,
+              email: cleanEmail,
+              foto_url: cleanImage,
+              qr_token: cleanToken,
+              updated_at: new Date().toISOString(),
+            }).eq("nim", editingPengurus.nim);
+
+        const { error: updErr } = await query;
+        if (updErr) {
+          console.warn("Supabase update pengurus error:", updErr);
+          showToast(`Peringatan: Gagal sinkron ke database: ${updErr.message}`);
+        } else {
+          showToast(`Data peserta "${cleanNama}" berhasil diperbarui di database!`);
+        }
       } catch (err) {
         console.warn("Supabase update pengurus error:", err);
+        showToast(`Data peserta "${cleanNama}" berhasil diperbarui!`);
       }
-
-      showToast(`Data peserta "${cleanNama}" berhasil diperbarui!`);
     } else {
       // Mode Tambah Baru
       let generatedId = `pengurus-${Date.now()}`;
@@ -1077,6 +1007,9 @@ export default function DashboardPage() {
         if (!error && data && data.length > 0 && data[0].id) {
           generatedId = data[0].id;
           isDbSaved = true;
+        } else if (error) {
+          console.warn("Supabase insert pengurus error:", error);
+          showToast(`Error database: ${error.message}`);
         }
       } catch (err) {
         console.warn("Supabase insert pengurus error:", err);
@@ -1093,11 +1026,7 @@ export default function DashboardPage() {
         qrToken: cleanToken,
       };
 
-      const updatedList = [newMember, ...pengurusList];
-      setPengurusList(updatedList);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("himasi_pengurus_list", JSON.stringify(updatedList));
-      }
+      setPengurusList([newMember, ...pengurusList]);
 
       if (isDbSaved) {
         showToast(`Peserta "${cleanNama}" berhasil ditambahkan & tersimpan ke Cloud!`);
@@ -1123,26 +1052,27 @@ export default function DashboardPage() {
     const targetNim = pengurusToDelete.nim;
     const targetNama = pengurusToDelete.nama;
 
-    const updatedList = pengurusList.filter((p) => p.id !== targetId);
-    setPengurusList(updatedList);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("himasi_pengurus_list", JSON.stringify(updatedList));
-    }
+    setPengurusList((prev) => prev.filter((p) => p.id !== targetId));
 
     if (selectedPengurusCard?.id === targetId) {
       setSelectedPengurusCard(null);
     }
 
-    // Sync ke Supabase (jika tabel sudah ada)
+    // Hapus dari Supabase tabel pengurus
     try {
-      await supabase.from("pengurus").delete().match({ nim: targetNim });
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
+      if (isUuid) {
+        await supabase.from("pengurus").delete().eq("id", targetId);
+      } else {
+        await supabase.from("pengurus").delete().eq("nim", targetNim);
+      }
     } catch (err) {
       console.warn("Supabase delete pengurus error:", err);
     }
 
     setDeletingPengurus(false);
     setPengurusToDelete(null);
-    showToast(`Peserta "${targetNama}" berhasil dihapus.`);
+    showToast(`Peserta "${targetNama}" berhasil dihapus dari database.`);
   };
 
   // 12. Logout Pengurus
@@ -2394,9 +2324,28 @@ NOTIFY pgrst, 'reload schema';`;
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Database Supabase Terhubung</span>
+                    </div>
+
                     <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
                       Total: <strong className="text-[#00296E]">{pengurusList.length} Peserta Terdaftar</strong>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => fetchPengurus()}
+                      disabled={loadingPengurus}
+                      className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      title="Segarkan Data Pengurus dari Database Supabase"
+                    >
+                      <RefreshCw
+                        className={`w-4 h-4 text-slate-500 ${
+                          loadingPengurus ? "animate-spin text-sky-600" : ""
+                        }`}
+                      />
+                    </button>
 
                     <button
                       type="button"
