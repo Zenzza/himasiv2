@@ -41,6 +41,17 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
+  // Helper untuk membersihkan seluruh sisa style scroll pada html & body
+  const restoreScroll = () => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.height = "";
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+      document.body.style.touchAction = "";
+    }
+  };
+
   // Transisi exit: kontainer utama meluncur -100vh ke atas, menarik navbar & halaman langsung di bawah preloader
   const exitIntro = () => {
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
@@ -50,12 +61,10 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
     setPhase("exiting");
 
     if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
-    // 1100ms durasi transisi naik ke atas
+    // 1100ms durasi transisi naik ke atas tirai preloader
     exitTimerRef.current = setTimeout(() => {
       setPhase("hidden");
-      if (typeof document !== "undefined") {
-        document.body.style.overflow = "";
-      }
+      restoreScroll();
       onCompleteRef.current?.();
     }, 1100);
   };
@@ -106,6 +115,47 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
     animFrameRef.current = requestAnimationFrame(animateProgress);
   };
 
+  // Penguncian scroll aktif secara reaktif berdasarkan fase preloader:
+  // - Aktif saat preloader muncul ('idle', 'animating', 'exiting')
+  // - Otomatis dilepas seutuhnya seketika tirai selesai ('hidden')
+  useEffect(() => {
+    if ((isExcludedPath && !forceShow) || phase === "hidden") {
+      restoreScroll();
+      return;
+    }
+
+    // Pastikan scroll berada di puncak paling atas
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
+
+    // Intersep sentuhan layar mobile, roda mouse, dan tombol keyboard navigasi
+    const preventScroll = (e: TouchEvent | WheelEvent) => {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    const preventKeys = (e: KeyboardEvent) => {
+      if (["Space", "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(e.code)) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+    window.addEventListener("wheel", preventScroll, { passive: false });
+    window.addEventListener("keydown", preventKeys);
+
+    return () => {
+      window.removeEventListener("touchmove", preventScroll);
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("keydown", preventKeys);
+      restoreScroll();
+    };
+  }, [phase, isExcludedPath, forceShow]);
+
   // Mulai alur animasi lengkap dari awal
   const startFullSequence = () => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -119,8 +169,7 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
     setShowText(false);
     setPhase("idle");
 
-    if (typeof document !== "undefined") {
-      document.body.style.overflow = "hidden";
+    if (typeof window !== "undefined") {
       window.scrollTo(0, 0);
     }
 
@@ -134,15 +183,8 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
   // Mount effect & register global handlers
   useEffect(() => {
     if (isExcludedPath && !forceShow) {
-      if (typeof document !== "undefined") {
-        document.body.style.overflow = "";
-      }
+      restoreScroll();
       return;
-    }
-
-    // Kunci scroll body selama preloader aktif
-    if (typeof document !== "undefined") {
-      document.body.style.overflow = "hidden";
     }
 
     // Jalankan urutan animasi dengan delay
@@ -171,9 +213,7 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
       if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
       if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
       window.removeEventListener("himasi:replay-intro", handleReplay);
-      if (typeof document !== "undefined") {
-        document.body.style.overflow = "";
-      }
+      restoreScroll();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExcludedPath, forceShow]);
@@ -268,11 +308,11 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
 
         {/* Center Subtitle / Tagline (Ringan & Bersih) */}
         <div
-          className={`relative z-10 w-full text-center px-4 flex flex-col items-center transition-all duration-700 ease-out ${
+          className={`relative z-10 w-full text-center px-3 sm:px-4 flex flex-col items-center transition-all duration-700 ease-out ${
             showText ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
           }`}
         >
-          <p className="font-mono text-[10px] sm:text-xs text-[#93c5fd]/90 tracking-[0.25em] sm:tracking-[0.3em] uppercase font-medium">
+          <p className="font-mono text-[10px] sm:text-xs text-[#93c5fd]/90 tracking-[0.16em] sm:tracking-[0.25em] md:tracking-[0.3em] uppercase font-medium">
             Himpunan Mahasiswa Sistem Informasi
           </p>
           <span className="text-[9px] sm:text-[10px] text-white/40 tracking-[0.15em] font-sans mt-0.5">
@@ -280,10 +320,10 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
           </span>
         </div>
 
-        {/* Bottom Hero Typography ("HIMASI" - GPU Accelerated Smooth Emerge) */}
-        <div className="relative z-10 w-full flex justify-center items-end pb-6 sm:pb-10 overflow-hidden">
+        {/* Bottom Hero Typography ("HIMASI" - GPU Accelerated Smooth Emerge, Teroptimasi Responsif Mobile) */}
+        <div className="relative z-10 w-full flex justify-center items-end pb-6 sm:pb-10 overflow-hidden px-2 sm:px-4">
           <div
-            className={`w-full flex justify-center items-end select-none will-change-transform ${
+            className={`w-full max-w-full flex justify-center items-end select-none will-change-transform ${
               showText
                 ? "opacity-100 translate-y-0 scale-100 transition-all duration-900 ease-[cubic-bezier(0.16,1,0.3,1)]"
                 : "opacity-0 translate-y-16 scale-[0.97]"
@@ -291,7 +331,7 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
           >
             <div
               role="presentation"
-              className="font-black text-[22vw] leading-[0.74] tracking-[-0.04em] uppercase text-white select-none"
+              className="font-black text-[18vw] sm:text-[20vw] md:text-[22vw] leading-[0.88] sm:leading-[0.82] md:leading-[0.76] tracking-[-0.03em] uppercase text-white select-none whitespace-nowrap text-center py-2"
               style={{
                 fontFamily: "var(--font-poppins), sans-serif",
                 textShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
