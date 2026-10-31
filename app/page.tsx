@@ -32,6 +32,7 @@ import {
 import Footer from "@/components/footer";
 import FormAspirasi from "@/components/form-aspirasi";
 import ScrollReveal from "@/components/scroll-reveal";
+import HeroBannerImage from "@/components/hero-banner-image";
 
 // URL Video YouTube Company Profile HIMASI (Ganti link di sini sesuai kebutuhan)
 const YOUTUBE_VIDEO_URL = "https://youtu.be/Q-SbWMLlmoI?si=5uNeFPoj9BzOo0bT";
@@ -421,25 +422,12 @@ export default function Home() {
   const [isPengurusPaused, setIsPengurusPaused] = useState(false);
 
   return (
-    <div className="flex flex-col w-full bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
       
-      <section className="relative w-full overflow-hidden min-h-[85vh] sm:min-h-[92vh] flex flex-col justify-center items-center">
+      <section className="relative w-full overflow-hidden h-[calc(100dvh-64px)] min-h-[calc(100dvh-64px)] sm:h-auto sm:min-h-[92vh] flex flex-col justify-center items-center">
         
-        {/* 1. Dummy Nature Photograph (/hero-nature.jpg) */}
-        <img
-          src="/hero-banner.png"
-          alt="Hero Nature Landscape"
-          className="absolute inset-0 w-full h-full object-cover object-[center_65%] pointer-events-none select-none"
-        />
-
-        {/* 2. Gradient Overlay: Dibuat lebih pendek dan presisi (fokus blend navbar di atas & subtle fade di bawah) */}
-        <div
-          className="absolute inset-0 pointer-events-none transition-all duration-300"
-          style={{
-            background:
-              "linear-gradient(180deg, #00296E 0%, rgba(0, 41, 110, 0.72) 8%, rgba(0, 41, 110, 0.22) 16%, rgba(0, 41, 110, 0.04) 24%, transparent 28%, transparent 92%, rgba(255, 255, 255, 0.75) 98%, #FFFFFF 100%)",
-          }}
-        />
+        {/* 1. Responsive Hero Banner System (Background Desktop & Mobile Berbeda) */}
+        <HeroBannerImage />
 
         {/* 3. Ajakan Scroll: Simbol panah mengarah ke bawah memantul kecil di tengah bawah */}
         <button
@@ -713,7 +701,7 @@ export default function Home() {
             
             {/* Kolom Kiri: VISI (Bentuk Trapesium Presisi Sesuai Gambar Referensi - Card Pop) */}
             <ScrollReveal direction="card-pop" className="lg:col-span-5 h-full">
-              <div className="relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-visible h-full">
+              <div className="relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-hidden h-full rounded-2xl">
                 {/* Background SVG Trapesium with exact path - Single Solid Color #00296E */}
                 <svg
                   className="absolute inset-0 w-full h-full -z-0"
@@ -921,7 +909,7 @@ export default function Home() {
 
           {/* Carousel Slider Card Container: 2 Kolom Card Per View (Infinite & Geser Drag/Swipe) */}
           <div
-            className={`relative w-full overflow-hidden -mx-2 sm:-mx-3 select-none ${
+            className={`relative w-full max-w-full overflow-hidden select-none ${
               isDragging ? "cursor-grabbing" : "cursor-grab"
             }`}
             onMouseDown={(e) => handleDragStart(e.clientX)}
@@ -1077,7 +1065,7 @@ export default function Home() {
           </div>
 
           {/* Infinite Smooth Carousel Track Container (Berjalan Sendiri Secara Smooth & Pause on Hover) */}
-          <div className="relative w-full overflow-hidden select-none group/carousel py-2 -mx-2 sm:-mx-0">
+          <div className="relative w-full max-w-full overflow-hidden select-none group/carousel py-2">
             
             {/* Left & Right Gradient Fade Masks */}
             <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-24 z-20 bg-gradient-to-r from-white via-white/80 to-transparent" />

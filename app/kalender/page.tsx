@@ -406,13 +406,13 @@ export default function KalenderPage() {
   };
 
   return (
-    <div className="flex flex-col w-full bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
       
       {/* ============================================================ */}
       {/* SECTION HEADER: PERSIS SESUAI STYLE PAGE LAIN */}
       {/* Breadcrumb HOME / KALENDER, Judul Tengah Besar, dan Subjudul */}
       {/* ============================================================ */}
-      <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full">
+      <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="relative text-center max-w-3xl mx-auto">
             {/* Breadcrumb Sesuai Referensi: HOME / KALENDER */}
@@ -441,7 +441,7 @@ export default function KalenderPage() {
       {/* SECTION KALENDER INTERAKTIF (PERSIS SESUAI GAMBAR REFERENSI) */}
       {/* Navigasi Bulan, Hari Mon-Sun, Tanggal Border Squircle + Dot */}
       {/* ============================================================ */}
-      <section className="relative py-8 sm:py-12 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full">
+      <section className="relative py-8 sm:py-12 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full overflow-hidden">
         <ScrollReveal direction="card-pop" className="max-w-xl mx-auto">
           
           {/* Card Kalender Widget */}
@@ -648,7 +648,7 @@ export default function KalenderPage() {
       {/* SECTION LIST KETERANGAN DI BAWAHNYA */}
       {/* Daftar Keterangan Detail Event Sesuai Tanggal/Bulan Terpilih */}
       {/* ============================================================ */}
-      <section className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-white w-full border-t border-slate-100">
+      <section className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-white w-full border-t border-slate-100 overflow-hidden">
         <ScrollReveal className="max-w-5xl mx-auto">
           
           {/* Header List Keterangan + Filter Kategori */}

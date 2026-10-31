@@ -218,10 +218,10 @@ export default function BeritaPage() {
     CATEGORIES.find((c) => c.id === selectedCategory)?.label || "Semua Berita";
 
   return (
-    <div className="flex flex-col w-full bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
       
       {/* SECTION HEADER: SESUAI REFERENSI (BREADCRUMB, JUDUL TENGAH BESAR, SUBJUDUL) */}
-      <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full">
+      <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="relative text-center max-w-2xl mx-auto">
             {/* Breadcrumb Sesuai Referensi: HOME / BERITA */}
@@ -247,7 +247,7 @@ export default function BeritaPage() {
       </section>
 
       {/* SECTION UTAMA: 2 KOLOM (GRID ARTIKEL DI KIRI, SIDEBAR KATEGORI & BERITA TERBARU DI KANAN) */}
-      <section className="relative py-8 sm:py-10 px-4 sm:px-6 lg:px-12 bg-white w-full">
+      <section className="relative py-8 sm:py-10 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
             

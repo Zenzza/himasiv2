@@ -156,7 +156,7 @@ export default function TentangPage() {
   const pinY = targetPin ? 9 + 0.82 * targetPin.top : 50;
 
   return (
-    <div className="flex flex-col w-full bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
       
       {/* ============================================================ */}
       {/* BAGIAN 1: HERO & STAGGERED PHOTO COLLAGE (SESUAI GAMBAR ATAS) */}
@@ -260,7 +260,7 @@ export default function TentangPage() {
       {/* ============================================================ */}
       {/* BAGIAN 2: DETAIL TENTANG KAMI & BANNER VIDEO (SESUAI GAMBAR BAWAH) */}
       {/* ============================================================ */}
-      <section className="relative py-12 sm:py-18 px-4 sm:px-6 lg:px-12 bg-white w-full">
+      <section className="relative py-12 sm:py-18 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
             
@@ -353,7 +353,7 @@ export default function TentangPage() {
       {/* ============================================================ */}
       {/* BAGIAN 3: HIMASI DALAM ANGKA & VISI MISI */}
       {/* ============================================================ */}
-      <section className="relative py-14 sm:py-20 px-4 sm:px-6 lg:px-12 bg-white w-full">
+      <section className="relative py-14 sm:py-20 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           
           {/* Baris 1: HIMASI dalam Angka + 3 Metric Cards */}
@@ -786,7 +786,7 @@ export default function TentangPage() {
       {/* ============================================================ */}
       {/* BAGIAN 5: KONTAK KAMI & MEDIA SOSIAL */}
       {/* ============================================================ */}
-      <section id="ko"className="relative py-16 sm:py-24 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full">
+      <section id="kontak" className="relative py-16 sm:py-24 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           
           {/* Header Section: Hubungi Kami */}

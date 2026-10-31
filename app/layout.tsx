@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/navbar";
 import BackToTop from "@/components/back-to-top";
 import LoadingScreen from "@/components/loading-screen";
+import ScrollToTopOnNav from "@/components/scroll-to-top-on-nav";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -44,9 +45,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-[#00296E] text-[#091e42] selection:bg-[#0094E0]/20 selection:text-[#00296E]">
+        <ScrollToTopOnNav />
         <LoadingScreen>
           <Navbar />
-          <main className="flex-1 w-full">{children}</main>
+          <main className="flex-1 w-full overflow-x-clip max-w-full">{children}</main>
           <BackToTop />
         </LoadingScreen>
       </body>

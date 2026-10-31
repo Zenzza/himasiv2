@@ -61,7 +61,7 @@ export default function PrestasiPage() {
   );
 
   return (
-    <div className="flex flex-col w-full py-8 px-4 sm:px-6 max-w-7xl mx-auto">
+    <div className="flex flex-col w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 overflow-x-hidden">
       {/* Banner */}
       <section className="relative rounded-[2.5rem] bg-gradient-to-r from-[#0094E0] via-[#0070c0] to-[#00296E] p-8 sm:p-14 text-white shadow-xl shadow-sky-500/10 overflow-hidden mb-8">
         <div className="relative z-10 max-w-2xl">

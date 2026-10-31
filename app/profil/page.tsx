@@ -379,13 +379,13 @@ export default function ProfilPage() {
   const currentDivisiData = DIVISI_DATA[activeDivisi];
 
   return (
-    <div className="flex flex-col w-full bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
       
       {/* ============================================================ */}
       {/* SECTION HEADER: PERSIS SESUAI STYLE PAGE BERITA */}
       {/* Breadcrumb HOME / KABINET, Judul Tengah Besar, dan Subjudul */}
       {/* ============================================================ */}
-      <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full">
+      <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="relative text-center max-w-3xl mx-auto">
             {/* Breadcrumb Sesuai Referensi: HOME / KABINET */}
@@ -414,7 +414,7 @@ export default function ProfilPage() {
       {/* BAGIAN 1: DESKRIPSI KABINET REKSABUDAYA */}
       {/* Showcase Profil, Makna Nama, dan Semangat Kepengurusan */}
       {/* ============================================================ */}
-      <section className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full">
+      <section className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
             
@@ -467,7 +467,7 @@ export default function ProfilPage() {
       {/* BAGIAN 2: DATA SINGKAT KABINET (PERSIS SESUAI HOMEPAGE) */}
       {/* HIMASI dalam Angka + 3 Metric Cards */}
       {/* ============================================================ */}
-      <section className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-white w-full">
+      <section className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <div className="relative max-w-6xl mx-auto">
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 items-stretch">
@@ -530,14 +530,14 @@ export default function ProfilPage() {
       {/* BAGIAN 3: VISI & MISI KABINET (PERSIS SESUAI HOMEPAGE) */}
       {/* VISI Trapesium (Kiri) & MISI 4 Pill (Kanan) */}
       {/* ============================================================ */}
-      <section className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full">
+      <section className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full overflow-hidden">
         <div className="max-w-6xl mx-auto">
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
             
             {/* Kolom Kiri: VISI (Bentuk Trapesium Presisi Sesuai Homepage - Card Pop) */}
             <ScrollReveal direction="card-pop" className="lg:col-span-5 h-full">
-              <div className="relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-visible h-full">
+              <div className="relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-hidden rounded-2xl h-full">
                 {/* Background SVG Trapesium with exact path - Single Solid Color #00296E */}
                 <svg
                   className="absolute inset-0 w-full h-full -z-0"
@@ -801,7 +801,7 @@ export default function ProfilPage() {
       {/* PEMBINA, BPH, MEDKOMINFO, HUMAS, BISNIS KREATIF, PENASIHAT */}
       {/* CARD PENGURUS HOMEPAGE + LAYOUT REFERENSI GAMBAR */}
       {/* ============================================================ */}
-      <section className="relative py-14 sm:py-22 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full">
+      <section className="relative py-14 sm:py-22 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           
           <div className="text-center mb-10 sm:mb-12">
@@ -882,7 +882,7 @@ export default function ProfilPage() {
       {/* Layout Persis Sesuai Gambar Referensi (AD/ART, BPPK, UU Pilka) */}
       {/* Menggunakan Warna & Style HIMASI yang Telah Ada */}
       {/* ============================================================ */}
-      <section className="relative py-14 sm:py-20 px-4 sm:px-6 lg:px-12 bg-white w-full">
+      <section className="relative py-14 sm:py-20 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           
           {/* Header Dokumen Organisasi Sesuai Gambar Referensi */}

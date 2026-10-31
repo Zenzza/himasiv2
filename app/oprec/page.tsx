@@ -105,7 +105,7 @@ export default function OprecPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-[#091e42]">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-[#091e42] w-full max-w-full overflow-x-hidden">
       {/* Top Banner */}
       <section className="relative w-full bg-[#00296E] text-white py-14 sm:py-20 px-4 sm:px-6 lg:px-12 overflow-hidden">
         {/* Glow Effects */}

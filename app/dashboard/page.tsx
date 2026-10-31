@@ -49,8 +49,17 @@ import {
   Upload,
   Camera,
   FolderCheck,
-  FolderOpen
+  FolderOpen,
+  Monitor,
+  Smartphone
 } from "lucide-react";
+import {
+  DEFAULT_HERO_BANNER,
+  getHeroBannerConfig,
+  saveHeroBannerConfig,
+  resetHeroBannerConfig,
+  type HeroBannerConfig,
+} from "@/lib/constants/banner";
 import { supabase } from "@/lib/supabase/client";
 import {
   DAFTAR_PENGURUS_HIMASI,
@@ -110,9 +119,31 @@ export default function DashboardPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "aspirasi" | "berita" | "kalender" | "database"
+    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "aspirasi" | "berita" | "kalender" | "database" | "banner"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Hero Banner State (Pengaturan Background Mobile & Desktop)
+  const [bannerConfig, setBannerConfig] = useState<HeroBannerConfig>(DEFAULT_HERO_BANNER);
+  const [formDesktopImage, setFormDesktopImage] = useState(DEFAULT_HERO_BANNER.desktopImage);
+  const [formMobileImage, setFormMobileImage] = useState(DEFAULT_HERO_BANNER.mobileImage);
+  const [formDesktopPos, setFormDesktopPos] = useState(DEFAULT_HERO_BANNER.desktopPosition || "object-[center_65%]");
+  const [formMobilePos, setFormMobilePos] = useState(DEFAULT_HERO_BANNER.mobilePosition || "object-center");
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile" | "split">("split");
+
+  const supabaseProjectId = useMemo(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    return url ? url.replace(/^https?:\/\//, "").split(".")[0] : "supabase-project";
+  }, []);
+
+  useEffect(() => {
+    const loaded = getHeroBannerConfig();
+    setBannerConfig(loaded);
+    setFormDesktopImage(loaded.desktopImage);
+    setFormMobileImage(loaded.mobileImage);
+    setFormDesktopPos(loaded.desktopPosition || "object-[center_65%]");
+    setFormMobilePos(loaded.mobilePosition || "object-center");
+  }, []);
 
   // Folder Menu State: Absensi (otomatis terbuka jika submenu aktif)
   const [isAbsensiFolderOpen, setIsAbsensiFolderOpen] = useState(true);
@@ -180,6 +211,28 @@ export default function DashboardPage() {
     setTimeout(() => {
       setToastMessage((cur) => (cur === message ? null : cur));
     }, 3500);
+  };
+
+  const handleSaveBanner = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const updated = saveHeroBannerConfig({
+      desktopImage: formDesktopImage.trim() || DEFAULT_HERO_BANNER.desktopImage,
+      mobileImage: formMobileImage.trim() || DEFAULT_HERO_BANNER.mobileImage,
+      desktopPosition: formDesktopPos,
+      mobilePosition: formMobilePos,
+    });
+    setBannerConfig(updated);
+    showToast("Berhasil menyimpan konfigurasi Hero Banner Desktop & Mobile!");
+  };
+
+  const handleResetBanner = () => {
+    const def = resetHeroBannerConfig();
+    setBannerConfig(def);
+    setFormDesktopImage(def.desktopImage);
+    setFormMobileImage(def.mobileImage);
+    setFormDesktopPos(def.desktopPosition || "object-[center_65%]");
+    setFormMobilePos(def.mobilePosition || "object-center");
+    showToast("Hero Banner berhasil di-reset ke konfigurasi bawaan.");
   };
 
   // Kartu QR Modal / Detail State
@@ -1560,6 +1613,28 @@ NOTIFY pgrst, 'reload schema';`;
                 </div>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               </button>
+
+              {/* MENU 8: HERO BANNER (DESKTOP & MOBILE) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("banner");
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "banner"
+                    ? "bg-[#00296E] text-white shadow-sm border border-sky-400/30 font-bold"
+                    : "text-slate-300 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <ImageIcon className="w-4 h-4 text-pink-400" />
+                  <span>Hero Banner (Mobile & Desktop)</span>
+                </div>
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-400/30">
+                  Dual
+                </span>
+              </button>
             </nav>
           </div>
 
@@ -1700,6 +1775,15 @@ NOTIFY pgrst, 'reload schema';`;
                       >
                         <IdCard className="w-3.5 h-3.5 text-sky-300" />
                         <span>Lihat Kartu QR Pengurus</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("banner")}
+                        className="px-4 py-2 rounded-xl bg-pink-600/80 hover:bg-pink-600 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-pink-200" />
+                        <span>Hero Banner (Mobile & Desktop)</span>
                       </button>
                     </div>
                   </div>
@@ -2738,13 +2822,13 @@ NOTIFY pgrst, 'reload schema';`;
                         </span>
                       </h2>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Proyek: <code className="font-mono text-sky-700 bg-sky-50 px-1 py-0.5 rounded">rtbtgmtxyhljbltroyra</code> • Region: Southeast Asia
+                        Proyek: <code className="font-mono text-sky-700 bg-sky-50 px-1 py-0.5 rounded">{supabaseProjectId}</code> • Region: Southeast Asia
                       </p>
                     </div>
                   </div>
 
                   <a
-                    href="https://supabase.com/dashboard/project/rtbtgmtxyhljbltroyra"
+                    href={`https://supabase.com/dashboard/project/${supabaseProjectId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
@@ -2789,6 +2873,382 @@ NOTIFY pgrst, 'reload schema';`;
                     <code>{sqlScriptContent}</code>
                   </pre>
                 </div>
+              </div>
+            )}
+
+            {/* TAB 9: HERO BANNER (MOBILE & DESKTOP) */}
+            {activeTab === "banner" && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Header Info Card */}
+                <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 border border-pink-100">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-[#00296E] flex items-center gap-2">
+                        <span>Sistem Hero Banner & Background</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-800">
+                          Dual-Source Responsive
+                        </span>
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Kelola aset background secara terpisah untuk tampilan Desktop (Layar Lebar) dan Mobile (Smartphone Portait) dengan teknologi HTML5 <code>&lt;picture&gt;</code>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <a
+                      href="/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-[#00296E] hover:border-slate-300 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    >
+                      <span>Lihat Homepage</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => handleResetBanner()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Reset Default</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live Device Previews */}
+                <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                      <h3 className="font-bold text-sm text-[#00296E] flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>Pratinjau Tampilan Multi-Perangkat (Live Preview)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Simulasi langsung bagaimana hero banner tampil di berbagai orientasi layar.
+                      </p>
+                    </div>
+
+                    <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl gap-1 text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("split")}
+                        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                          previewDevice === "split"
+                            ? "bg-white text-[#00296E] shadow-xs font-bold"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        Bandingan (Split)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("desktop")}
+                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                          previewDevice === "desktop"
+                            ? "bg-white text-[#00296E] shadow-xs font-bold"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        <Monitor className="w-3.5 h-3.5" />
+                        <span>Desktop</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("mobile")}
+                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                          previewDevice === "mobile"
+                            ? "bg-white text-[#00296E] shadow-xs font-bold"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>Mobile</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Device Preview Canvases */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                    
+                    {/* 1. Desktop Preview Mockup */}
+                    {(previewDevice === "desktop" || previewDevice === "split") && (
+                      <div className={`${previewDevice === "split" ? "lg:col-span-8" : "lg:col-span-12"} space-y-2`}>
+                        <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                          <span className="flex items-center gap-1.5 text-slate-700 font-bold">
+                            <Monitor className="w-4 h-4 text-sky-600" />
+                            <span>Tampilan Layar Desktop (&ge; 768px)</span>
+                          </span>
+                          <span className="font-mono text-[11px] bg-sky-50 text-sky-700 px-2 py-0.5 rounded border border-sky-100">
+                            {formDesktopImage}
+                          </span>
+                        </div>
+
+                        {/* Simulated Desktop Window */}
+                        <div className="rounded-2xl overflow-hidden border border-slate-300 shadow-md bg-slate-900">
+                          {/* Browser Top Bar */}
+                          <div className="bg-slate-800 px-3 py-2 flex items-center gap-2 border-b border-slate-700/60">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                            </div>
+                            <div className="flex-1 max-w-sm mx-auto bg-slate-900/80 text-slate-400 text-[10px] font-mono px-3 py-0.5 rounded-md text-center truncate border border-slate-700">
+                              https://himasi.atmaluhur.ac.id
+                            </div>
+                          </div>
+
+                          {/* Desktop Banner Display */}
+                          <div className="relative aspect-video sm:aspect-[21/9] w-full overflow-hidden bg-slate-950">
+                            <img
+                              src={formDesktopImage || DEFAULT_HERO_BANNER.desktopImage}
+                              alt="Pratinjau Desktop"
+                              className={`w-full h-full object-cover ${formDesktopPos}`}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = DEFAULT_HERO_BANNER.desktopImage;
+                              }}
+                            />
+                            {/* Overlay Gradient Simulating Real Homepage */}
+                            <div
+                              className="absolute inset-0 pointer-events-none"
+                              style={{
+                                background:
+                                  "linear-gradient(180deg, #00296E 0%, rgba(0, 41, 110, 0.72) 10%, rgba(0, 41, 110, 0.22) 20%, transparent 35%, transparent 85%, rgba(255, 255, 255, 0.8) 98%, #FFFFFF 100%)",
+                              }}
+                            />
+                            {/* Simulated Watermark Text Marquee */}
+                            <div className="absolute bottom-4 inset-x-0 text-center pointer-events-none">
+                              <span className="font-black text-xl sm:text-2xl text-white/30 uppercase tracking-widest">
+                                HIMASI ATMALUHUR KABINET REKSABUDAYA
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. Mobile Smartphone Mockup */}
+                    {(previewDevice === "mobile" || previewDevice === "split") && (
+                      <div className={`${previewDevice === "split" ? "lg:col-span-4" : "lg:col-span-12 max-w-xs mx-auto"} space-y-2`}>
+                        <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                          <span className="flex items-center gap-1.5 text-slate-700 font-bold">
+                            <Smartphone className="w-4 h-4 text-pink-600" />
+                            <span>Tampilan Layar Mobile (&lt; 768px)</span>
+                          </span>
+                          <span className="font-mono text-[11px] bg-pink-50 text-pink-700 px-2 py-0.5 rounded border border-pink-100">
+                            Portrait
+                          </span>
+                        </div>
+
+                        {/* Simulated Smartphone Frame */}
+                        <div className="rounded-[32px] overflow-hidden border-4 border-slate-800 shadow-xl bg-slate-950 relative max-w-[260px] mx-auto">
+                          {/* Phone Speaker Notch */}
+                          <div className="absolute top-2 inset-x-0 z-20 flex justify-center pointer-events-none">
+                            <div className="w-16 h-3 bg-slate-800 rounded-full" />
+                          </div>
+
+                          {/* Mobile Banner Display */}
+                          <div className="relative aspect-[9/18] w-full overflow-hidden bg-slate-950">
+                            <img
+                              src={formMobileImage || DEFAULT_HERO_BANNER.mobileImage}
+                              alt="Pratinjau Mobile"
+                              className={`w-full h-full object-cover ${formMobilePos}`}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = DEFAULT_HERO_BANNER.mobileImage;
+                              }}
+                            />
+                            {/* Overlay Gradient Simulating Real Mobile Homepage */}
+                            <div
+                              className="absolute inset-0 pointer-events-none"
+                              style={{
+                                background:
+                                  "linear-gradient(180deg, #00296E 0%, rgba(0, 41, 110, 0.72) 12%, rgba(0, 41, 110, 0.22) 22%, transparent 35%, transparent 88%, rgba(255, 255, 255, 0.8) 98%, #FFFFFF 100%)",
+                              }}
+                            />
+                            {/* Simulated Mobile Marquee Text */}
+                            <div className="absolute bottom-6 inset-x-0 text-center pointer-events-none px-2">
+                              <span className="font-extrabold text-[10px] text-white/40 uppercase tracking-wider block">
+                                KABINET REKSABUDAYA
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+
+                {/* Form Controls: Setting URLs & Alignment */}
+                <form onSubmit={handleSaveBanner} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    {/* Setting 1: Desktop Banner */}
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                          <Monitor className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-[#00296E]">Background Banner Desktop</h4>
+                          <p className="text-[11px] text-slate-400">Aktif pada layar komputer, laptop, &amp; tablet lebar (&ge; 768px)</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            URL / Jalur File Gambar Desktop:
+                          </label>
+                          <input
+                            type="text"
+                            value={formDesktopImage}
+                            onChange={(e) => setFormDesktopImage(e.target.value)}
+                            placeholder="/hero-banner.png atau link https://..."
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0094E0]"
+                            required
+                          />
+                        </div>
+
+                        {/* Presets Desktop */}
+                        <div>
+                          <span className="block text-[11px] font-semibold text-slate-500 mb-1">Preset Rekomendasi:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormDesktopImage("/hero-banner.png");
+                                setFormDesktopPos("object-[center_65%]");
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 text-[11px] font-medium border border-sky-200/80 transition-colors cursor-pointer"
+                            >
+                              /hero-banner.png (Resmi 5933x3219)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormDesktopImage("/hero-nature.jpg");
+                                setFormDesktopPos("object-center");
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium border border-slate-200 transition-colors cursor-pointer"
+                            >
+                              /hero-nature.jpg (Alam)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Posisi Fokus Desktop */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Posisi Fokus Gambar (CSS Object-Position):
+                          </label>
+                          <select
+                            value={formDesktopPos}
+                            onChange={(e) => setFormDesktopPos(e.target.value)}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0094E0] bg-white cursor-pointer"
+                          >
+                            <option value="object-[center_65%]">object-[center_65%] (Fokus Anggota Kabinet &amp; Gedung)</option>
+                            <option value="object-center">object-center (Tengah Sempurna)</option>
+                            <option value="object-top">object-top (Fokus Langit &amp; Plang Atas)</option>
+                            <option value="object-bottom">object-bottom (Fokus Rumput &amp; Jalan)</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Setting 2: Mobile Banner */}
+                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-[#00296E]">Background Banner Mobile</h4>
+                          <p className="text-[11px] text-slate-400">Aktif pada perangkat smartphone / orientasi vertikal (&lt; 768px)</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            URL / Jalur File Gambar Mobile:
+                          </label>
+                          <input
+                            type="text"
+                            value={formMobileImage}
+                            onChange={(e) => setFormMobileImage(e.target.value)}
+                            placeholder="/hero-banner-mobile.png atau link https://..."
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0094E0]"
+                            required
+                          />
+                        </div>
+
+                        {/* Presets Mobile */}
+                        <div>
+                          <span className="block text-[11px] font-semibold text-slate-500 mb-1">Preset Rekomendasi:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormMobileImage("/hero-banner-mobile.png");
+                                setFormMobilePos("object-center");
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-700 text-[11px] font-medium border border-pink-200/80 transition-colors cursor-pointer"
+                            >
+                              /hero-banner-mobile.png (Portrait 1811x3219)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormMobileImage("/hero-banner.png");
+                                setFormMobilePos("object-center");
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium border border-slate-200 transition-colors cursor-pointer"
+                            >
+                              /hero-banner.png (Gunakan Versi Desktop)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Posisi Fokus Mobile */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Posisi Fokus Gambar (CSS Object-Position):
+                          </label>
+                          <select
+                            value={formMobilePos}
+                            onChange={(e) => setFormMobilePos(e.target.value)}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0094E0] bg-white cursor-pointer"
+                          >
+                            <option value="object-center">object-center (Tengah Sempurna - Direkomendasikan)</option>
+                            <option value="object-top">object-top (Fokus Atas)</option>
+                            <option value="object-bottom">object-bottom (Fokus Bawah)</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Submit Button Bar */}
+                  <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-xs text-slate-500 text-center sm:text-left">
+                      Konfigurasi tersimpan otomatis dan langsung diterapkan pada pengunjung beranda.
+                    </p>
+
+                    <button
+                      type="submit"
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001b4a] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span>Simpan Konfigurasi Banner</span>
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
