@@ -1,18 +1,22 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
   ArrowRight,
   Share2,
   Check,
-  X
+  X,
+  Loader2,
 } from "lucide-react";
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
+import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
+import { getPublishedBerita } from "@/lib/supabase/berita";
+import { formatBeritaDate } from "@/lib/utils/slug";
 
-// Kategori & Topik Sesuai Referensi Gambar
+// Kategori Sesuai Referensi Gambar HIMASI
 const CATEGORIES = [
   { id: "all", label: "Semua Berita", badge: "All" },
   { id: "event", label: "Kegiatan Himpunan", badge: "Event" },
@@ -20,157 +24,9 @@ const CATEGORIES = [
   { id: "teknologi", label: "Teknologi & Riset", badge: "Tech" },
 ];
 
-// Berita Terbaru Sesuai Referensi Gambar
-const RECENT_NEWS = [
-  {
-    id: 1,
-    title: "Perluas Relasi Organisasi dan Bertukar Pikiran, Departemen Eksternal HIMASI AMIKOM Gelar...",
-    date: "30 July 2026",
-    categoryKey: "event",
-  },
-  {
-    id: 2,
-    title: "Kolaborasi dengan DevWeb3 Jogja, Departemen Iptek HIMASI Gelar Workshop...",
-    date: "30 July 2026",
-    categoryKey: "teknologi",
-  },
-  {
-    id: 3,
-    title: "Program Studi Sistem Informasi Raih Juara Umum PIMAPOSMA 2025",
-    date: "30 July 2026",
-    categoryKey: "prestasi",
-  },
-  {
-    id: 4,
-    title: "Jembatani Aspirasi Mahasiswa, HIMASI Sukses Selenggarakan Dialog Program Studi (DPS)...",
-    date: "30 July 2026",
-    categoryKey: "event",
-  },
-  {
-    id: 5,
-    title: "Mahasiswa Sistem Informasi AMIKOM Raih Prestasi pada Indonesia National IT...",
-    date: "30 July 2026",
-    categoryKey: "prestasi",
-  },
-];
-
-// Data Lengkap Artikel Berita & Insight HIMASI
-const ARTICLES_DATA = [
-  {
-    id: 1,
-    title: "Perluas Relasi Organisasi dan Bertukar Pikiran, Departemen Eksternal HIMASI AMIKOM Gelar Studi Banding Strategis",
-    categoryKey: "event",
-    categoryLabel: "Kegiatan Himpunan",
-    date: "30 July 2026",
-    readTime: "5 min read",
-    excerpt: "Departemen Hubungan Eksternal HIMASI sukses menggelar forum studi banding strategis guna memperluas relasi, berbagi praktik terbaik, dan memperkuat sinergi organisasi mahasiswa.",
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
-    cornerShape: "rounded-tr-[40px] rounded-bl-[40px]",
-    cornerColor: "bg-[#f97316]",
-    cornerPosition: "bottom-3 left-3",
-    author: "Departemen Eksternal",
-  },
-  {
-    id: 2,
-    title: "Kolaborasi dengan DevWeb3 Jogja, Departemen Iptek HIMASI Gelar Workshop Blockchain & Smart Contract",
-    categoryKey: "teknologi",
-    categoryLabel: "Teknologi & Riset",
-    date: "30 July 2026",
-    readTime: "7 min read",
-    excerpt: "Eksplorasi ekosistem Web3, arsitektur desentralisasi, dan fundamental smart contract development bersama praktisi industri melalui workshop interaktif berbasis hands-on coding.",
-    image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
-    cornerShape: "rounded-tl-[45px] rounded-br-[15px]",
-    cornerColor: "bg-[#0094E0]",
-    cornerPosition: "top-3 left-3",
-    author: "Departemen Iptek",
-  },
-  {
-    id: 3,
-    title: "Program Studi Sistem Informasi Raih Juara Umum PIMAPOSMA 2025",
-    categoryKey: "prestasi",
-    categoryLabel: "Prestasi Mahasiswa",
-    date: "30 July 2026",
-    readTime: "4 min read",
-    excerpt: "Kontingen mahasiswa Sistem Informasi sukses memborong perolehan medali emas di berbagai cabang kompetisi ilmiah, gagasan futuristik, dan seni pada pekan PIMAPOSMA.",
-    image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=800&auto=format&fit=crop",
-    cornerShape: "rounded-bl-[45px] rounded-tr-[20px]",
-    cornerColor: "bg-[#8b5cf6]",
-    cornerPosition: "bottom-3 right-3",
-    author: "Divisi Bakat & Prestasi",
-  },
-  {
-    id: 4,
-    title: "Jembatani Aspirasi Mahasiswa, HIMASI Sukses Selenggarakan Dialog Program Studi (DPS) 2026",
-    categoryKey: "event",
-    categoryLabel: "Kegiatan Himpunan",
-    date: "30 July 2026",
-    readTime: "6 min read",
-    excerpt: "Forum dialog terbuka antara civitas akademika, pengelola prodi, dan mahasiswa guna menyalurkan aspirasi akademik, evaluasi kurikulum, dan peningkatan fasilitas laboratorium.",
-    image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=800&auto=format&fit=crop",
-    cornerShape: "rounded-tr-[45px]",
-    cornerColor: "bg-[#10b981]",
-    cornerPosition: "top-3 right-3",
-    author: "Departemen Internal",
-  },
-  {
-    id: 5,
-    title: "Mahasiswa Sistem Informasi AMIKOM Raih Prestasi pada Indonesia National IT Competition 2026",
-    categoryKey: "prestasi",
-    categoryLabel: "Prestasi Mahasiswa",
-    date: "30 July 2026",
-    readTime: "5 min read",
-    excerpt: "Inovasi prototipe sistem analitik cerdas buatan tim mahasiswa Sistem Informasi berhasil meraih podium penghargaan bergengsi tingkat nasional di ajang kompetisi IT tahunan.",
-    image: "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop",
-    cornerShape: "rounded-tl-[40px] rounded-br-[40px]",
-    cornerColor: "bg-[#00296E]",
-    cornerPosition: "bottom-3 left-3",
-    author: "Biro Riset Mahasiswa",
-  },
-  {
-    id: 6,
-    title: "The Future of AI & System Architecture: Tren Arsitektur Microservices dan Gen-AI di Industri",
-    categoryKey: "teknologi",
-    categoryLabel: "Teknologi & Riset",
-    date: "25 July 2026",
-    readTime: "8 min read",
-    excerpt: "Perkembangan arsitektur microservices terdistribusi dan integrasi LLM lokal menjadi keahlian kunci yang banyak dicari industri rekayasa perangkat lunak modern saat ini.",
-    image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop",
-    cornerShape: "rounded-br-[45px]",
-    cornerColor: "bg-[#f59e0b]",
-    cornerPosition: "top-3 left-3",
-    author: "Divisi Medkominfo",
-  },
-  {
-    id: 7,
-    title: "HIMASI Fest 2026: Kolaborasi Kreatif Coding, Hackathon 24 Jam, dan Turnamen E-Sport",
-    categoryKey: "event",
-    categoryLabel: "Kegiatan Himpunan",
-    date: "18 July 2026",
-    readTime: "5 min read",
-    excerpt: "Ajang akbar tahunan mahasiswa Sistem Informasi kembali hadir mempertemukan ratusan talenta muda melalui hackathon dan turnamen kompetitif penuh semangat inovasi.",
-    image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop",
-    cornerShape: "rounded-tr-[45px]",
-    cornerColor: "bg-[#0094E0]",
-    cornerPosition: "top-3 right-3",
-    author: "Panitia HIMASI Fest",
-  },
-  {
-    id: 8,
-    title: "Kisah Inspiratif Alumni: Dari Lab Komputer Menuju Tech Lead Startup Unicorn",
-    categoryKey: "prestasi",
-    categoryLabel: "Prestasi Mahasiswa",
-    date: "10 July 2026",
-    readTime: "7 min read",
-    excerpt: "Wawancara eksklusif bersama alumni Sistem Informasi tentang perjuangan meniti karir rekayasa perangkat lunak internasional dan pentingnya aktif berorganisasi di kampus.",
-    image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop",
-    cornerShape: "rounded-bl-[45px]",
-    cornerColor: "bg-[#10b981]",
-    cornerPosition: "top-3 left-3",
-    author: "Redaksi InfoTek",
-  },
-];
-
 export default function BeritaPage() {
+  const [articles, setArticles] = useState<BeritaItem[]>(FALLBACK_BERITA);
+  const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -178,18 +34,47 @@ export default function BeritaPage() {
 
   const ITEMS_PER_PAGE = 6;
 
+  // Ambil data berita terbit secara live dari Supabase / cache lokal
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      setLoading(true);
+      try {
+        const liveArticles = await getPublishedBerita();
+        if (isMounted && liveArticles && liveArticles.length > 0) {
+          setArticles(liveArticles);
+        }
+      } catch (err) {
+        console.warn("[BeritaPage] Menggunakan artikel fallback:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Filter Artikel berdasarkan Kategori dan Pencarian Teks
   const filteredArticles = useMemo(() => {
-    return ARTICLES_DATA.filter((article) => {
+    return articles.filter((article) => {
       const matchCategory =
-        selectedCategory === "all" || article.categoryKey === selectedCategory;
+        selectedCategory === "all" || article.category_key === selectedCategory;
+      const q = searchQuery.toLowerCase().trim();
       const matchSearch =
-        article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        article.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        article.categoryLabel.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        article.title.toLowerCase().includes(q) ||
+        article.excerpt.toLowerCase().includes(q) ||
+        article.category_label.toLowerCase().includes(q);
       return matchCategory && matchSearch;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [articles, selectedCategory, searchQuery]);
+
+  // Daftar berita terbaru untuk sidebar (5 artikel teratas)
+  const recentArticles = useMemo(() => {
+    return articles.slice(0, 5);
+  }, [articles]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE) || 1;
@@ -198,17 +83,22 @@ export default function BeritaPage() {
     return filteredArticles.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredArticles, currentPage]);
 
-  const handleShare = (article: (typeof ARTICLES_DATA)[0]) => {
+  const handleShare = (article: BeritaItem) => {
+    const articleUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/berita/${article.slug}`
+        : `/berita/${article.slug}`;
+
     if (typeof navigator !== "undefined" && navigator.share) {
       navigator
         .share({
           title: article.title,
           text: article.excerpt,
-          url: window.location.href,
+          url: articleUrl,
         })
         .catch(() => {});
     } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(`${article.title} - ${window.location.href}`);
+      navigator.clipboard.writeText(`${article.title} - ${articleUrl}`);
       setCopiedToast(true);
       setTimeout(() => setCopiedToast(false), 2500);
     }
@@ -219,7 +109,6 @@ export default function BeritaPage() {
 
   return (
     <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
-      
       {/* SECTION HEADER: SESUAI REFERENSI (BREADCRUMB, JUDUL TENGAH BESAR, SUBJUDUL) */}
       <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
@@ -250,12 +139,10 @@ export default function BeritaPage() {
       <section className="relative py-8 sm:py-10 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-            
             {/* ============================================================ */}
             {/* SISI KIRI (lg:col-span-8): PENCARIAN + GRID ARTIKEL + PAGINASI */}
             {/* ============================================================ */}
             <div className="lg:col-span-8 flex flex-col">
-              
               {/* Search Bar & Status Filter */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-100">
                 <div className="relative w-full sm:w-72">
@@ -303,79 +190,110 @@ export default function BeritaPage() {
               {/* Grid Artikel (2 Kolom di sisi kiri) */}
               {paginatedArticles.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-7 sm:gap-8">
-                  {paginatedArticles.map((article, idx) => (
-                    <ScrollReveal key={article.id} direction="card-pop" delay={(idx % 2) * 150} className="w-full">
-                      <article
-                        className="group flex flex-col items-start select-none"
+                  {paginatedArticles.map((article, idx) => {
+                    const cornerShape =
+                      article.corner_shape ||
+                      (idx % 3 === 0
+                        ? "rounded-tr-[40px] rounded-bl-[40px]"
+                        : idx % 3 === 1
+                        ? "rounded-tl-[45px] rounded-br-[15px]"
+                        : "rounded-bl-[45px] rounded-tr-[20px]");
+                    const cornerColor =
+                      article.corner_color ||
+                      (article.category_key === "prestasi"
+                        ? "bg-[#8b5cf6]"
+                        : article.category_key === "teknologi"
+                        ? "bg-[#0094E0]"
+                        : "bg-[#f97316]");
+                    const cornerPosition =
+                      article.corner_position ||
+                      (idx % 2 === 0 ? "bottom-3 left-3" : "top-3 right-3");
+
+                    return (
+                      <ScrollReveal
+                        key={article.id}
+                        direction="card-pop"
+                        delay={(idx % 2) * 150}
+                        className="w-full"
                       >
-                        {/* Gambar Artikel dengan Sudut Melengkung & Aksen Bentuk Geometris */}
-                        <div className="relative w-full aspect-[16/10.5] rounded-[22px] sm:rounded-[24px] overflow-hidden bg-slate-100 border border-slate-100 shadow-xs group-hover:shadow-lg transition-all duration-300">
-                          <img
-                            src={article.image}
-                            alt={article.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-
-                          {/* Ornamen Bentuk Geometris Warna-Warni Sesuai Referensi Gambar */}
-                          <div
-                            className={`absolute ${article.cornerPosition} w-14 h-14 sm:w-16 sm:h-16 ${article.cornerShape} ${article.cornerColor} opacity-90 transition-transform group-hover:scale-110 duration-300 pointer-events-none shadow-sm`}
-                          />
-                        </div>
-
-                        {/* Kategori Badge Pill */}
-                        <div className="mt-4">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedCategory(article.categoryKey);
-                              setCurrentPage(1);
-                            }}
-                            className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-[#00296E] hover:text-white text-slate-700 transition-colors cursor-pointer"
+                        <article className="group flex flex-col items-start select-none">
+                          {/* Gambar Artikel dengan Link ke Halaman Baca Khusus */}
+                          <Link
+                            href={`/berita/${article.slug}`}
+                            className="relative w-full aspect-[16/10.5] rounded-[22px] sm:rounded-[24px] overflow-hidden bg-slate-100 border border-slate-100 shadow-xs group-hover:shadow-lg transition-all duration-300 block"
                           >
-                            {article.categoryLabel}
-                          </button>
-                        </div>
+                            <img
+                              src={article.image_url}
+                              alt={article.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              loading="lazy"
+                            />
 
-                        {/* Meta Row: Tanggal & Waktu Baca */}
-                        <div className="mt-2.5 flex items-center gap-2 text-xs text-slate-500 font-medium">
-                          <span>{article.date}</span>
-                          <span>&bull;</span>
-                          <span>{article.readTime}</span>
-                        </div>
+                            {/* Ornamen Bentuk Geometris Warna-Warni Sesuai Referensi Gambar */}
+                            <div
+                              className={`absolute ${cornerPosition} w-14 h-14 sm:w-16 sm:h-16 ${cornerShape} ${cornerColor} opacity-90 transition-transform group-hover:scale-110 duration-300 pointer-events-none shadow-sm`}
+                            />
+                          </Link>
 
-                        {/* Judul Artikel */}
-                        <h3 className="mt-2 text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-snug line-clamp-2">
-                          {article.title}
-                        </h3>
+                          {/* Kategori Badge Pill */}
+                          <div className="mt-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedCategory(article.category_key);
+                                setCurrentPage(1);
+                              }}
+                              className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-[#00296E] hover:text-white text-slate-700 transition-colors cursor-pointer"
+                            >
+                              {article.category_label}
+                            </button>
+                          </div>
 
-                        {/* Ringkasan / Excerpt */}
-                        <p className="mt-2 text-slate-600 text-xs sm:text-sm leading-relaxed line-clamp-2 font-normal">
-                          {article.excerpt}
-                        </p>
+                          {/* Meta Row: Tanggal & Waktu Baca */}
+                          <div className="mt-2.5 flex items-center gap-2 text-xs text-slate-500 font-medium">
+                            <span>{formatBeritaDate(article.published_at)}</span>
+                            <span>&bull;</span>
+                            <span>{article.read_time}</span>
+                          </div>
 
-                        {/* Tombol Aksi: Baca Selengkapnya & Bagikan */}
-                        <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors">
-                            <span>Baca Selengkapnya</span>
-                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                          </span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleShare(article);
-                            }}
-                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-[#00296E] text-slate-600 hover:text-white flex items-center justify-center transition-all cursor-pointer"
-                            title="Bagikan Artikel"
-                            aria-label="Bagikan Artikel"
-                          >
-                            <Share2 className="w-3.5 h-3.5 stroke-[2]" />
-                          </button>
-                        </div>
+                          {/* Judul Artikel dengan Link ke Halaman Baca Khusus */}
+                          <h3 className="mt-2 text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-snug line-clamp-2">
+                            <Link href={`/berita/${article.slug}`}>
+                              {article.title}
+                            </Link>
+                          </h3>
 
-                      </article>
-                    </ScrollReveal>
-                  ))}
+                          {/* Ringkasan / Excerpt */}
+                          <p className="mt-2 text-slate-600 text-xs sm:text-sm leading-relaxed line-clamp-2 font-normal">
+                            {article.excerpt}
+                          </p>
+
+                          {/* Tombol Aksi: Baca Selengkapnya & Bagikan */}
+                          <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between">
+                            <Link
+                              href={`/berita/${article.slug}`}
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors"
+                            >
+                              <span>Baca Selengkapnya</span>
+                              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleShare(article);
+                              }}
+                              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-[#00296E] text-slate-600 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                              title="Bagikan Tautan Artikel"
+                              aria-label="Bagikan Tautan Artikel"
+                            >
+                              <Share2 className="w-3.5 h-3.5 stroke-[2]" />
+                            </button>
+                          </div>
+                        </article>
+                      </ScrollReveal>
+                    );
+                  })}
                 </div>
               ) : (
                 /* Tampilan Kosong Jika Pencarian Tidak Ada Hasil */
@@ -383,7 +301,9 @@ export default function BeritaPage() {
                   <div className="w-14 h-14 rounded-2xl bg-sky-100 text-[#0094E0] flex items-center justify-center mx-auto mb-4">
                     <Search className="w-7 h-7" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">Tidak ada artikel yang cocok</h3>
+                  <h3 className="text-lg font-bold text-slate-800">
+                    Tidak ada artikel yang cocok
+                  </h3>
                   <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
                     Coba gunakan kata kunci lain atau reset filter untuk menampilkan semua berita.
                   </p>
@@ -445,14 +365,12 @@ export default function BeritaPage() {
                   </button>
                 </div>
               )}
-
             </div>
 
             {/* ============================================================ */}
-            {/* SISI KANAN (lg:col-span-4): SIDEBAR KATEGORI & BERITA TERBARU (FIXED / STICKY SAAT SCROLL) */}
+            {/* SISI KANAN (lg:col-span-4): SIDEBAR KATEGORI & BERITA TERBARU */}
             {/* ============================================================ */}
             <aside className="lg:col-span-4 flex flex-col space-y-6 sticky top-20 lg:top-24 self-start max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-none">
-              
               {/* KOTAK 1: KATEGORI & TOPIK (PERSIS GAMBAR REFERENSI) */}
               <div className="bg-white rounded-[20px] p-5 sm:p-6 border border-slate-200/90 shadow-xs">
                 <h2 className="text-[13px] sm:text-sm font-bold text-slate-800 tracking-wider uppercase border-b border-slate-100 pb-3 mb-3.5">
@@ -461,6 +379,11 @@ export default function BeritaPage() {
                 <div className="space-y-1">
                   {CATEGORIES.map((cat) => {
                     const isActive = selectedCategory === cat.id;
+                    const count =
+                      cat.id === "all"
+                        ? articles.length
+                        : articles.filter((a) => a.category_key === cat.id).length;
+
                     return (
                       <button
                         key={cat.id}
@@ -483,7 +406,7 @@ export default function BeritaPage() {
                               : "text-slate-400 group-hover:text-slate-600"
                           }`}
                         >
-                          {cat.badge}
+                          {cat.badge} ({count})
                         </span>
                       </button>
                     );
@@ -491,34 +414,30 @@ export default function BeritaPage() {
                 </div>
               </div>
 
-              {/* KOTAK 2: BERITA TERBARU (PERSIS GAMBAR REFERENSI) */}
+              {/* KOTAK 2: BERITA TERBARU DENGAN LINK LANGSUNG KE HALAMAN BACA */}
               <div className="bg-white rounded-[20px] p-5 sm:p-6 border border-slate-200/90 shadow-xs">
-                <h2 className="text-[13px] sm:text-sm font-bold text-slate-800 tracking-wider uppercase border-b border-slate-100 pb-3 mb-3.5">
-                  BERITA TERBARU
+                <h2 className="text-[13px] sm:text-sm font-bold text-slate-800 tracking-wider uppercase border-b border-slate-100 pb-3 mb-3.5 flex items-center justify-between">
+                  <span>BERITA TERBARU</span>
+                  {loading && <Loader2 className="w-3.5 h-3.5 text-[#0094E0] animate-spin" />}
                 </h2>
                 <div className="divide-y divide-slate-100">
-                  {RECENT_NEWS.map((news) => (
-                    <div
+                  {recentArticles.map((news) => (
+                    <Link
                       key={news.id}
-                      onClick={() => {
-                        setSelectedCategory(news.categoryKey);
-                        setCurrentPage(1);
-                      }}
-                      className="py-3.5 first:pt-0 last:pb-0 group cursor-pointer"
+                      href={`/berita/${news.slug}`}
+                      className="py-3.5 first:pt-0 last:pb-0 group block cursor-pointer"
                     >
                       <h3 className="text-[13px] sm:text-[13.5px] font-semibold text-slate-800 group-hover:text-[#00296E] leading-snug line-clamp-2 transition-colors">
                         {news.title}
                       </h3>
                       <p className="mt-1.5 text-xs text-slate-400 font-normal">
-                        {news.date}
+                        {formatBeritaDate(news.published_at)}
                       </p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
-
             </aside>
-
           </div>
         </ScrollReveal>
       </section>
@@ -533,7 +452,6 @@ export default function BeritaPage() {
 
       {/* FOOTER SESUAI STYLE HOMEPAGE */}
       <Footer />
-
     </div>
   );
 }

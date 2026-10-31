@@ -1,0 +1,164 @@
+<h2>Rancangan Sistem Backend Berita (CRUD) &amp; Halaman Baca (/berita/[slug])</h2>
+<p class="subtitle">Pilih pendekatan arsitektur antarmuka dan alur pengelolaan konten yang paling sesuai dengan kebutuhan himpunan.</p>
+
+<div class="options">
+  <!-- OPSI A -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <h3 style="margin:0;">Modern Editorial CMS &amp; Rich Dynamic Reader (Direkomendasikan)</h3>
+        <span style="font-size:11px;font-weight:700;background:#00296E;color:#fff;padding:2px 8px;border-radius:12px;">Paling Komprehensif</span>
+      </div>
+      <p style="margin-bottom:8px;">
+        Admin mengelola berita di Dashboard dengan modal form lengkap (Judul, Slug URL otomatis, Kategori, Penulis, Gambar Sampul, Excerpt, dan Konten multi-paragraf). Pengunjung membaca berita di halaman khusus <code>/berita/[slug]</code> dengan tipografi editorial bersih, tombol share, dan rekomendasi artikel terkait.
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;">
+          <strong style="font-size:12px;color:#00296E;display:block;margin-bottom:4px;">🛠️ Di Dashboard Admin:</strong>
+          <ul style="font-size:11px;color:#475569;margin-left:16px;line-height:1.4;">
+            <li>Tabel data berita lengkap (Pencarian, Filter kategori, Status Terbit/Draft)</li>
+            <li>Modal Form CRUD (Tambah, Edit, Hapus dengan konfirmasi)</li>
+            <li>Auto-generate slug URL ramah SEO dari judul artikel</li>
+            <li>Toggle instan status Terbit/Draft tanpa membuka modal</li>
+          </ul>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;">
+          <strong style="font-size:12px;color:#00296E;display:block;margin-bottom:4px;">📖 Di Halaman Publik (/berita/[slug]):</strong>
+          <ul style="font-size:11px;color:#475569;margin-left:16px;line-height:1.4;">
+            <li>Breadcrumb &amp; Header Editorial (Judul, Penulis, Tanggal, Waktu Baca)</li>
+            <li>Featured hero image resolusi tinggi</li>
+            <li>Prose content typography lega dengan paragraf, kutipan, dan sub-heading</li>
+            <li>Share button (WhatsApp, X, Copy Link) &amp; Rekomendasi Berita Terkait</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPSI B -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <h3 style="margin:0;">Split-Pane Live Preview CMS (Dua Kolom Real-Time)</h3>
+      </div>
+      <p style="margin-bottom:8px;">
+        Admin menulis form di sisi kiri dan langsung melihat simulasi tampilan artikel di sisi kanan secara real-time sebelum menyimpannya ke Supabase.
+      </p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:8px;">
+        <ul style="font-size:11px;color:#475569;margin-left:16px;line-height:1.4;">
+          <li>Cocok untuk admin yang ingin langsung melihat preview format teks saat mengetik</li>
+          <li>Membutuhkan ruang layar yang lebih lebar di dashboard</li>
+          <li>Halaman publik <code>/berita/[slug]</code> berfokus pada satu kolom tengah (Medium style) tanpa sidebar</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPSI C -->
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <h3 style="margin:0;">Compact Card CMS (Sederhana &amp; Ringkas)</h3>
+      </div>
+      <p style="margin-bottom:8px;">
+        Berita di dashboard ditampilkan dalam bentuk grid kartu ringkas. Form input lebih sederhana hanya dengan field esensial (Judul, Ringkasan, Konten singkat, Gambar).
+      </p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:8px;">
+        <ul style="font-size:11px;color:#475569;margin-left:16px;line-height:1.4;">
+          <li>Sangat simpel dan cepat dipelajari untuk pengelolaan warta pendek</li>
+          <li>Kurang fleksibel jika ada liputan kegiatan panjang yang butuh sub-heading dan banyak paragraf</li>
+          <li>Halaman baca <code>/berita/[slug]</code> format dasar standar</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:28px;">
+  <h3>Simulasi Pratinjau Visual (Opsi A - Modern Editorial)</h3>
+  <p class="subtitle">Berikut visualisasi bagaimana Halaman Pembaca Khusus dan Form Dashboard akan terlihat.</p>
+
+  <div class="split" style="gap:20px;margin-top:16px;">
+    <!-- Mockup 1: Dashboard Admin Modal CRUD -->
+    <div class="mockup" style="flex:1;">
+      <div class="mockup-header" style="background:#00296E;color:#fff;padding:10px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:between;">
+        <span>Dashboard Admin: Modal Tambah / Edit Berita</span>
+        <span style="font-size:10px;background:#ffffff22;padding:2px 8px;border-radius:6px;">PostgreSQL Supabase</span>
+      </div>
+      <div class="mockup-body" style="padding:16px;background:#ffffff;font-size:11px;display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <label style="font-weight:700;color:#334155;display:block;margin-bottom:3px;">Judul Berita:</label>
+          <div style="padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;color:#0f172a;font-weight:600;">Pelantikan Serentak Pengurus Kabinet REKSABUDAYA 2026</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-weight:700;color:#334155;display:block;margin-bottom:3px;">Slug URL (Otomatis):</label>
+            <div style="padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;font-family:monospace;color:#0284c7;">pelantikan-serentak-pengurus-2026</div>
+          </div>
+          <div>
+            <label style="font-weight:700;color:#334155;display:block;margin-bottom:3px;">Kategori:</label>
+            <div style="padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;color:#0f172a;">Kegiatan Himpunan ▼</div>
+          </div>
+        </div>
+        <div>
+          <label style="font-weight:700;color:#334155;display:block;margin-bottom:3px;">URL Gambar Sampul:</label>
+          <div style="padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;color:#64748b;font-family:monospace;">https://images.unsplash.com/...</div>
+        </div>
+        <div>
+          <label style="font-weight:700;color:#334155;display:block;margin-bottom:3px;">Isi Konten Artikel Lengkap (Multi-Paragraf):</label>
+          <div style="padding:10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;color:#334155;height:90px;overflow-y:auto;line-height:1.5;">
+            PANGKALPINANG — Himpunan Mahasiswa Sistem Informasi (HIMASI) Institut Sains dan Bisnis Atma Luhur resmi melantik jajaran pengurus baru Kabinet REKSABUDAYA untuk periode kepengurusan 2026...
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #f1f5f9;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" checked id="pub" style="cursor:pointer;" />
+            <label for="pub" style="font-weight:600;color:#059669;">Publikasikan Sekarang (Status Terbit)</label>
+          </div>
+          <button style="padding:6px 14px;background:#00296E;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">Simpan Berita</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mockup 2: Halaman Baca Publik /berita/[slug] -->
+    <div class="mockup" style="flex:1;">
+      <div class="mockup-header" style="background:#0284c7;color:#fff;padding:10px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:between;">
+        <span>Halaman Publik: himasi.atmaluhur.ac.id/berita/pelantikan-serentak...</span>
+        <span style="font-size:10px;background:#ffffff22;padding:2px 8px;border-radius:6px;">Public Reader Page</span>
+      </div>
+      <div class="mockup-body" style="padding:16px;background:#ffffff;font-size:11px;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:6px;color:#64748b;font-size:10px;text-transform:uppercase;font-weight:600;">
+          <span>HOME</span> / <span>BERITA</span> / <span style="color:#0284c7;">KEGIATAN</span>
+        </div>
+        <div style="display:inline-block;padding:2px 8px;background:#e0f2fe;color:#00296E;font-weight:700;border-radius:6px;font-size:10px;width:fit-content;">
+          Kegiatan Himpunan
+        </div>
+        <h2 style="font-size:15px;font-weight:800;color:#00296E;line-height:1.3;margin:0;">
+          Pelantikan Serentak Pengurus Kabinet REKSABUDAYA 2026
+        </h2>
+        <div style="display:flex;align-items:center;gap:12px;color:#64748b;font-size:10px;padding-bottom:6px;border-bottom:1px solid #f1f5f9;">
+          <span>✍️ Oleh: <strong>Departemen Medkominfo</strong></span>
+          <span>📅 30 Oktober 2026</span>
+          <span>⏱️ 5 menit baca</span>
+        </div>
+        <div style="height:80px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#64748b;font-weight:600;font-size:10px;">
+          [ Foto Utama Dokumentasi Kegiatan Pelantikan ]
+        </div>
+        <p style="color:#334155;line-height:1.5;margin:0;font-size:11px;">
+          Pangkalpinang &mdash; Bertempat di Grha Sasana Budaya ISB Atma Luhur, seluruh jajaran kepengurusan baru resmi dilantik dengan mengusung semangat kolaborasi dan inovasi teknologi digital...
+        </p>
+        <div style="margin-top:6px;padding:8px;background:#f8fafc;border-radius:6px;display:flex;align-items:center;justify-content:between;border:1px solid #e2e8f0;">
+          <span style="font-weight:700;color:#00296E;font-size:10px;">Bagikan Warta Ini:</span>
+          <div style="display:flex;gap:6px;">
+            <span style="padding:2px 6px;background:#25D366;color:#fff;border-radius:4px;font-size:9px;font-weight:700;">WhatsApp</span>
+            <span style="padding:2px 6px;background:#00296E;color:#fff;border-radius:4px;font-size:9px;font-weight:700;">Salin Tautan</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

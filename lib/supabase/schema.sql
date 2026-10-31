@@ -157,3 +157,27 @@ CREATE POLICY "Semua dapat melihat log absensi"
 
 CREATE POLICY "Semua dapat menginput dan mengelola log absensi"
   ON public.absensi_log FOR ALL USING (true);
+
+
+-- ===================================================================
+-- 5. SUPABASE STORAGE BUCKETS (Foto Profil Pengurus & Foto Berita)
+-- ===================================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES 
+    ('foto-pengurus', 'foto-pengurus', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+    ('foto-berita', 'foto-berita', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "Public Read Storage Objects" 
+ON storage.objects FOR SELECT 
+TO public
+USING (bucket_id IN ('foto-pengurus', 'foto-berita'));
+
+CREATE POLICY "Authenticated Upload Storage Objects" 
+ON storage.objects FOR INSERT 
+TO authenticated 
+WITH CHECK (
+    bucket_id IN ('foto-pengurus', 'foto-berita') AND 
+    auth.role() = 'authenticated'
+);
+

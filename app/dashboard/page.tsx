@@ -73,6 +73,18 @@ import RekapAbsensiView, {
   type KegiatanItem,
   formatTanggalIndo,
 } from "@/components/absensi/rekap-absensi-view";
+import {
+  type BeritaItem,
+  KATEGORI_BERITA,
+} from "@/lib/types/berita";
+import {
+  getAllBeritaAdmin,
+  createBerita,
+  updateBerita,
+  deleteBerita,
+  togglePublishedBerita,
+} from "@/lib/supabase/berita";
+import { slugify, estimateReadTime } from "@/lib/utils/slug";
 
 // Tipe Data Aspirasi Supabase
 interface AspirasiItem {
@@ -212,6 +224,313 @@ export default function DashboardPage() {
       setToastMessage((cur) => (cur === message ? null : cur));
     }, 3500);
   };
+
+  // Berita State (CRUD Admin)
+  const [beritaList, setBeritaList] = useState<BeritaItem[]>([]);
+  const [loadingBerita, setLoadingBerita] = useState(true);
+  const [searchBerita, setSearchBerita] = useState("");
+  const [kategoriFilterBerita, setKategoriFilterBerita] = useState("semua");
+  const [statusFilterBerita, setStatusFilterBerita] = useState("semua");
+
+  // Modal CRUD Berita
+  const [isBeritaModalOpen, setIsBeritaModalOpen] = useState(false);
+  const [editingBerita, setEditingBerita] = useState<BeritaItem | null>(null);
+  const [beritaToDelete, setBeritaToDelete] = useState<BeritaItem | null>(null);
+  const [deletingBerita, setDeletingBerita] = useState(false);
+  const [savingBerita, setSavingBerita] = useState(false);
+
+  // Form Berita
+  const [formBeritaTitle, setFormBeritaTitle] = useState("");
+  const [formBeritaSlug, setFormBeritaSlug] = useState("");
+  const [formBeritaCategoryKey, setFormBeritaCategoryKey] = useState("event");
+  const [formBeritaCategoryLabel, setFormBeritaCategoryLabel] = useState("Kegiatan Himpunan");
+  const [formBeritaAuthor, setFormBeritaAuthor] = useState("HIMASI Media");
+  const [formBeritaReadTime, setFormBeritaReadTime] = useState("5 min read");
+  const [formBeritaImage, setFormBeritaImage] = useState("");
+  const [formBeritaExcerpt, setFormBeritaExcerpt] = useState("");
+  const [formBeritaContent, setFormBeritaContent] = useState("");
+  const [formBeritaIsPublished, setFormBeritaIsPublished] = useState(true);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const [uploadingBeritaImage, setUploadingBeritaImage] = useState(false);
+  const [isDraggingOverBerita, setIsDraggingOverBerita] = useState(false);
+  const beritaFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const fetchBerita = useCallback(async () => {
+    setLoadingBerita(true);
+    try {
+      const data = await getAllBeritaAdmin();
+      setBeritaList(data);
+    } catch (err) {
+      console.error("Fetch berita error:", err);
+    } finally {
+      setLoadingBerita(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBerita();
+  }, [fetchBerita]);
+
+  const handleOpenTambahBerita = () => {
+    setEditingBerita(null);
+    setFormBeritaTitle("");
+    setFormBeritaSlug("");
+    setFormBeritaCategoryKey("event");
+    setFormBeritaCategoryLabel("Kegiatan Himpunan");
+    setFormBeritaAuthor("HIMASI Media");
+    setFormBeritaReadTime("5 min read");
+    setFormBeritaImage("");
+    setFormBeritaExcerpt("");
+    setFormBeritaContent("");
+    setFormBeritaIsPublished(true);
+    setSlugManuallyEdited(false);
+    setIsBeritaModalOpen(true);
+  };
+
+  const handleOpenEditBerita = (item: BeritaItem) => {
+    setEditingBerita(item);
+    setFormBeritaTitle(item.title);
+    setFormBeritaSlug(item.slug);
+    setFormBeritaCategoryKey(item.category_key);
+    setFormBeritaCategoryLabel(item.category_label);
+    setFormBeritaAuthor(item.author);
+    setFormBeritaReadTime(item.read_time);
+    setFormBeritaImage(item.image_url);
+    setFormBeritaExcerpt(item.excerpt);
+    setFormBeritaContent(item.content);
+    setFormBeritaIsPublished(item.is_published);
+    setSlugManuallyEdited(true);
+    setIsBeritaModalOpen(true);
+  };
+
+  const handleTitleChange = (val: string) => {
+    setFormBeritaTitle(val);
+    if (!slugManuallyEdited) {
+      setFormBeritaSlug(slugify(val));
+    }
+  };
+
+  const handleContentChange = (val: string) => {
+    setFormBeritaContent(val);
+    setFormBeritaReadTime(estimateReadTime(val));
+    if (!formBeritaExcerpt.trim() && val.trim()) {
+      const firstSentence = val.trim().split(/\n+/)[0].slice(0, 160);
+      setFormBeritaExcerpt(firstSentence);
+    }
+  };
+
+  // Helper Kompresi & Upload Foto Sampul Berita
+  const processAndUploadBeritaPhoto = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      showToast("File yang dipilih harus berupa gambar (JPG, PNG, atau WebP)");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("Ukuran berkas terlalu besar (Maksimal 10MB)");
+      return;
+    }
+
+    setUploadingBeritaImage(true);
+    try {
+      // Kompresi gambar via HTML Canvas (max 1200x800 px, kualitas 85%)
+      const { optimizedBlob, base64Url } = await new Promise<{
+        optimizedBlob: Blob;
+        base64Url: string;
+      }>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.createElement("img");
+          img.onload = () => {
+            const maxW = 1200;
+            const maxH = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxW) {
+              height = Math.round((height * maxW) / width);
+              width = maxW;
+            }
+            if (height > maxH) {
+              width = Math.round((width * maxH) / height);
+              height = maxH;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              resolve({
+                optimizedBlob: file,
+                base64Url: e.target?.result as string,
+              });
+              return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+            const b64 = canvas.toDataURL("image/jpeg", 0.85);
+            canvas.toBlob(
+              (blob) => {
+                resolve({
+                  optimizedBlob: blob || file,
+                  base64Url: b64,
+                });
+              },
+              "image/jpeg",
+              0.85
+            );
+          };
+          img.onerror = reject;
+          img.src = e.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Tampilkan preview instan
+      setFormBeritaImage(base64Url);
+
+      // Coba unggah ke Supabase Storage (bucket: 'foto-berita' atau 'foto-pengurus')
+      const cleanSlug = slugify(formBeritaTitle) || "berita";
+      const filePath = `cover_${cleanSlug}_${Date.now()}.jpg`;
+
+      let uploadedUrl = "";
+      try {
+        const { data, error } = await supabase.storage
+          .from("foto-berita")
+          .upload(filePath, optimizedBlob, {
+            contentType: "image/jpeg",
+            cacheControl: "3600",
+            upsert: true,
+          });
+
+        if (!error && data) {
+          const { data: pubData } = supabase.storage
+            .from("foto-berita")
+            .getPublicUrl(filePath);
+          uploadedUrl = pubData?.publicUrl || "";
+        } else {
+          // Coba fallback ke bucket 'foto-pengurus' yang sudah aktif
+          const { data: pData, error: pError } = await supabase.storage
+            .from("foto-pengurus")
+            .upload(`berita_${filePath}`, optimizedBlob, {
+              contentType: "image/jpeg",
+              cacheControl: "3600",
+              upsert: true,
+            });
+          if (!pError && pData) {
+            const { data: pubData } = supabase.storage
+              .from("foto-pengurus")
+              .getPublicUrl(`berita_${filePath}`);
+            uploadedUrl = pubData?.publicUrl || "";
+          }
+        }
+      } catch (storageErr) {
+        console.warn("Catatan upload storage berita:", storageErr);
+      }
+
+      if (uploadedUrl) {
+        setFormBeritaImage(uploadedUrl);
+        showToast("Foto sampul berhasil diunggah ke Supabase Storage!");
+      } else {
+        showToast("Foto berhasil dimuat & siap disimpan!");
+      }
+    } catch (err) {
+      console.error("Gagal memproses upload foto berita:", err);
+      showToast("Gagal memproses file foto.");
+    } finally {
+      setUploadingBeritaImage(false);
+      setIsDraggingOverBerita(false);
+    }
+  };
+
+  const handleSaveBerita = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formBeritaTitle.trim()) {
+      showToast("Judul berita wajib diisi.");
+      return;
+    }
+
+    setSavingBerita(true);
+    try {
+      const payload = {
+        title: formBeritaTitle.trim(),
+        slug: formBeritaSlug.trim() || slugify(formBeritaTitle),
+        category_key: formBeritaCategoryKey,
+        category_label: formBeritaCategoryLabel,
+        author: formBeritaAuthor.trim() || "HIMASI Media",
+        read_time: formBeritaReadTime || "5 min read",
+        image_url: formBeritaImage.trim() || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
+        excerpt: formBeritaExcerpt.trim() || formBeritaTitle.trim(),
+        content: formBeritaContent.trim() || formBeritaExcerpt.trim(),
+        is_published: formBeritaIsPublished,
+        published_at: editingBerita?.published_at || new Date().toISOString(),
+      };
+
+      if (editingBerita) {
+        await updateBerita(editingBerita.id, payload);
+        showToast("Berhasil memperbarui artikel berita!");
+      } else {
+        await createBerita(payload);
+        showToast("Berhasil menerbitkan artikel berita baru!");
+      }
+
+      setIsBeritaModalOpen(false);
+      await fetchBerita();
+    } catch (err: any) {
+      console.error("Save berita error:", err);
+      showToast("Gagal menyimpan berita: " + (err.message || "Terjadi kesalahan"));
+    } finally {
+      setSavingBerita(false);
+    }
+  };
+
+  const handleQuickToggleBeritaStatus = async (item: BeritaItem) => {
+    try {
+      const newStatus = await togglePublishedBerita(item.id, item.is_published);
+      setBeritaList((prev) =>
+        prev.map((b) => (String(b.id) === String(item.id) ? { ...b, is_published: newStatus } : b))
+      );
+      showToast(newStatus ? "Status diubah ke Terbit." : "Status diubah ke Draft.");
+    } catch (err) {
+      console.error("Toggle status error:", err);
+      showToast("Gagal mengubah status publikasi.");
+    }
+  };
+
+  const handleConfirmDeleteBerita = async () => {
+    if (!beritaToDelete) return;
+    setDeletingBerita(true);
+    try {
+      await deleteBerita(beritaToDelete.id);
+      setBeritaList((prev) => prev.filter((b) => String(b.id) !== String(beritaToDelete.id)));
+      showToast(`Artikel "${beritaToDelete.title}" berhasil dihapus.`);
+      setBeritaToDelete(null);
+    } catch (err) {
+      console.error("Delete berita error:", err);
+      showToast("Gagal menghapus artikel berita.");
+    } finally {
+      setDeletingBerita(false);
+    }
+  };
+
+  const filteredBeritaList = useMemo(() => {
+    return beritaList.filter((b) => {
+      const matchCategory =
+        kategoriFilterBerita === "semua" || b.category_key === kategoriFilterBerita;
+      const matchStatus =
+        statusFilterBerita === "semua" ||
+        (statusFilterBerita === "terbit" && b.is_published) ||
+        (statusFilterBerita === "draft" && !b.is_published);
+      const matchSearch =
+        !searchBerita.trim() ||
+        b.title.toLowerCase().includes(searchBerita.toLowerCase()) ||
+        b.author.toLowerCase().includes(searchBerita.toLowerCase()) ||
+        b.excerpt.toLowerCase().includes(searchBerita.toLowerCase());
+      return matchCategory && matchStatus && matchSearch;
+    });
+  }, [beritaList, kategoriFilterBerita, statusFilterBerita, searchBerita]);
 
   const handleSaveBanner = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -1221,19 +1540,13 @@ ALTER TABLE public.absensi_log DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.aspirasi DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pengurus DISABLE ROW LEVEL SECURITY;
 
--- 7. SUPABASE STORAGE BUCKET: foto-pengurus (Penyimpanan Berkas Foto Profil)
+-- 7. SUPABASE STORAGE BUCKET: foto-pengurus & foto-berita (Penyimpanan Berkas)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) 
-VALUES (
-    'foto-pengurus', 
-    'foto-pengurus', 
-    true, 
-    3145728, -- Maksimum 3MB per berkas foto
-    ARRAY['image/jpeg', 'image/png', 'image/webp']
-)
+VALUES 
+    ('foto-pengurus', 'foto-pengurus', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+    ('foto-berita', 'foto-berita', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp'])
 ON CONFLICT (id) DO UPDATE SET 
-    public = true,
-    file_size_limit = 3145728,
-    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+    public = true;
 
 -- Hapus kebijakan lama jika ada untuk pembaruan
 DROP POLICY IF EXISTS "Public Access Foto Pengurus" ON storage.objects;
@@ -1244,20 +1557,22 @@ DROP POLICY IF EXISTS "Public Read Foto Pengurus" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Upload Foto Pengurus" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Update Foto Pengurus" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Delete Foto Pengurus" ON storage.objects;
+DROP POLICY IF EXISTS "Public Read Storage Objects" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Upload Storage Objects" ON storage.objects;
 
 -- Kebijakan Hak Akses Aman (Hardened Security):
--- a. Semua orang (Public) HANYA BISA MELIHAT foto profil (Read-Only untuk ID Card & Scanner)
-CREATE POLICY "Public Read Foto Pengurus" 
+-- a. Semua orang (Public) HANYA BISA MELIHAT foto profil & berita (Read-Only)
+CREATE POLICY "Public Read Storage Objects" 
 ON storage.objects FOR SELECT 
 TO public
-USING (bucket_id = 'foto-pengurus');
+USING (bucket_id IN ('foto-pengurus', 'foto-berita'));
 
 -- b. HANYA PENGURUS TERAUTENTIKASI (Login) yang dapat mengunggah berkas foto
-CREATE POLICY "Authenticated Upload Foto Pengurus" 
+CREATE POLICY "Authenticated Upload Storage Objects" 
 ON storage.objects FOR INSERT 
 TO authenticated 
 WITH CHECK (
-    bucket_id = 'foto-pengurus' AND 
+    bucket_id IN ('foto-pengurus', 'foto-berita') AND 
     auth.role() = 'authenticated'
 );
 
@@ -2630,65 +2945,350 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
             )}
 
-            {/* TAB 6: BERITA */}
+            {/* TAB 6: BERITA CRUD MANAGEMENT */}
             {activeTab === "berita" && (
               <div className="space-y-5 animate-in fade-in duration-200">
+                {/* Header Info & Actions */}
                 <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-base sm:text-lg font-bold text-[#00296E]">
-                      Publikasi Berita &amp; Warta
+                      Manajemen Berita &amp; Publikasi Warta
                     </h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Kelola rilisan berita, dokumentasi kegiatan, dan pengumuman himpunan.
+                      Kelola rilis berita, artikel ilmiah, dan dokumentasi kegiatan HIMASI Atma Luhur.
                     </p>
                   </div>
 
-                  <Link
-                    href="/berita"
-                    className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Lihat Halaman Publik</span>
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fetchBerita()}
+                      disabled={loadingBerita}
+                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      title="Segarkan data dari database"
+                    >
+                      <RefreshCw className={`w-4 h-4 text-slate-500 ${loadingBerita ? "animate-spin text-slate-800" : ""}`} />
+                    </button>
+
+                    <Link
+                      href="/berita"
+                      target="_blank"
+                      className="px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Lihat Halaman Publik</span>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenTambahBerita}
+                      className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Tulis Berita Baru</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                          <th className="py-2.5 px-4">Judul Artikel</th>
-                          <th className="py-2.5 px-4">Kategori</th>
-                          <th className="py-2.5 px-4">Penulis</th>
-                          <th className="py-2.5 px-4">Status</th>
-                          <th className="py-2.5 px-4 text-right">Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-xs">
-                        <tr className="hover:bg-slate-50/50">
-                          <td className="py-3 px-4 font-semibold text-slate-800">
-                            Pelantikan Serentak Pengurus Kabinet REKSABUDAYA 2026
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
-                              Kegiatan
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-slate-500">HIMASI Media</td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-[10px]">
-                              Terbit
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <Link href="/berita" className="text-[#00296E] hover:underline font-semibold">
-                              Lihat
-                            </Link>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                {/* 3 Metric Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Total Berita</p>
+                      <p className="text-lg font-bold text-slate-800 mt-0.5">{beritaList.length} Artikel</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                      <Newspaper className="w-4 h-4" />
+                    </div>
                   </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Berita Terbit</p>
+                      <p className="text-lg font-bold text-emerald-700 mt-0.5">
+                        {beritaList.filter((b) => b.is_published).length} Publik
+                      </p>
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Draf Tersimpan</p>
+                      <p className="text-lg font-bold text-amber-700 mt-0.5">
+                        {beritaList.filter((b) => !b.is_published).length} Draf
+                      </p>
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter & Search Bar */}
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="Cari berdasarkan judul, penulis, atau isi berita..."
+                      value={searchBerita}
+                      onChange={(e) => setSearchBerita(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                    />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Category Filter */}
+                    <div className="flex items-center gap-1 overflow-x-auto">
+                      <button
+                        type="button"
+                        onClick={() => setKategoriFilterBerita("semua")}
+                        className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                          kategoriFilterBerita === "semua"
+                            ? "bg-[#00296E] text-white shadow-2xs"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        Semua Kategori
+                      </button>
+                      {KATEGORI_BERITA.map((k) => (
+                        <button
+                          key={k.key}
+                          type="button"
+                          onClick={() => setKategoriFilterBerita(k.key)}
+                          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                            kategoriFilterBerita === k.key
+                              ? "bg-[#00296E] text-white shadow-2xs"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          }`}
+                        >
+                          {k.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Status Filter */}
+                    <div className="h-5 w-px bg-slate-200 hidden sm:block mx-1" />
+
+                    <div className="flex items-center gap-1">
+                      {["semua", "terbit", "draft"].map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setStatusFilterBerita(st)}
+                          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold capitalize transition-all cursor-pointer ${
+                            statusFilterBerita === st
+                              ? "bg-slate-800 text-white shadow-2xs"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table Data (Desktop & Tablet) */}
+                <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs">
+                  {loadingBerita ? (
+                    <div className="p-12 text-center">
+                      <RefreshCw className="w-6 h-6 text-slate-400 animate-spin mx-auto mb-2" />
+                      <p className="text-xs text-slate-400">Memuat data berita...</p>
+                    </div>
+                  ) : filteredBeritaList.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <Newspaper className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <h3 className="text-xs font-semibold text-slate-600">Tidak ada artikel berita ditemukan</h3>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
+                        Coba sesuaikan kata kunci pencarian atau klik "+ Tulis Berita Baru" untuk menerbitkan warta.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                              <th className="py-2.5 px-3 w-12 text-center">No</th>
+                              <th className="py-2.5 px-4 min-w-[280px]">Artikel &amp; Slug</th>
+                              <th className="py-2.5 px-3 min-w-[130px]">Kategori</th>
+                              <th className="py-2.5 px-3 min-w-[130px]">Penulis</th>
+                              <th className="py-2.5 px-3 text-center min-w-[110px]">Status</th>
+                              <th className="py-2.5 px-3 min-w-[110px]">Tanggal</th>
+                              <th className="py-2.5 px-4 text-right min-w-[130px]">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {filteredBeritaList.map((item, idx) => (
+                              <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                                <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px]">
+                                  {idx + 1}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-12 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                      <img
+                                        src={item.image_url}
+                                        alt={item.title}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="overflow-hidden">
+                                      <Link
+                                        href={`/berita/${item.slug}`}
+                                        target="_blank"
+                                        className="font-bold text-slate-800 hover:text-[#00296E] hover:underline line-clamp-1 block text-xs"
+                                        title={item.title}
+                                      >
+                                        {item.title}
+                                      </Link>
+                                      <p className="text-[10px] font-mono text-slate-400 mt-0.5 truncate">
+                                        /berita/{item.slug}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-3">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 whitespace-nowrap">
+                                    {item.category_label}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3 text-slate-600 font-medium">
+                                  <span className="truncate block max-w-[120px]">{item.author}</span>
+                                </td>
+                                <td className="py-3 px-3 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickToggleBeritaStatus(item)}
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer ${
+                                      item.is_published
+                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                        : "bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200"
+                                    }`}
+                                    title="Klik untuk mengubah status Terbit / Draft"
+                                  >
+                                    {item.is_published ? "● Terbit" : "○ Draft"}
+                                  </button>
+                                </td>
+                                <td className="py-3 px-3 text-slate-400 text-[11px] whitespace-nowrap">
+                                  {new Date(item.published_at).toLocaleDateString("id-ID", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </td>
+                                <td className="py-3 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Link
+                                      href={`/berita/${item.slug}`}
+                                      target="_blank"
+                                      className="p-1.5 rounded-md text-slate-500 hover:text-[#00296E] hover:bg-slate-100 transition-colors cursor-pointer"
+                                      title="Buka halaman baca publik"
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </Link>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditBerita(item)}
+                                      className="p-1.5 rounded-md text-slate-600 hover:text-[#00296E] hover:bg-slate-100 transition-colors cursor-pointer"
+                                      title="Edit Berita"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setBeritaToDelete(item)}
+                                      className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                      title="Hapus Berita"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Responsive Card Format for Mobile */}
+                      <div className="md:hidden p-3 divide-y divide-slate-100 space-y-3">
+                        {filteredBeritaList.map((item) => (
+                          <div key={item.id} className="pt-3 first:pt-0">
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-16 h-14 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                <img
+                                  src={item.image_url}
+                                  alt={item.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 overflow-hidden">
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                                    {item.category_label}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickToggleBeritaStatus(item)}
+                                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                                      item.is_published
+                                        ? "bg-emerald-50 text-emerald-700"
+                                        : "bg-slate-100 text-slate-500"
+                                    }`}
+                                  >
+                                    {item.is_published ? "Terbit" : "Draft"}
+                                  </button>
+                                </div>
+                                <h4 className="text-xs font-bold text-slate-900 line-clamp-2">
+                                  {item.title}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                  {item.author} &bull; {new Date(item.published_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mt-2.5 pt-2 border-t border-slate-50 flex items-center justify-end gap-1.5">
+                              <Link
+                                href={`/berita/${item.slug}`}
+                                target="_blank"
+                                className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                <span>Lihat</span>
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditBerita(item)}
+                                className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setBeritaToDelete(item)}
+                                className="p-1 rounded text-rose-500 hover:bg-rose-50"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -3781,6 +4381,466 @@ NOTIFY pgrst, 'reload schema';`;
                   <>
                     <Trash2 className="w-4 h-4 text-rose-200" />
                     <span>Ya, Hapus Aspirasi</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: TAMBAH / EDIT BERITA */}
+      {isBeritaModalOpen && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200"
+          onClick={() => !savingBerita && setIsBeritaModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 my-8 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-slate-100 text-[#00296E] flex items-center justify-center shrink-0">
+                  {editingBerita ? (
+                    <Edit3 className="w-4 h-4 text-slate-700" />
+                  ) : (
+                    <Newspaper className="w-4 h-4 text-slate-700" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-[#00296E]">
+                    {editingBerita ? "Edit Artikel Berita" : "Tulis Artikel Berita Baru"}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {editingBerita
+                      ? `Perbarui rincian artikel: ${editingBerita.title}`
+                      : "Publikasikan warta, kegiatan, atau pengumuman resmi himpunan."}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={savingBerita}
+                onClick={() => setIsBeritaModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveBerita} className="mt-4 space-y-4">
+              {/* Field 1: Judul Berita */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Judul Berita <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Pelantikan Pengurus Kabinet REKSABUDAYA 2026"
+                  value={formBeritaTitle}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] font-semibold text-slate-900 placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Field 2 & 3: Slug URL & Kategori */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Slug URL Khusus:</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Otomatis dari judul</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 select-none">
+                      /berita/
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      placeholder="pelantikan-pengurus-2026"
+                      value={formBeritaSlug}
+                      onChange={(e) => {
+                        setFormBeritaSlug(e.target.value);
+                        setSlugManuallyEdited(true);
+                      }}
+                      className="w-full pl-16 pr-3 py-2 text-xs font-mono rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Kategori Berita:
+                  </label>
+                  <select
+                    value={formBeritaCategoryKey}
+                    onChange={(e) => {
+                      const selected = KATEGORI_BERITA.find((k) => k.key === e.target.value);
+                      if (selected) {
+                        setFormBeritaCategoryKey(selected.key);
+                        setFormBeritaCategoryLabel(selected.label);
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] bg-white cursor-pointer font-medium text-slate-800"
+                  >
+                    {KATEGORI_BERITA.map((k) => (
+                      <option key={k.key} value={k.key}>
+                        {k.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Field 4 & 5: Penulis & Waktu Baca */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Penulis / Departemen:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Departemen Medkominfo"
+                    value={formBeritaAuthor}
+                    onChange={(e) => setFormBeritaAuthor(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Estimasi Waktu Baca:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 5 min read"
+                    value={formBeritaReadTime}
+                    onChange={(e) => setFormBeritaReadTime(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* Field 6: Sistem Unggah Foto Sampul Berita */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-[#0094E0]" />
+                    <span>Foto Sampul Berita (Cover Image):</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">
+                    Format: JPG, PNG, WebP (Rasio ideal 16:9)
+                  </span>
+                </label>
+
+                {/* Input File Tersembunyi */}
+                <input
+                  type="file"
+                  ref={beritaFileInputRef}
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      processAndUploadBeritaPhoto(file);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+
+                {formBeritaImage ? (
+                  /* Kartu Pratinjau Foto Sampul Terpasang */
+                  <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 group shadow-xs">
+                    <div className="relative w-full aspect-[16/8] sm:aspect-[16/7] overflow-hidden">
+                      <img
+                        src={formBeritaImage}
+                        alt="Preview Sampul Berita"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                        }}
+                      />
+
+                      {/* Badge Status Terpasang */}
+                      <div className="absolute top-3 left-3 bg-[#00296E]/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Foto Sampul Terpasang</span>
+                      </div>
+
+                      {/* Overlay Tombol Aksi Desktop */}
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4">
+                        <button
+                          type="button"
+                          disabled={uploadingBeritaImage}
+                          onClick={() => beritaFileInputRef.current?.click()}
+                          className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold shadow-md flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-[#0094E0]" />
+                          <span>Ganti Foto</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormBeritaImage("")}
+                          className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Tombol Aksi Mobile / Sentuh */}
+                    <div className="flex sm:hidden items-center justify-between p-2.5 bg-white border-t border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => beritaFileInputRef.current?.click()}
+                        className="text-xs font-bold text-[#0094E0] flex items-center gap-1 py-1 px-2 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Ganti Foto</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormBeritaImage("")}
+                        className="text-xs font-bold text-red-600 flex items-center gap-1 py-1 px-2 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus Foto</span>
+                      </button>
+                    </div>
+
+                    {/* Indikator Loading saat Unggah Ulang */}
+                    {uploadingBeritaImage && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-bold gap-2">
+                        <RefreshCw className="w-6 h-6 animate-spin text-sky-300" />
+                        <span>Sedang mengompresi & mengunggah foto...</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Area Dropzone Unggah Berkas */
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDraggingOverBerita(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      setIsDraggingOverBerita(false);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDraggingOverBerita(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) {
+                        processAndUploadBeritaPhoto(file);
+                      }
+                    }}
+                    onClick={() => beritaFileInputRef.current?.click()}
+                    className={`relative rounded-2xl border-2 border-dashed p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
+                      isDraggingOverBerita
+                        ? "border-[#0094E0] bg-sky-50/80 scale-[0.99]"
+                        : "border-slate-300 hover:border-[#00296E] hover:bg-slate-50/80 bg-white"
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-sky-50 text-[#00296E] flex items-center justify-center shadow-xs">
+                      <Upload className="w-6 h-6 text-[#0094E0]" />
+                    </div>
+
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold text-slate-800">
+                        {uploadingBeritaImage
+                          ? "Sedang memproses foto..."
+                          : "Klik atau seret (drag & drop) berkas foto ke sini"}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Format: PNG, JPG, JPEG, atau WebP (otomatis dikompresi)
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={uploadingBeritaImage}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        beritaFileInputRef.current?.click();
+                      }}
+                      className="mt-1 px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-sky-300" />
+                      <span>{uploadingBeritaImage ? "Memproses..." : "Pilih Foto dari Perangkat"}</span>
+                    </button>
+
+                    {/* Loading Overlay */}
+                    {uploadingBeritaImage && (
+                      <div className="absolute inset-0 bg-white/80 rounded-2xl flex flex-col items-center justify-center gap-2">
+                        <RefreshCw className="w-6 h-6 animate-spin text-[#00296E]" />
+                        <span className="text-xs font-bold text-slate-800">Mengompresi & mengunggah gambar...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Field 7: Ringkasan / Excerpt */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Ringkasan Singkat (Excerpt):</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Tampil pada kartu beranda/katalog</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="Ringkasan 1-2 kalimat pengantar isi berita..."
+                  value={formBeritaExcerpt}
+                  onChange={(e) => setFormBeritaExcerpt(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800 leading-relaxed placeholder:text-slate-400 resize-none"
+                />
+              </div>
+
+              {/* Field 8: Konten Berita Lengkap */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Isi Konten Artikel Lengkap:</span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {formBeritaContent.split(/\s+/).filter(Boolean).length} kata &bull; {formBeritaReadTime}
+                  </span>
+                </label>
+                <textarea
+                  rows={7}
+                  required
+                  placeholder="Tuliskan berita lengkap di sini. Gunakan baris baru antar paragraf..."
+                  value={formBeritaContent}
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  className="w-full px-3 py-2.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800 leading-relaxed placeholder:text-slate-400 font-normal"
+                />
+              </div>
+
+              {/* Checkbox Status Terbit */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                <label htmlFor="formBeritaIsPublished" className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    id="formBeritaIsPublished"
+                    checked={formBeritaIsPublished}
+                    onChange={(e) => setFormBeritaIsPublished(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#00296E] focus:ring-[#00296E] cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800">
+                      Publikasikan Sekarang (Status Terbit)
+                    </span>
+                    <p className="text-[10px] text-slate-400">
+                      Jika dinonaktifkan, berita disimpan sebagai Draf dan tidak muncul di halaman publik.
+                    </p>
+                  </div>
+                </label>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    formBeritaIsPublished
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-200 text-slate-600"
+                  }`}
+                >
+                  {formBeritaIsPublished ? "Terbit" : "Draft"}
+                </span>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={savingBerita}
+                  onClick={() => setIsBeritaModalOpen(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingBerita}
+                  className="px-5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] active:scale-95 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {savingBerita ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{editingBerita ? "Perbarui Berita" : "Terbitkan Berita"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: KONFIRMASI HAPUS BERITA */}
+      {beritaToDelete && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => !deletingBerita && setBeritaToDelete(null)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                  Hapus Artikel Berita?
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Tindakan ini tidak dapat dibatalkan.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3.5 p-3 rounded-lg bg-rose-50/70 border border-rose-200/80 text-xs">
+              <p className="text-slate-700 font-bold line-clamp-2">
+                &ldquo;{beritaToDelete.title}&rdquo;
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1 font-mono">
+                /berita/{beritaToDelete.slug}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 mt-2">
+              <button
+                type="button"
+                disabled={deletingBerita}
+                onClick={() => setBeritaToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deletingBerita}
+                onClick={handleConfirmDeleteBerita}
+                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+              >
+                {deletingBerita ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5 text-rose-200" />
+                    <span>Ya, Hapus Artikel</span>
                   </>
                 )}
               </button>
