@@ -65,6 +65,7 @@ import {
   DAFTAR_PENGURUS_HIMASI,
   DAFTAR_DIVISI,
   generateQrToken,
+  sortPengurusMembers,
   type PengurusMember,
 } from "@/lib/data/pengurus";
 import AdminQrScanner, { type AbsensiRecord } from "@/components/absensi/admin-qr-scanner";
@@ -85,6 +86,17 @@ import {
   togglePublishedBerita,
 } from "@/lib/supabase/berita";
 import { slugify, estimateReadTime } from "@/lib/utils/slug";
+import {
+  type DokumenOrganisasi,
+  DEFAULT_DOKUMEN_ORGANISASI,
+} from "@/lib/types/dokumen";
+import {
+  getDokumenOrganisasi,
+  uploadDokumenPdf,
+  createDokumen,
+  updateDokumen,
+  deleteDokumen,
+} from "@/lib/supabase/dokumen";
 
 // Tipe Data Aspirasi Supabase
 interface AspirasiItem {
@@ -131,7 +143,7 @@ export default function DashboardPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "aspirasi" | "berita" | "kalender" | "database" | "banner"
+    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "aspirasi" | "berita" | "kalender" | "database" | "banner"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -591,6 +603,7 @@ export default function DashboardPage() {
   const [formPengurusEmail, setFormPengurusEmail] = useState("");
   const [formPengurusImage, setFormPengurusImage] = useState<string>("/DSC01203.png");
   const [formPengurusToken, setFormPengurusToken] = useState("");
+  const [formPengurusUrutan, setFormPengurusUrutan] = useState<number>(0);
   const [savingPengurus, setSavingPengurus] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -598,6 +611,25 @@ export default function DashboardPage() {
   // Modal Konfirmasi Hapus Peserta Pengurus
   const [pengurusToDelete, setPengurusToDelete] = useState<PengurusMember | null>(null);
   const [deletingPengurus, setDeletingPengurus] = useState(false);
+
+  // Dokumen Organisasi State (CRUD Admin)
+  const [dokumenList, setDokumenList] = useState<DokumenOrganisasi[]>(DEFAULT_DOKUMEN_ORGANISASI);
+  const [loadingDokumen, setLoadingDokumen] = useState(false);
+  const [isDokumenModalOpen, setIsDokumenModalOpen] = useState(false);
+  const [editingDokumen, setEditingDokumen] = useState<DokumenOrganisasi | null>(null);
+  const [dokumenToDelete, setDokumenToDelete] = useState<DokumenOrganisasi | null>(null);
+  const [deletingDokumen, setDeletingDokumen] = useState(false);
+  const [savingDokumen, setSavingDokumen] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+
+  // Form Dokumen
+  const [formDokumenJudul, setFormDokumenJudul] = useState("");
+  const [formDokumenDeskripsi, setFormDokumenDeskripsi] = useState("");
+  const [formDokumenFileUrl, setFormDokumenFileUrl] = useState("");
+  const [formDokumenFileName, setFormDokumenFileName] = useState("");
+  const [formDokumenFileSize, setFormDokumenFileSize] = useState("");
+  const [formDokumenUrutan, setFormDokumenUrutan] = useState<number>(1);
+  const pdfFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // SQL Copy Feedback
   const [copiedSQL, setCopiedSQL] = useState(false);
@@ -809,10 +841,11 @@ export default function DashboardPage() {
           nim: row.nim,
           nama: row.nama,
           jabatan: row.jabatan,
-          divisi: row.divisi,
+          divisi: (row.divisi || "").trim().toUpperCase(),
           qrToken: row.qr_token || row.qrToken || generateQrToken(row.nim, row.nama),
           image: row.foto_url || row.image || "/DSC01203.png",
           email: row.email || `${row.nim}@atmaluhur.ac.id`,
+          urutan: row.urutan != null ? Number(row.urutan) : undefined,
         }));
       } else if (!error && (!data || data.length === 0)) {
         // Otomatis lakukan SEEDING data pengurus master ke Supabase jika tabel masih kosong
@@ -825,6 +858,7 @@ export default function DashboardPage() {
           qr_token: p.qrToken,
           foto_url: p.image,
           email: p.email,
+          urutan: p.urutan || 0,
         }));
 
         const { data: seeded, error: seedError } = await supabase
@@ -838,10 +872,11 @@ export default function DashboardPage() {
             nim: row.nim,
             nama: row.nama,
             jabatan: row.jabatan,
-            divisi: row.divisi,
+            divisi: (row.divisi || "").trim().toUpperCase(),
             qrToken: row.qr_token || generateQrToken(row.nim, row.nama),
             image: row.foto_url || "/DSC01203.png",
             email: row.email || `${row.nim}@atmaluhur.ac.id`,
+            urutan: row.urutan != null ? Number(row.urutan) : undefined,
           }));
         } else {
           loaded = DAFTAR_PENGURUS_HIMASI;
@@ -853,9 +888,23 @@ export default function DashboardPage() {
     }
 
     if (loaded.length > 0) {
-      setPengurusList(loaded);
+      setPengurusList(sortPengurusMembers(loaded));
     }
     setLoadingPengurus(false);
+  }, []);
+
+  // 4C. Ambil Data Dokumen Organisasi dari Supabase
+  const fetchDokumenList = useCallback(async () => {
+    setLoadingDokumen(true);
+    try {
+      const data = await getDokumenOrganisasi();
+      setDokumenList(data);
+    } catch (err) {
+      console.warn("fetchDokumenList error:", err);
+      setDokumenList(DEFAULT_DOKUMEN_ORGANISASI);
+    } finally {
+      setLoadingDokumen(false);
+    }
   }, []);
 
   // Realtime Subscription Supabase (Multi-Device Auto-Sync)
@@ -863,6 +912,7 @@ export default function DashboardPage() {
     fetchKegiatan();
     fetchAbsensiLogs();
     fetchPengurus();
+    fetchDokumenList();
 
     const channel = supabase
       .channel("himasi_realtime_dashboard")
@@ -892,6 +942,13 @@ export default function DashboardPage() {
         { event: "*", schema: "public", table: "pengurus" },
         () => {
           fetchPengurus();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "dokumen_organisasi" },
+        () => {
+          fetchDokumenList();
         }
       )
       .subscribe();
@@ -1148,11 +1205,12 @@ export default function DashboardPage() {
     setEditingPengurus(null);
     setFormPengurusNama("");
     setFormPengurusNim("");
-    setFormPengurusDivisi(DAFTAR_DIVISI[0] || "BPH");
+    setFormPengurusDivisi(DAFTAR_DIVISI[0] || "PEMBINA");
     setFormPengurusJabatan("");
     setFormPengurusEmail("");
     setFormPengurusImage("/DSC01203.png");
     setFormPengurusToken("");
+    setFormPengurusUrutan(0);
     setIsPengurusModalOpen(true);
   };
 
@@ -1165,6 +1223,7 @@ export default function DashboardPage() {
     setFormPengurusEmail(member.email || `${member.nim}@atmaluhur.ac.id`);
     setFormPengurusImage(member.image || "/DSC01203.png");
     setFormPengurusToken(member.qrToken || generateQrToken(member.nim, member.nama));
+    setFormPengurusUrutan(member.urutan != null ? member.urutan : 0);
     setIsPengurusModalOpen(true);
   };
 
@@ -1271,18 +1330,23 @@ export default function DashboardPage() {
 
   const handleSavePengurus = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formPengurusNama.trim() || !formPengurusNim.trim()) {
+    const cleanDivisi = formPengurusDivisi || "BPH";
+    let cleanNim = formPengurusNim.trim();
+    if (!cleanNim && cleanDivisi === "PEMBINA") {
+      cleanNim = `PEMBINA-${Date.now().toString().slice(-6)}`;
+    }
+
+    if (!formPengurusNama.trim() || !cleanNim) {
       showToast("Nama lengkap dan NIM wajib diisi!");
       return;
     }
 
     const cleanNama = formPengurusNama.trim().toUpperCase();
-    const cleanNim = formPengurusNim.trim();
-    const cleanDivisi = formPengurusDivisi || "BPH";
     const cleanJabatan = formPengurusJabatan.trim() || `Pengurus ${cleanDivisi}`;
     const cleanEmail = formPengurusEmail.trim() || `${cleanNim}@atmaluhur.ac.id`;
     const cleanImage = formPengurusImage.trim() || "/DSC01203.png";
     const cleanToken = formPengurusToken.trim() || generateQrToken(cleanNim, cleanNama);
+    const cleanUrutan = formPengurusUrutan > 0 ? formPengurusUrutan : undefined;
 
     // Cek duplikasi NIM
     const duplicate = pengurusList.some(
@@ -1308,10 +1372,11 @@ export default function DashboardPage() {
         email: cleanEmail,
         image: cleanImage,
         qrToken: cleanToken,
+        urutan: cleanUrutan,
       };
 
-      const updatedList = pengurusList.map((p) =>
-        p.id === editingPengurus.id ? updatedMember : p
+      const updatedList = sortPengurusMembers(
+        pengurusList.map((p) => (p.id === editingPengurus.id ? updatedMember : p))
       );
       setPengurusList(updatedList);
 
@@ -1322,38 +1387,43 @@ export default function DashboardPage() {
       // Sync update ke Supabase tabel pengurus
       try {
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(editingPengurus.id);
-        const query = isUuid
-          ? supabase.from("pengurus").update({
-              nama: cleanNama,
-              nim: cleanNim,
-              divisi: cleanDivisi,
-              jabatan: cleanJabatan,
-              email: cleanEmail,
-              foto_url: cleanImage,
-              qr_token: cleanToken,
-              updated_at: new Date().toISOString(),
-            }).eq("id", editingPengurus.id)
-          : supabase.from("pengurus").update({
-              nama: cleanNama,
-              nim: cleanNim,
-              divisi: cleanDivisi,
-              jabatan: cleanJabatan,
-              email: cleanEmail,
-              foto_url: cleanImage,
-              qr_token: cleanToken,
-              updated_at: new Date().toISOString(),
-            }).eq("nim", editingPengurus.nim);
+        const updatePayload: Record<string, any> = {
+          nama: cleanNama,
+          nim: cleanNim,
+          divisi: cleanDivisi,
+          jabatan: cleanJabatan,
+          email: cleanEmail,
+          foto_url: cleanImage,
+          qr_token: cleanToken,
+          updated_at: new Date().toISOString(),
+        };
+        if (cleanUrutan !== undefined) {
+          updatePayload.urutan = cleanUrutan;
+        }
 
-        const { error: updErr } = await query;
+        const query = isUuid
+          ? supabase.from("pengurus").update(updatePayload).eq("id", editingPengurus.id)
+          : supabase.from("pengurus").update(updatePayload).eq("nim", editingPengurus.nim);
+
+        let { error: updErr } = await query;
+        if (updErr && updErr.message?.includes("urutan")) {
+          delete updatePayload.urutan;
+          const retryQuery = isUuid
+            ? supabase.from("pengurus").update(updatePayload).eq("id", editingPengurus.id)
+            : supabase.from("pengurus").update(updatePayload).eq("nim", editingPengurus.nim);
+          const res = await retryQuery;
+          updErr = res.error;
+        }
+
         if (updErr) {
           console.warn("Supabase update pengurus error:", updErr);
           showToast(`Peringatan: Gagal sinkron ke database: ${updErr.message}`);
         } else {
-          showToast(`Data peserta "${cleanNama}" berhasil diperbarui di database!`);
+          showToast(`Data pengurus "${cleanNama}" berhasil diperbarui!`);
         }
       } catch (err) {
         console.warn("Supabase update pengurus error:", err);
-        showToast(`Data peserta "${cleanNama}" berhasil diperbarui!`);
+        showToast(`Data pengurus "${cleanNama}" berhasil diperbarui!`);
       }
     } else {
       // Mode Tambah Baru
@@ -1361,20 +1431,33 @@ export default function DashboardPage() {
       let isDbSaved = false;
 
       try {
-        const { data, error } = await supabase
+        const insertPayload: Record<string, any> = {
+          nama: cleanNama,
+          nim: cleanNim,
+          divisi: cleanDivisi,
+          jabatan: cleanJabatan,
+          email: cleanEmail,
+          foto_url: cleanImage,
+          qr_token: cleanToken,
+        };
+        if (cleanUrutan !== undefined) {
+          insertPayload.urutan = cleanUrutan;
+        }
+
+        let { data, error } = await supabase
           .from("pengurus")
-          .insert([
-            {
-              nama: cleanNama,
-              nim: cleanNim,
-              divisi: cleanDivisi,
-              jabatan: cleanJabatan,
-              email: cleanEmail,
-              foto_url: cleanImage,
-              qr_token: cleanToken,
-            },
-          ])
+          .insert([insertPayload])
           .select();
+
+        if (error && error.message?.includes("urutan")) {
+          delete insertPayload.urutan;
+          const retry = await supabase
+            .from("pengurus")
+            .insert([insertPayload])
+            .select();
+          data = retry.data;
+          error = retry.error;
+        }
 
         if (!error && data && data.length > 0 && data[0].id) {
           generatedId = data[0].id;
@@ -1396,14 +1479,15 @@ export default function DashboardPage() {
         email: cleanEmail,
         image: cleanImage,
         qrToken: cleanToken,
+        urutan: cleanUrutan,
       };
 
-      setPengurusList([newMember, ...pengurusList]);
+      setPengurusList(sortPengurusMembers([newMember, ...pengurusList]));
 
       if (isDbSaved) {
-        showToast(`Peserta "${cleanNama}" berhasil ditambahkan & tersimpan ke Cloud!`);
+        showToast(`Anggota "${cleanNama}" berhasil ditambahkan & tersimpan ke Cloud!`);
       } else {
-        showToast(`Peserta "${cleanNama}" berhasil ditambahkan! Kartu QR siap digunakan.`);
+        showToast(`Anggota "${cleanNama}" berhasil ditambahkan!`);
       }
     }
 
@@ -1445,6 +1529,148 @@ export default function DashboardPage() {
     setDeletingPengurus(false);
     setPengurusToDelete(null);
     showToast(`Peserta "${targetNama}" berhasil dihapus dari database.`);
+  };
+
+  // 11B. Handler CRUD Dokumen Organisasi
+  const handleOpenTambahDokumen = () => {
+    setEditingDokumen(null);
+    setFormDokumenJudul("");
+    setFormDokumenDeskripsi("");
+    setFormDokumenFileUrl("");
+    setFormDokumenFileName("");
+    setFormDokumenFileSize("");
+    setFormDokumenUrutan((dokumenList.length || 0) + 1);
+    setIsDokumenModalOpen(true);
+  };
+
+  const handleOpenEditDokumen = (doc: DokumenOrganisasi) => {
+    setEditingDokumen(doc);
+    setFormDokumenJudul(doc.judul);
+    setFormDokumenDeskripsi(doc.deskripsi);
+    setFormDokumenFileUrl(doc.file_url);
+    setFormDokumenFileName(doc.file_name);
+    setFormDokumenFileSize(doc.file_size || "");
+    setFormDokumenUrutan(doc.urutan || 1);
+    setIsDokumenModalOpen(true);
+  };
+
+  const handleProcessPdfFile = async (file: File) => {
+    setUploadingPdf(true);
+    try {
+      if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
+        showToast("Berkas yang dipilih harus berupa dokumen PDF (.pdf)");
+        return;
+      }
+
+      if (file.size > 26214400) {
+        showToast("Ukuran berkas melebihi batas maksimal 25 MB");
+        return;
+      }
+
+      const res = await uploadDokumenPdf(file);
+      if (res) {
+        setFormDokumenFileUrl(res.url);
+        setFormDokumenFileName(res.fileName);
+        setFormDokumenFileSize(res.fileSize);
+        showToast(`Berkas PDF "${file.name}" siap disimpan!`);
+      }
+    } catch (err: any) {
+      console.error("Gagal mengunggah PDF:", err);
+      showToast(err?.message || "Gagal mengunggah berkas PDF.");
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handleSaveDokumen = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formDokumenJudul.trim() || !formDokumenDeskripsi.trim()) {
+      showToast("Judul dan deskripsi dokumen wajib diisi!");
+      return;
+    }
+
+    if (!formDokumenFileUrl) {
+      showToast("Silakan pilih berkas PDF dokumen terlebih dahulu!");
+      return;
+    }
+
+    setSavingDokumen(true);
+
+    if (editingDokumen) {
+      const updated = await updateDokumen(editingDokumen.id, {
+        judul: formDokumenJudul,
+        deskripsi: formDokumenDeskripsi,
+        file_url: formDokumenFileUrl,
+        file_name: formDokumenFileName,
+        file_size: formDokumenFileSize,
+        urutan: formDokumenUrutan,
+      });
+
+      setDokumenList((prev) =>
+        prev
+          .map((d) =>
+            d.id === editingDokumen.id
+              ? {
+                  ...d,
+                  judul: formDokumenJudul,
+                  deskripsi: formDokumenDeskripsi,
+                  file_url: formDokumenFileUrl,
+                  file_name: formDokumenFileName,
+                  file_size: formDokumenFileSize,
+                  urutan: formDokumenUrutan,
+                }
+              : d
+          )
+          .sort((a, b) => (a.urutan || 0) - (b.urutan || 0))
+      );
+      showToast(`Dokumen "${formDokumenJudul}" berhasil diperbarui!`);
+    } else {
+      const created = await createDokumen({
+        judul: formDokumenJudul,
+        deskripsi: formDokumenDeskripsi,
+        file_url: formDokumenFileUrl,
+        file_name: formDokumenFileName,
+        file_size: formDokumenFileSize,
+        urutan: formDokumenUrutan,
+      });
+
+      if (created) {
+        setDokumenList((prev) =>
+          [...prev, created].sort((a, b) => (a.urutan || 0) - (b.urutan || 0))
+        );
+        showToast(`Dokumen "${formDokumenJudul}" berhasil diterbitkan!`);
+      } else {
+        const localDoc: DokumenOrganisasi = {
+          id: `doc-${Date.now()}`,
+          judul: formDokumenJudul,
+          deskripsi: formDokumenDeskripsi,
+          file_url: formDokumenFileUrl,
+          file_name: formDokumenFileName,
+          file_size: formDokumenFileSize,
+          urutan: formDokumenUrutan,
+        };
+        setDokumenList((prev) =>
+          [...prev, localDoc].sort((a, b) => (a.urutan || 0) - (b.urutan || 0))
+        );
+        showToast(`Dokumen "${formDokumenJudul}" berhasil ditambahkan.`);
+      }
+    }
+
+    setSavingDokumen(false);
+    setIsDokumenModalOpen(false);
+  };
+
+  const handleConfirmDeleteDokumen = async () => {
+    if (!dokumenToDelete) return;
+    setDeletingDokumen(true);
+    const targetId = dokumenToDelete.id;
+    const targetJudul = dokumenToDelete.judul;
+
+    await deleteDokumen(targetId);
+    setDokumenList((prev) => prev.filter((d) => d.id !== targetId));
+    setDeletingDokumen(false);
+    setDokumenToDelete(null);
+    showToast(`Dokumen "${targetJudul}" berhasil dihapus.`);
   };
 
   // 12. Logout Pengurus
@@ -1520,11 +1746,14 @@ CREATE TABLE IF NOT EXISTS public.pengurus (
     divisi TEXT NOT NULL,
     qr_token TEXT UNIQUE NOT NULL,
     foto_url TEXT,
+    urutan INT DEFAULT 0,
     email TEXT,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.pengurus ADD COLUMN IF NOT EXISTS urutan INT DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_pengurus_nim ON public.pengurus(nim);
 CREATE INDEX IF NOT EXISTS idx_pengurus_divisi ON public.pengurus(divisi);
@@ -1594,11 +1823,49 @@ USING (
     auth.role() = 'authenticated'
 );
 
--- 8. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
+-- 8. TABEL DOKUMEN ORGANISASI & STORAGE BUCKET
+CREATE TABLE IF NOT EXISTS public.dokumen_organisasi (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  judul TEXT NOT NULL,
+  deskripsi TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_size TEXT,
+  urutan INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.dokumen_organisasi ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Publik dapat membaca dokumen organisasi"
+  ON public.dokumen_organisasi FOR SELECT USING (true);
+
+CREATE POLICY "Admin dapat mengelola dokumen organisasi"
+  ON public.dokumen_organisasi FOR ALL TO authenticated USING (true);
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('dokumen-organisasi', 'dokumen-organisasi', true, 26214400, ARRAY['application/pdf'])
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "Public Read Dokumen Organisasi" 
+ON storage.objects FOR SELECT 
+TO public
+USING (bucket_id = 'dokumen-organisasi');
+
+CREATE POLICY "Authenticated Upload Dokumen Organisasi" 
+ON storage.objects FOR INSERT 
+TO authenticated 
+WITH CHECK (
+    bucket_id = 'dokumen-organisasi' AND 
+    auth.role() = 'authenticated'
+);
+
+-- 9. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
 DO $$
 BEGIN
   BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus, public.dokumen_organisasi;
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
@@ -1622,16 +1889,26 @@ NOTIFY pgrst, 'reload schema';`;
     return matchStatus && matchSearch;
   });
 
-  // Filter Pengurus untuk Kartu QR
-  const filteredPengurusCards = pengurusList.filter((p) => {
-    const matchDivisi =
-      divisiFilterCard === "SEMUA" || p.divisi === divisiFilterCard;
-    const matchSearch =
-      p.nama.toLowerCase().includes(searchPengurus.toLowerCase()) ||
-      p.nim.includes(searchPengurus) ||
-      p.jabatan.toLowerCase().includes(searchPengurus.toLowerCase());
-    return matchDivisi && matchSearch;
-  });
+  // Filter Mahasiswa untuk Scanner Absensi & Rekap PDF (Mengecualikan Dosen Pembina)
+  const studentPengurusList = useMemo(
+    () => pengurusList.filter((p) => p.divisi !== "PEMBINA"),
+    [pengurusList]
+  );
+
+  // Filter Pengurus untuk Kartu QR & Tampilan Kabinet (Diurutkan Berdasarkan Hierarki)
+  const filteredPengurusCards = useMemo(() => {
+    return sortPengurusMembers(
+      pengurusList.filter((p) => {
+        const matchDivisi =
+          divisiFilterCard === "SEMUA" || p.divisi === divisiFilterCard;
+        const matchSearch =
+          p.nama.toLowerCase().includes(searchPengurus.toLowerCase()) ||
+          p.nim.includes(searchPengurus) ||
+          p.jabatan.toLowerCase().includes(searchPengurus.toLowerCase());
+        return matchDivisi && matchSearch;
+      })
+    );
+  }, [pengurusList, divisiFilterCard, searchPengurus]);
 
   // Metrik Statistik
   const countBaru = aspirasiList.filter((a) => a.status === "baru").length;
@@ -1792,6 +2069,28 @@ NOTIFY pgrst, 'reload schema';`;
                   </div>
                   <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                     {pengurusList.length}
+                  </span>
+                </button>
+
+                {/* Dokumen Organisasi */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("dokumen");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    activeTab === "dokumen"
+                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <FileText className={`w-4 h-4 ${activeTab === "dokumen" ? "text-[#00296E]" : "text-slate-400"}`} />
+                    <span>Dokumen Organisasi</span>
+                  </div>
+                  <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                    {dokumenList.length}
                   </span>
                 </button>
 
@@ -1974,6 +2273,7 @@ NOTIFY pgrst, 'reload schema';`;
                   {activeTab === "banner" && "Home Page (Hero Banner)"}
                   {activeTab === "berita" && "Berita Page (Warta)"}
                   {activeTab === "kartu-qr" && "Kabinet & Profil"}
+                  {activeTab === "dokumen" && "Dokumen Organisasi"}
                   {activeTab === "kalender" && "Kalender Page"}
                   {activeTab === "aspirasi" && "Aspirasi Mahasiswa"}
                   {activeTab === "absensi" && "Scan Absensi QR"}
@@ -2053,7 +2353,7 @@ NOTIFY pgrst, 'reload schema';`;
                       <ScanLine className="w-4 h-4 text-slate-400" />
                     </div>
                     <div className="text-2xl font-bold text-[#00296E] mt-1.5">
-                      {currentLogs.length} <span className="text-xs font-normal text-slate-400">/ {pengurusList.length} Pengurus</span>
+                      {currentLogs.length} <span className="text-xs font-normal text-slate-400">/ {studentPengurusList.length} Pengurus</span>
                     </div>
                     <div className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -2309,7 +2609,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 <td className="py-3 px-4 text-center">
                                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    {logCount} / {pengurusList.length} Hadir
+                                    {logCount} / {studentPengurusList.length} Hadir
                                   </span>
                                 </td>
                                 <td className="py-3 px-4 text-center">
@@ -2413,7 +2713,7 @@ NOTIFY pgrst, 'reload schema';`;
 
                             <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
                               <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                {logCount} / {pengurusList.length} Hadir
+                                {logCount} / {studentPengurusList.length} Hadir
                               </span>
 
                               <div className="flex items-center gap-1.5">
@@ -2572,7 +2872,7 @@ NOTIFY pgrst, 'reload schema';`;
                       kegiatanTanggal={formatTanggalIndo(activeKegiatan.tanggal)}
                       kegiatanJam={activeKegiatan.jam}
                       onAttendanceSuccess={handleAttendanceSuccess}
-                      pengurusList={pengurusList}
+                      pengurusList={studentPengurusList}
                     />
                   </>
                 )}
@@ -2618,7 +2918,7 @@ NOTIFY pgrst, 'reload schema';`;
                   onDeleteKegiatan={handleDeleteKegiatan}
                   onDeleteAbsensiLog={handleDeleteSingleAbsensiLog}
                   onResetAllAbsensiLogs={handleResetAllAbsensiLogs}
-                  pengurusList={pengurusList}
+                  pengurusList={studentPengurusList}
                 />
               </div>
             )}
@@ -2792,6 +3092,151 @@ NOTIFY pgrst, 'reload schema';`;
                   </div>
                 )}
 
+              </div>
+            )}
+
+            {/* TAB DOKUMEN ORGANISASI */}
+            {activeTab === "dokumen" && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                {/* Header Dokumen */}
+                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-[#00296E]">
+                      Dokumen Organisasi (AD/ART &amp; SK)
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Kelola berkas dokumen resmi HIMASI yang dapat diunduh oleh publik di Halaman Profil.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                      Total: <strong className="text-slate-800">{dokumenList.length} Dokumen</strong>
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => fetchDokumenList()}
+                      disabled={loadingDokumen}
+                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      title="Segarkan Data Dokumen"
+                    >
+                      <RefreshCw
+                        className={`w-4 h-4 text-slate-500 ${
+                          loadingDokumen ? "animate-spin text-slate-800" : ""
+                        }`}
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenTambahDokumen}
+                      className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Tambah Dokumen</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grid Dokumen Organisasi */}
+                {loadingDokumen ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[1, 2, 3].map((n) => (
+                      <div
+                        key={n}
+                        className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs animate-pulse space-y-3"
+                      >
+                        <div className="h-5 w-1/3 bg-slate-200 rounded" />
+                        <div className="h-4 w-3/4 bg-slate-100 rounded" />
+                        <div className="h-9 w-full bg-slate-100 rounded-lg mt-4" />
+                      </div>
+                    ))}
+                  </div>
+                ) : dokumenList.length === 0 ? (
+                  <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center">
+                    <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <h4 className="text-sm font-bold text-slate-700">Belum Ada Dokumen Organisasi</h4>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      Unggah dokumen resmi seperti AD/ART atau SK Kepengurusan agar dapat diunduh di website.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleOpenTambahDokumen}
+                      className="mt-3 px-3.5 py-2 rounded-lg bg-[#00296E] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tambah Dokumen</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {dokumenList.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs hover:shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 uppercase tracking-wide">
+                              Urutan #{doc.urutan || 0}
+                            </span>
+                            {doc.file_size && (
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {doc.file_size}
+                              </span>
+                            )}
+                          </div>
+
+                          <h3 className="text-base font-bold text-[#00296E]">
+                            {doc.judul}
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                            {doc.deskripsi}
+                          </p>
+
+                          <div className="mt-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center gap-2 text-[11px] text-slate-600 truncate">
+                            <FileText className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                            <span className="truncate font-mono">{doc.file_name}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                          <a
+                            href={doc.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={doc.file_name}
+                            className="w-full py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Unduh / Lihat PDF</span>
+                          </a>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditDokumen(doc)}
+                              className="flex-1 py-1.5 px-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3 text-slate-500" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDokumenToDelete(doc)}
+                              className="py-1.5 px-2.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-slate-500 hover:text-rose-600 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                              title="Hapus Dokumen"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Hapus</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -3877,12 +4322,13 @@ NOTIFY pgrst, 'reload schema';`;
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    NIM Mahasiswa <span className="text-rose-500">*</span>
+                    {formPengurusDivisi === "PEMBINA" ? "NIM / NIDN (Opsional)" : "NIM Mahasiswa"}{" "}
+                    {formPengurusDivisi !== "PEMBINA" && <span className="text-rose-500">*</span>}
                   </label>
                   <input
                     type="text"
-                    required
-                    placeholder="Contoh: 231150020"
+                    required={formPengurusDivisi !== "PEMBINA"}
+                    placeholder={formPengurusDivisi === "PEMBINA" ? "NIDN / Dikosongkan" : "Contoh: 231150020"}
                     value={formPengurusNim}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -3913,7 +4359,7 @@ NOTIFY pgrst, 'reload schema';`;
                 </div>
               </div>
 
-              {/* Grid 2 kolom: Jabatan & Email */}
+              {/* Grid 2 kolom: Jabatan & Urutan Tampil */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -3922,25 +4368,40 @@ NOTIFY pgrst, 'reload schema';`;
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Anggota Medkominfo"
+                    placeholder="Contoh: KETUA UMUM HIMASI"
                     value={formPengurusJabatan}
                     onChange={(e) => setFormPengurusJabatan(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all font-semibold"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Email Mahasiswa (Opsional)
+                    Urutan Tampil (Hierarki)
                   </label>
                   <input
-                    type="email"
-                    placeholder="nama@atmaluhur.ac.id"
-                    value={formPengurusEmail}
-                    onChange={(e) => setFormPengurusEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                    type="number"
+                    min={0}
+                    placeholder="0 = Otomatis hierarki"
+                    value={formPengurusUrutan || ""}
+                    onChange={(e) => setFormPengurusUrutan(Number(e.target.value) || 0)}
+                    className="w-full px-3.5 py-2.5 text-xs font-mono font-bold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
                   />
                 </div>
+              </div>
+
+              {/* Field Email */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Email (Opsional)
+                </label>
+                <input
+                  type="email"
+                  placeholder="nama@atmaluhur.ac.id"
+                  value={formPengurusEmail}
+                  onChange={(e) => setFormPengurusEmail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                />
               </div>
 
               {/* Field Avatar & Upload Foto */}
@@ -4059,7 +4520,7 @@ NOTIFY pgrst, 'reload schema';`;
                 </button>
                 <button
                   type="submit"
-                  disabled={savingPengurus}
+                  disabled={savingPengurus || uploadingImage}
                   className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
                 >
                   {savingPengurus ? (
@@ -4147,6 +4608,287 @@ NOTIFY pgrst, 'reload schema';`;
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
               >
                 {deletingPengurus ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Ya, Hapus</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: TAMBAH / EDIT DOKUMEN ORGANISASI */}
+      {isDokumenModalOpen && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200"
+          onClick={() => !savingDokumen && setIsDokumenModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-50 text-[#00296E] flex items-center justify-center border border-sky-100">
+                  <FileText className="w-5 h-5 text-[#0094E0]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#00296E]">
+                    {editingDokumen ? "Edit Dokumen Organisasi" : "Tambah Dokumen Organisasi"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Berkas resmi yang dapat diunduh publik di halaman Profil HIMASI
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={savingDokumen}
+                onClick={() => setIsDokumenModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveDokumen} className="mt-5 space-y-4">
+              {/* Judul Dokumen */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Judul Dokumen <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formDokumenJudul}
+                  onChange={(e) => setFormDokumenJudul(e.target.value)}
+                  placeholder="Contoh: AD HIMASI, ART HIMASI, SK Kepengurusan"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800"
+                />
+              </div>
+
+              {/* Deskripsi Dokumen */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Deskripsi Singkat <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={formDokumenDeskripsi}
+                  onChange={(e) => setFormDokumenDeskripsi(e.target.value)}
+                  placeholder="Contoh: Anggaran Dasar HIMASI ISB Atma Luhur Periode 2024/2025"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-normal focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800 resize-none"
+                />
+              </div>
+
+              {/* Urutan Tampilan */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Nomor Urut Tampilan
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    value={formDokumenUrutan}
+                    onChange={(e) => setFormDokumenUrutan(parseInt(e.target.value) || 1)}
+                    className="w-24 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all text-slate-800"
+                  />
+                  <span className="text-[11px] text-slate-400">
+                    Dokumen dengan nomor urut lebih kecil muncul lebih awal (1 = kartu paling kiri).
+                  </span>
+                </div>
+              </div>
+
+              {/* File Upload PDF */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Berkas Fisik PDF <span className="text-rose-500">*</span>
+                </label>
+
+                <input
+                  ref={pdfFileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleProcessPdfFile(file);
+                    }
+                  }}
+                />
+
+                {formDokumenFileUrl ? (
+                  <div className="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 shadow-2xs font-black text-xs">
+                        PDF
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate">
+                          {formDokumenFileName || "Dokumen.pdf"}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {formDokumenFileSize || "PDF Siap Diunduh"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={formDokumenFileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-[11px] font-bold text-slate-700 transition-colors flex items-center gap-1 shadow-2xs"
+                      >
+                        <ExternalLink className="w-3 h-3 text-[#0094E0]" />
+                        <span>Pratinjau</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => pdfFileInputRef.current?.click()}
+                        disabled={uploadingPdf}
+                        className="px-2.5 py-1.5 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-[11px] font-bold text-white transition-colors cursor-pointer"
+                      >
+                        Ganti PDF
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => !uploadingPdf && pdfFileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${
+                      uploadingPdf
+                        ? "border-[#0094E0] bg-sky-50/40"
+                        : "border-slate-200 hover:border-[#0094E0] hover:bg-slate-50/60"
+                    }`}
+                  >
+                    {uploadingPdf ? (
+                      <div className="flex flex-col items-center justify-center py-2">
+                        <RefreshCw className="w-8 h-8 text-[#0094E0] animate-spin mb-2" />
+                        <p className="text-xs font-bold text-slate-700">Mengunggah Berkas PDF...</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Menyiapkan penyimpanan berkas dokumen</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-1">
+                        <div className="w-12 h-12 rounded-2xl bg-sky-50 text-[#0094E0] flex items-center justify-center mb-2 shadow-2xs">
+                          <Upload className="w-6 h-6" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-800">
+                          Klik untuk unggah berkas PDF dari perangkat
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Format dokumen PDF • Ukuran berkas maksimal 25 MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  disabled={savingDokumen || uploadingPdf}
+                  onClick={() => setIsDokumenModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingDokumen || uploadingPdf || !formDokumenFileUrl}
+                  className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  {savingDokumen ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{editingDokumen ? "Simpan Perubahan" : "Terbitkan Dokumen"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: KONFIRMASI HAPUS DOKUMEN ORGANISASI */}
+      {dokumenToDelete && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => !deletingDokumen && setDokumenToDelete(null)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <h3 className="text-base font-extrabold text-slate-900">
+              Hapus Dokumen Organisasi?
+            </h3>
+
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Anda akan menghapus dokumen berikut dari daftar publik:
+            </p>
+
+            {/* Preview Dokumen yang akan dihapus */}
+            <div className="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3 text-left">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 font-black text-xs">
+                PDF
+              </div>
+              <div className="overflow-hidden flex-1">
+                <h4 className="text-xs font-black text-slate-900 truncate">
+                  {dokumenToDelete.judul}
+                </h4>
+                <p className="text-[11px] text-slate-500 truncate">
+                  {dokumenToDelete.deskripsi}
+                </p>
+                <p className="text-[10px] text-slate-400 font-mono truncate">
+                  {dokumenToDelete.file_name} • {dokumenToDelete.file_size || "PDF"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium text-left">
+              Dokumen ini tidak akan bisa diunduh lagi oleh pengunjung di halaman Profil HIMASI.
+            </div>
+
+            <div className="mt-6 flex items-center gap-2.5">
+              <button
+                type="button"
+                disabled={deletingDokumen}
+                onClick={() => setDokumenToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deletingDokumen}
+                onClick={handleConfirmDeleteDokumen}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+              >
+                {deletingDokumen ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>Menghapus...</span>

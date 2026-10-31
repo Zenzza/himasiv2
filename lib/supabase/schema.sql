@@ -105,14 +105,20 @@ CREATE TABLE IF NOT EXISTS public.pengurus (
   divisi TEXT NOT NULL,
   qr_token TEXT UNIQUE NOT NULL,
   foto_url TEXT,
+  urutan INT DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
+
+ALTER TABLE public.pengurus ADD COLUMN IF NOT EXISTS urutan INT DEFAULT 0;
 
 ALTER TABLE public.pengurus ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Pengurus dapat melihat daftar anggota"
   ON public.pengurus FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Publik dapat melihat profil pengurus aktif"
+  ON public.pengurus FOR SELECT TO anon USING (is_active = true);
 
 CREATE POLICY "Admin dapat mengelola data pengurus"
   ON public.pengurus FOR ALL TO authenticated USING (true);
@@ -180,4 +186,34 @@ WITH CHECK (
     bucket_id IN ('foto-pengurus', 'foto-berita') AND 
     auth.role() = 'authenticated'
 );
+
+
+-- ===================================================================
+-- 6. TABEL DOKUMEN ORGANISASI (AD/ART, SK, Pedoman)
+-- ===================================================================
+CREATE TABLE IF NOT EXISTS public.dokumen_organisasi (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  judul TEXT NOT NULL,
+  deskripsi TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_size TEXT,
+  urutan INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.dokumen_organisasi ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Publik dapat membaca dokumen organisasi"
+  ON public.dokumen_organisasi FOR SELECT USING (true);
+
+CREATE POLICY "Admin dapat mengelola dokumen organisasi"
+  ON public.dokumen_organisasi FOR ALL TO authenticated USING (true);
+
+-- Bucket Storage Dokumen Organisasi (PDF up to 25MB)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('dokumen-organisasi', 'dokumen-organisasi', true, 26214400, ARRAY['application/pdf'])
+ON CONFLICT (id) DO UPDATE SET public = true;
+
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -10,10 +10,23 @@ import {
   BookOpen,
   Gavel,
   Download,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
+import { supabase } from "@/lib/supabase/client";
+import {
+  DAFTAR_DIVISI,
+  DAFTAR_PENGURUS_HIMASI,
+  DIVISI_DESCRIPTIONS,
+  sortPengurusMembers,
+  type PengurusMember,
+} from "@/lib/data/pengurus";
+import {
+  DokumenOrganisasi,
+  DEFAULT_DOKUMEN_ORGANISASI,
+} from "@/lib/types/dokumen";
+import { getDokumenOrganisasi } from "@/lib/supabase/dokumen";
 
 // ===================================================================
 // DATA SINGKAT KABINET (PERSIS SESUAI HOMEPAGE)
@@ -111,260 +124,137 @@ const KABINET_LOGO_ELEMENTS = [
 ];
 
 // ===================================================================
-// DAFTAR 6 DIVISI KABINET & DATA PENGURUS
+// DAFTAR 6 DIVISI KABINET
 // PEMBINA, BPH, MEDKOMINFO, HUMAS, BISNIS KREATIF, PENASIHAT
 // ===================================================================
-type Member = {
-  id: number;
-  name: string;
-  role: string;
-  image: string;
-};
-
-const DIVISI_KEYS = [
-  "PEMBINA",
-  "BPH",
-  "MEDKOMINFO",
-  "HUMAS",
-  "BISNIS KREATIF",
-  "PENASIHAT",
-] as const;
-
-type DivisiKey = (typeof DIVISI_KEYS)[number];
-
-const DIVISI_DATA: Record<
-  DivisiKey,
-  { title: string; subtitle: string; members: Member[] }
-> = {
-  PEMBINA: {
-    title: "Pembina HIMASI",
-    subtitle:
-      "Dosen penasihat dan pengarah kebijakan kemahasiswaan Program Studi Sistem Informasi ISB Atma Luhur.",
-    members: [
-      {
-        id: 101,
-        name: "DOSEN PEMBINA I",
-        role: "PEMBINA UTAMA HIMASI",
-        image:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 102,
-        name: "DOSEN PEMBINA II",
-        role: "KAPRODI SISTEM INFORMASI",
-        image:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop",
-      },
-    ],
-  },
-  BPH: {
-    title: "Badan Pengurus Harian (BPH)",
-    subtitle:
-      "Pusat kepemimpinan eksekutif, koordinasi internal, tata kelola administrasi, dan perbendaharaan organisasi.",
-    members: [
-      {
-        id: 201,
-        name: "JORDI VENZEN",
-        role: "KETUA UMUM HIMASI",
-        image:
-          "/DSC01203.png",
-      },
-      {
-        id: 202,
-        name: "MUHAMMAD FADHIL",
-        role: "WAKIL KETUA UMUM",
-        image:
-          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 203,
-        name: "ANINDYA PUTRI",
-        role: "SEKRETARIS UMUM",
-        image:
-          "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 204,
-        name: "ZAHRA SALSABILA",
-        role: "BENDAHARA UMUM",
-        image:
-          "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=800&auto=format&fit=crop",
-      },
-    ],
-  },
-  MEDKOMINFO: {
-    title: "Divisi Medkominfo",
-    subtitle:
-      "Media Komunikasi & Informasi: publikasi visual, konten kreatif, pengelolaan web, dan aftermovie kegiatan.",
-    members: [
-      {
-        id: 301,
-        name: "LEYSA REGITA PARHUSIP",
-        role: "KORD. DIVISI MEDKOMINFO",
-        image:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 302,
-        name: "MUHAMMAD EVAN ELUA",
-        role: "ANGGOTA MEDKOMINFO",
-        image:
-          "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 303,
-        name: "BEATRIKS MARIA",
-        role: "ANGGOTA MEDKOMINFO",
-        image:
-          "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 304,
-        name: "DHIFA ARYA PRATAMA",
-        role: "ANGGOTA MEDKOMINFO",
-        image:
-          "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop",
-      },
-    ],
-  },
-  HUMAS: {
-    title: "Divisi Humas",
-    subtitle:
-      "Hubungan Masyarakat: menjalin kemitraan institusi, komunikasi eksternal, jejaring ormawa, dan hubungan alumni.",
-    members: [
-      {
-        id: 401,
-        name: "NABILA SYAHRANI",
-        role: "KORD. DIVISI HUMAS",
-        image:
-          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 402,
-        name: "FARHAN RAMADHAN",
-        role: "ANGGOTA HUMAS",
-        image:
-          "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 403,
-        name: "SITI RAHMAWATI",
-        role: "ANGGOTA HUMAS",
-        image:
-          "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 404,
-        name: "ALDO KURNIAWAN",
-        role: "ANGGOTA HUMAS",
-        image:
-          "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?q=80&w=800&auto=format&fit=crop",
-      },
-    ],
-  },
-  "BISNIS KREATIF": {
-    title: "Divisi Bisnis Kreatif",
-    subtitle:
-      "Pengembangan kewirausahaan mandiri, penyediaan merchandise resmi HIMASI, dan kemitraan pendanaan kreatif.",
-    members: [
-      {
-        id: 501,
-        name: "RIAN HIDAYAT",
-        role: "KORD. DIVISI BISNIS KREATIF",
-        image:
-          "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 502,
-        name: "AULIA RAHMA",
-        role: "ANGGOTA BISNIS KREATIF",
-        image:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 503,
-        name: "BAGAS SAPUTRA",
-        role: "ANGGOTA BISNIS KREATIF",
-        image:
-          "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 504,
-        name: "CITRA DEWI",
-        role: "ANGGOTA BISNIS KREATIF",
-        image:
-          "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800&auto=format&fit=crop",
-      },
-    ],
-  },
-  PENASIHAT: {
-    title: "Penasihat Organisasi",
-    subtitle:
-      "Dewan Penasihat Organisasi dan Demisioner yang mengawal kesinambungan nilai serta tradisi luhur HIMASI.",
-    members: [
-      {
-        id: 601,
-        name: "DEMISIONER KETUA UMUM",
-        role: "DEWAN PENASIHAT ORGANISASI",
-        image:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop",
-      },
-      {
-        id: 602,
-        name: "ALUMNI BERPRESTASI SI",
-        role: "PENASIHAT ALUMNI PROFESIONAL",
-        image:
-          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=800&auto=format&fit=crop",
-      },
-    ],
-  },
-};
-
-// ===================================================================
-// DOKUMEN ORGANISASI (SESUAI REFERENSI GAMBAR)
-// ===================================================================
-const DOKUMEN_ORGANISASI = [
-  {
-    id: 1,
-    title: "AD HIMASI",
-    desc: "Anggaran Dasar HIMASI ISB Atma Luhur",
-    icon: FileText,
-    fileName: "AD-ART-HIMASI-AtmaLuhur.pdf",
-  },
-  {
-    id: 2,
-    title: "ART HIMASI",
-    desc: "Anggaran Rumah Tangga HIMASI ISB Atma Luhur",
-    icon: BookOpen,
-    fileName: "BPPK-Pedoman-Pengurus-HIMASI.pdf",
-  },
-  {
-    id: 3,
-    title: "SK Kepengurusan",
-    desc: "SK Kepengurusan HIMASI ISB Atma Luhur",
-    icon: Gavel,
-    fileName: "SK-Kepengurusan-HIMASI-AtmaLuhur.pdf",
-  },
-];
+const DIVISI_KEYS = DAFTAR_DIVISI;
+type DivisiKey = string;
 
 export default function ProfilPage() {
   const [hoveredLogoElement, setHoveredLogoElement] = useState<number | null>(null);
   const [activeDivisi, setActiveDivisi] = useState<DivisiKey>("BPH");
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
+  const [pengurusList, setPengurusList] = useState<PengurusMember[]>([]);
+  const [loadingPengurus, setLoadingPengurus] = useState(true);
 
-  const handleDownload = (doc: (typeof DOKUMEN_ORGANISASI)[number]) => {
-    const content = `Dokumen Resmi HIMASI ISB Atma Luhur\n\nJudul: ${doc.title}\nKeterangan: ${doc.desc}\nKabinet: REKSABUDAYA\nTahun Kepengurusan: 2025/2026\nInstitut Sains dan Bisnis Atma Luhur Pangkalpinang\n`;
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = doc.fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  // Dynamic Dokumen Organisasi
+  const [dokumenList, setDokumenList] = useState<DokumenOrganisasi[]>(DEFAULT_DOKUMEN_ORGANISASI);
+  const [loadingDokumen, setLoadingDokumen] = useState(true);
 
-    setDownloadSuccess(`Dokumen "${doc.title}" berhasil diunduh!`);
+  const fetchPengurusData = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("pengurus")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        const activeRows = data.filter((row: any) => row.is_active !== false);
+        const mapped: PengurusMember[] = activeRows.map((row: any) => ({
+          id: String(row.id),
+          nim: row.nim || "",
+          nama: row.nama || "",
+          jabatan: row.jabatan || "",
+          divisi: (row.divisi || "").trim().toUpperCase(),
+          qrToken: "",
+          image: row.foto_url || "/DSC01203.png",
+          email: "",
+          urutan: row.urutan != null ? Number(row.urutan) : undefined,
+        }));
+        setPengurusList(sortPengurusMembers(mapped));
+      } else {
+        setPengurusList(sortPengurusMembers(DAFTAR_PENGURUS_HIMASI));
+      }
+    } catch (err) {
+      console.warn("Koneksi pengurus profil offline, memakai data fallback:", err);
+      setPengurusList(sortPengurusMembers(DAFTAR_PENGURUS_HIMASI));
+    } finally {
+      setLoadingPengurus(false);
+    }
+  }, []);
+
+  const fetchDokumenData = useCallback(async () => {
+    try {
+      const docs = await getDokumenOrganisasi();
+      if (docs && docs.length > 0) {
+        setDokumenList(docs);
+      } else {
+        setDokumenList(DEFAULT_DOKUMEN_ORGANISASI);
+      }
+    } catch (err) {
+      console.warn("Koneksi dokumen profil offline, memakai data default:", err);
+      setDokumenList(DEFAULT_DOKUMEN_ORGANISASI);
+    } finally {
+      setLoadingDokumen(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPengurusData();
+    fetchDokumenData();
+
+    // Realtime listener Supabase agar penambahan/perubahan/penghapusan pengurus & dokumen di Dashboard langsung tersinkronisasi
+    const channel = supabase
+      .channel("himasi_realtime_profil_page")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pengurus" },
+        () => {
+          fetchPengurusData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "dokumen_organisasi" },
+        () => {
+          fetchDokumenData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchPengurusData, fetchDokumenData]);
+
+  const currentDivisiDesc =
+    DIVISI_DESCRIPTIONS[activeDivisi] || {
+      title: activeDivisi,
+      subtitle: "Pusat kepemimpinan, koordinasi internal, dan tata kelola organisasi HIMASI.",
+    };
+
+  const currentMembers = useMemo(() => {
+    const cleanActive = (activeDivisi || "").trim().toUpperCase();
+    const filtered = pengurusList.filter(
+      (m) => (m.divisi || "").trim().toUpperCase() === cleanActive
+    );
+    return sortPengurusMembers(filtered);
+  }, [pengurusList, activeDivisi]);
+
+  const handleDownload = (doc: DokumenOrganisasi) => {
+    if (doc.file_url) {
+      const link = document.createElement("a");
+      link.href = doc.file_url;
+      link.download = doc.file_name || `${doc.judul}.pdf`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      const content = `Dokumen Resmi HIMASI ISB Atma Luhur\n\nJudul: ${doc.judul}\nKeterangan: ${doc.deskripsi}\nKabinet: REKSABUDAYA\nTahun Kepengurusan: 2025/2026\nInstitut Sains dan Bisnis Atma Luhur Pangkalpinang\n`;
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = doc.file_name || `${doc.judul}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    setDownloadSuccess(`Dokumen "${doc.judul}" berhasil diunduh!`);
     setTimeout(() => {
       setDownloadSuccess(null);
     }, 3500);
@@ -376,7 +266,6 @@ export default function ProfilPage() {
   const pinX = targetPin ? 9 + 0.82 * targetPin.left : 50;
   const pinY = targetPin ? 9 + 0.82 * targetPin.top : 50;
 
-  const currentDivisiData = DIVISI_DATA[activeDivisi];
 
   return (
     <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
@@ -832,47 +721,74 @@ export default function ProfilPage() {
 
             {/* Deskripsi Divisi Terpilih Diletakkan di Bawah Pilihan */}
             <p className="text-slate-500 text-xs sm:text-sm mt-4 sm:mt-5 max-w-xl mx-auto font-normal leading-relaxed">
-              {currentDivisiData.subtitle}
+              {currentDivisiDesc.subtitle}
             </p>
           </div>
 
-          {/* Grid Card Pengurus: PENGECUALIAN SESUAI PERMINTAAN USER (Tanpa animasi muncul satu-persatu) */}
-          <div
-            className={
-              currentDivisiData.members.length <= 2
-                ? "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-2xl mx-auto"
-                : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6"
-            }
-          >
-            {currentDivisiData.members.map((member) => (
-              <div
-                key={member.id}
-                className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end"
-              >
-                {/* Foto Pengurus Full Tanpa Gradasi Sesuai Permintaan */}
-                <div className="absolute inset-0 bg-slate-100 overflow-hidden">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    draggable={false}
-                    className="w-full h-full object-cover object-top group-hover/card:scale-105 transition-transform duration-500 pointer-events-none"
-                  />
-                </div>
-
-                {/* Konten Bawah: Banner Biru untuk Nama + Subtitle Jabatan Persis Sesuai Gambar Referensi & Homepage */}
-                <div className="relative z-10 p-4 sm:p-5 pb-5 sm:pb-6 flex flex-col items-start">
-                  <div className="inline-block px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xs bg-gradient-to-r from-[#003B96] via-[#0055D4] to-[#FFFFFF]/20 max-w-full">
-                    <h3 className="text-white font-black text-sm sm:text-base lg:text-[17px] xl:text-[18px] tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.55)] leading-tight select-none whitespace-nowrap">
-                      {member.name}
-                    </h3>
+          {/* Grid Card Pengurus: Loading Skeleton / Empty / Real-time Cards */}
+          {loadingPengurus ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+              {[1, 2, 3, 4].map((n) => (
+                <div
+                  key={n}
+                  className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-slate-100 border border-slate-200/90 shadow-sm overflow-hidden flex flex-col justify-end p-4 sm:p-5 pb-5 sm:pb-6 animate-pulse"
+                >
+                  <div className="space-y-2.5">
+                    <div className="h-6 w-3/4 bg-slate-300 rounded-md" />
+                    <div className="h-4 w-1/2 bg-slate-200 rounded-md" />
                   </div>
-                  <p className="mt-1.5 sm:mt-2 text-white font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-                    {member.role}
-                  </p>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : currentMembers.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center max-w-md mx-auto">
+              <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-bold text-slate-700">Belum Ada Pengurus di Divisi Ini</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Data pengurus untuk divisi {activeDivisi} sedang dalam pembaruan.
+              </p>
+            </div>
+          ) : (
+            <div
+              className={
+                currentMembers.length <= 2
+                  ? "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-2xl mx-auto"
+                  : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6"
+              }
+            >
+              {currentMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end"
+                >
+                  {/* Foto Pengurus Full */}
+                  <div className="absolute inset-0 bg-slate-100 overflow-hidden">
+                    <img
+                      src={member.image || "/DSC01203.png"}
+                      alt={member.nama}
+                      draggable={false}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                      }}
+                      className="w-full h-full object-cover object-top group-hover/card:scale-105 transition-transform duration-500 pointer-events-none"
+                    />
+                  </div>
+
+                  {/* Konten Bawah: Banner Biru untuk Nama + Subtitle Jabatan Persis Sesuai Gambar Referensi */}
+                  <div className="relative z-10 p-4 sm:p-5 pb-5 sm:pb-6 flex flex-col items-start">
+                    <div className="inline-block px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xs bg-gradient-to-r from-[#003B96] via-[#0055D4] to-[#FFFFFF]/20 max-w-full">
+                      <h3 className="text-white font-black text-sm sm:text-base lg:text-[17px] xl:text-[18px] tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.55)] leading-tight select-none truncate max-w-full">
+                        {member.nama}
+                      </h3>
+                    </div>
+                    <p className="mt-1.5 sm:mt-2 text-white font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                      {member.jabatan}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
         </ScrollReveal>
       </section>
@@ -892,10 +808,9 @@ export default function ProfilPage() {
             </h2>
           </div>
 
-          {/* Grid 3 Cards Sesuai Gambar Referensi (Animasi card-pop muncul bergantian) */}
+          {/* Grid Cards Sesuai Gambar Referensi (Animasi card-pop muncul bergantian) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 lg:gap-8 items-stretch">
-            {DOKUMEN_ORGANISASI.map((doc, idx) => {
-              const Icon = doc.icon;
+            {dokumenList.map((doc, idx) => {
               return (
                 <ScrollReveal
                   key={doc.id}
@@ -909,13 +824,20 @@ export default function ProfilPage() {
                     <div>
                       {/* Judul Dokumen */}
                       <h3 className="text-xl sm:text-2xl font-black text-[#00296E] tracking-tight">
-                        {doc.title}
+                        {doc.judul}
                       </h3>
 
                       {/* Deskripsi Dokumen */}
                       <p className="text-slate-500 text-xs sm:text-sm mt-2 leading-relaxed">
-                        {doc.desc}
+                        {doc.deskripsi}
                       </p>
+
+                      {doc.file_size && (
+                        <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-500">
+                          <FileText className="w-3 h-3 text-[#0094E0]" />
+                          <span>PDF • {doc.file_size}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Tombol Unduh Dokumen Sesuai Gambar Referensi */}
