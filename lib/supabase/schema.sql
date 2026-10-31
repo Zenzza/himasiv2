@@ -192,7 +192,7 @@ WITH CHECK (
 -- 6. TABEL DOKUMEN ORGANISASI (AD/ART, SK, Pedoman)
 -- ===================================================================
 CREATE TABLE IF NOT EXISTS public.dokumen_organisasi (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   judul TEXT NOT NULL,
   deskripsi TEXT NOT NULL,
   file_url TEXT NOT NULL,
@@ -203,17 +203,96 @@ CREATE TABLE IF NOT EXISTS public.dokumen_organisasi (
   updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
-ALTER TABLE public.dokumen_organisasi ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.dokumen_organisasi TO anon, authenticated, service_role;
+ALTER TABLE public.dokumen_organisasi DISABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Publik dapat membaca dokumen organisasi"
-  ON public.dokumen_organisasi FOR SELECT USING (true);
-
-CREATE POLICY "Admin dapat mengelola dokumen organisasi"
-  ON public.dokumen_organisasi FOR ALL TO authenticated USING (true);
+-- Seed Data Awal Dokumen Organisasi (AD, ART, SK)
+INSERT INTO public.dokumen_organisasi (id, judul, deskripsi, file_url, file_name, file_size, urutan)
+VALUES
+  ('doc-1', 'AD HIMASI', 'Anggaran Dasar HIMASI ISB Atma Luhur', '/documents/AD-ART-HIMASI-AtmaLuhur.pdf', 'AD-ART-HIMASI-AtmaLuhur.pdf', '1.2 MB', 1),
+  ('doc-2', 'ART HIMASI', 'Anggaran Rumah Tangga HIMASI ISB Atma Luhur', '/documents/BPPK-Pedoman-Pengurus-HIMASI.pdf', 'BPPK-Pedoman-Pengurus-HIMASI.pdf', '1.8 MB', 2),
+  ('doc-3', 'SK Kepengurusan', 'SK Kepengurusan HIMASI ISB Atma Luhur', '/documents/SK-Kepengurusan-HIMASI-AtmaLuhur.pdf', 'SK-Kepengurusan-HIMASI-AtmaLuhur.pdf', '850 KB', 3)
+ON CONFLICT (id) DO NOTHING;
 
 -- Bucket Storage Dokumen Organisasi (PDF up to 25MB)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('dokumen-organisasi', 'dokumen-organisasi', true, 26214400, ARRAY['application/pdf'])
 ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Kebijakan Akses Berkas PDF Dokumen Organisasi
+DROP POLICY IF EXISTS "Public Read Dokumen Organisasi" ON storage.objects;
+DROP POLICY IF EXISTS "Public Upload Dokumen Organisasi" ON storage.objects;
+DROP POLICY IF EXISTS "Public Update Dokumen Organisasi" ON storage.objects;
+DROP POLICY IF EXISTS "Public Delete Dokumen Organisasi" ON storage.objects;
+
+CREATE POLICY "Public Read Dokumen Organisasi" 
+ON storage.objects FOR SELECT 
+TO public
+USING (bucket_id = 'dokumen-organisasi');
+
+CREATE POLICY "Public Upload Dokumen Organisasi" 
+ON storage.objects FOR INSERT 
+TO public
+WITH CHECK (bucket_id = 'dokumen-organisasi');
+
+CREATE POLICY "Public Update Dokumen Organisasi" 
+ON storage.objects FOR UPDATE 
+TO public
+USING (bucket_id = 'dokumen-organisasi');
+
+CREATE POLICY "Public Delete Dokumen Organisasi" 
+ON storage.objects FOR DELETE 
+TO public
+USING (bucket_id = 'dokumen-organisasi');
+
+
+-- ===================================================================
+-- 7. TABEL AGENDA KALENDER (HIMASI, AKADEMIK, LIBUR)
+-- ===================================================================
+CREATE TABLE IF NOT EXISTS public.agenda_kalender (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  tanggal_mulai DATE NOT NULL,
+  tanggal_selesai DATE, -- NULL jika acara 1 hari saja
+  judul TEXT NOT NULL,
+  kategori TEXT NOT NULL DEFAULT 'HIMASI', -- 'HIMASI', 'Akademik', 'Libur'
+  waktu TEXT NOT NULL DEFAULT 'Sepanjang Hari',
+  lokasi TEXT NOT NULL DEFAULT 'Kampus ISB Atma Luhur',
+  deskripsi TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+GRANT ALL ON TABLE public.agenda_kalender TO anon, authenticated, service_role;
+ALTER TABLE public.agenda_kalender DISABLE ROW LEVEL SECURITY;
+
+-- Seed Data Awal Kalender (September - Oktober 2026)
+INSERT INTO public.agenda_kalender (id, tanggal_mulai, tanggal_selesai, judul, kategori, waktu, lokasi, deskripsi)
+VALUES
+  ('evt-sep-09', '2026-09-09', '2026-09-10', 'Ujian Sidang Skripsi & Tugas Akhir Gelombang I', 'Akademik', '08.30 - 16.00 WIB', 'Ruang Sidang Utama Lt. 2 ISB Atma Luhur', 'Pelaksanaan ujian sidang skripsi dan tugas akhir tahap 1 bagi mahasiswa tingkat akhir prodi Sistem Informasi.'),
+  ('evt-sep-14', '2026-09-14', NULL, 'Awal Perkuliahan Efektif Semester Ganjil 2026/2027', 'Akademik', '07.30 - 17.00 WIB', 'Seluruh Ruang Kelas Sistem Informasi ISB Atma Luhur', 'Dimulainya perkuliahan tatap muka minggu ke-1 seluruh mata kuliah prodi Sistem Informasi.'),
+  ('evt-sep-25', '2026-09-25', NULL, 'Malam Keakraban (MAKRAB) & Inaugurasi HIMASI 2026', 'HIMASI', '16.00 - 22.00 WIB', 'Auditorium & Lapangan Utama ISB Atma Luhur', 'Temu akrab mahasiswa baru bersama BPH & seluruh divisi HIMASI untuk menjalin sinergi.'),
+  ('evt-sep-29', '2026-09-29', NULL, 'HIMASI Tech Talk: Road to Cloud Engineer & AI Frontier', 'HIMASI', '13.30 - 16.30 WIB', 'Lab Komputer Cloud & Live Streaming YouTube HIMASI', 'Seminar teknologi komputasi awan dan rekayasa AI bersama alumni praktisi industri.'),
+  ('evt-aug-17', '2026-08-17', NULL, 'Upacara Peringatan HUT Kemerdekaan RI ke-81', 'Libur', '07.30 - 10.00 WIB', 'Lapangan Upacara ISB Atma Luhur', 'Upacara bendera peringatan kemerdekaan Republik Indonesia dan festival lomba kampus.'),
+  ('evt-aug-24', '2026-08-24', NULL, 'Masa Pengisian & Revisi KRS Online Semester Ganjil', 'Akademik', '09.00 - 23.59 WIB', 'Portal SIAKAD Online Atma Luhur', 'Konsultasi dosen pembimbing akademik (PA) dan penguncian jadwal rencana studi.'),
+  ('evt-oct-05', '2026-10-05', NULL, 'HIMASI Coding Clinic: Algoritma & Basis Data Relasional', 'HIMASI', '15.30 - 17.30 WIB', 'Lab Pemrograman Web Lt. 3', 'Sesi tutorial intensif dan bimbingan praktikum koding bersama tutor sebaya berprestasi HIMASI.'),
+  ('evt-oct-15', '2026-10-15', NULL, 'Batas Akhir Verifikasi Dispensasi Kuliah & Delegasi Lomba', 'Akademik', '16.00 WIB', 'Sekretariat Prodi Sistem Informasi', 'Batas akhir penyerahan berkas verifikasi dispensasi lomba akademik dan program magang bersertifikat MBKM.'),
+  ('evt-oct-26', '2026-10-26', '2026-10-31', 'Ujian Tengah Semester (UTS) Ganjil 2026/2027', 'Akademik', '08.00 - 16.00 WIB', 'Ruang Ujian Terpadu Kampus Atma Luhur', 'Pekan evaluasi tengah semester untuk seluruh mata kuliah teori dan praktikum sistem informasi.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Realtime Publication
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.dokumen_organisasi;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.agenda_kalender;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+END $$;
+
 
 

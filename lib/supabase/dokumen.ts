@@ -22,21 +22,26 @@ export async function getDokumenOrganisasi(): Promise<DokumenOrganisasi[]> {
       .select("*")
       .order("urutan", { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      return data.map((row: any) => ({
-        id: String(row.id),
-        judul: row.judul || "",
-        deskripsi: row.deskripsi || "",
-        file_url: row.file_url || "",
-        file_name: row.file_name || "dokumen.pdf",
-        file_size: row.file_size || "",
-        urutan: row.urutan != null ? Number(row.urutan) : 0,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      }));
+    if (error) {
+      console.warn("Menggunakan data default dokumen (Supabase warning):", error.message);
+      return DEFAULT_DOKUMEN_ORGANISASI;
     }
 
-    return DEFAULT_DOKUMEN_ORGANISASI;
+    if (!data) {
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      id: String(row.id),
+      judul: row.judul || "",
+      deskripsi: row.deskripsi || "",
+      file_url: row.file_url || "",
+      file_name: row.file_name || "dokumen.pdf",
+      file_size: row.file_size || "",
+      urutan: row.urutan != null ? Number(row.urutan) : 0,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }));
   } catch (err) {
     console.warn("Gagal mengambil data dokumen dari Supabase, memakai fallback:", err);
     return DEFAULT_DOKUMEN_ORGANISASI;

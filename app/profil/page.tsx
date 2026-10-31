@@ -176,11 +176,7 @@ export default function ProfilPage() {
   const fetchDokumenData = useCallback(async () => {
     try {
       const docs = await getDokumenOrganisasi();
-      if (docs && docs.length > 0) {
-        setDokumenList(docs);
-      } else {
-        setDokumenList(DEFAULT_DOKUMEN_ORGANISASI);
-      }
+      setDokumenList(docs);
     } catch (err) {
       console.warn("Koneksi dokumen profil offline, memakai data default:", err);
       setDokumenList(DEFAULT_DOKUMEN_ORGANISASI);

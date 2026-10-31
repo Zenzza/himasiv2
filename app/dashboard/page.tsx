@@ -20,6 +20,7 @@ import {
   ExternalLink,
   RefreshCw,
   Trash2,
+  ChevronLeft,
   ChevronRight,
   TrendingUp,
   FileCode,
@@ -51,7 +52,9 @@ import {
   FolderCheck,
   FolderOpen,
   Monitor,
-  Smartphone
+  Smartphone,
+  MapPin,
+  CalendarDays
 } from "lucide-react";
 import {
   DEFAULT_HERO_BANNER,
@@ -97,6 +100,19 @@ import {
   updateDokumen,
   deleteDokumen,
 } from "@/lib/supabase/dokumen";
+import {
+  type AgendaKalender,
+  type EventCategory,
+  DEFAULT_AGENDA_EVENTS,
+  isDateInEventRange,
+  getCategoryMeta,
+} from "@/lib/types/kalender";
+import {
+  getAgendaKalender,
+  createAgenda,
+  updateAgenda,
+  deleteAgenda,
+} from "@/lib/supabase/kalender";
 
 // Tipe Data Aspirasi Supabase
 interface AspirasiItem {
@@ -631,6 +647,34 @@ export default function DashboardPage() {
   const [formDokumenUrutan, setFormDokumenUrutan] = useState<number>(1);
   const pdfFileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Kalender Agenda State (Dinamis sesuai tanggal & bulan yang sedang berjalan)
+  const [agendaList, setAgendaList] = useState<AgendaKalender[]>(DEFAULT_AGENDA_EVENTS);
+  const [loadingAgenda, setLoadingAgenda] = useState(true);
+  const [adminCalYear, setAdminCalYear] = useState(() => new Date().getFullYear());
+  const [adminCalMonth, setAdminCalMonth] = useState(() => new Date().getMonth());
+  const [adminSelectedDate, setAdminSelectedDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  });
+  const [isAgendaModalOpen, setIsAgendaModalOpen] = useState(false);
+  const [editingAgenda, setEditingAgenda] = useState<AgendaKalender | null>(null);
+  const [agendaToDelete, setAgendaToDelete] = useState<AgendaKalender | null>(null);
+  const [deletingAgenda, setDeletingAgenda] = useState(false);
+  const [savingAgenda, setSavingAgenda] = useState(false);
+
+  // Form Agenda State
+  const [formAgendaJudul, setFormAgendaJudul] = useState("");
+  const [formAgendaKategori, setFormAgendaKategori] = useState<EventCategory>("HIMASI");
+  const [formAgendaTanggalMulai, setFormAgendaTanggalMulai] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  });
+  const [formAgendaTanggalSelesai, setFormAgendaTanggalSelesai] = useState("");
+  const [formAgendaIsMultiDay, setFormAgendaIsMultiDay] = useState(false);
+  const [formAgendaWaktu, setFormAgendaWaktu] = useState("Sepanjang Hari");
+  const [formAgendaLokasi, setFormAgendaLokasi] = useState("Kampus ISB Atma Luhur");
+  const [formAgendaDeskripsi, setFormAgendaDeskripsi] = useState("");
+
   // SQL Copy Feedback
   const [copiedSQL, setCopiedSQL] = useState(false);
 
@@ -907,12 +951,27 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // 4D. Ambil Data Agenda Kalender dari Supabase
+  const fetchAgendaList = useCallback(async () => {
+    setLoadingAgenda(true);
+    try {
+      const data = await getAgendaKalender();
+      setAgendaList(data);
+    } catch (err) {
+      console.warn("fetchAgendaList error:", err);
+      setAgendaList(DEFAULT_AGENDA_EVENTS);
+    } finally {
+      setLoadingAgenda(false);
+    }
+  }, []);
+
   // Realtime Subscription Supabase (Multi-Device Auto-Sync)
   useEffect(() => {
     fetchKegiatan();
     fetchAbsensiLogs();
     fetchPengurus();
     fetchDokumenList();
+    fetchAgendaList();
 
     const channel = supabase
       .channel("himasi_realtime_dashboard")
@@ -951,12 +1010,19 @@ export default function DashboardPage() {
           fetchDokumenList();
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "agenda_kalender" },
+        () => {
+          fetchAgendaList();
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchKegiatan, fetchAbsensiLogs, fetchAspirasi, fetchPengurus]);
+  }, [fetchKegiatan, fetchAbsensiLogs, fetchAspirasi, fetchPengurus, fetchDokumenList, fetchAgendaList]);
 
   // 5. Handler saat scan absensi berhasil
   const handleAttendanceSuccess = (record: AbsensiRecord) => {
@@ -1606,6 +1672,12 @@ export default function DashboardPage() {
         urutan: formDokumenUrutan,
       });
 
+      if (!updated) {
+        showToast("Peringatan: Gagal sinkron ke database Supabase! Pastikan tabel telah dibuat di SQL Editor.");
+      } else {
+        showToast(`Dokumen "${formDokumenJudul}" berhasil diperbarui di Supabase!`);
+      }
+
       setDokumenList((prev) =>
         prev
           .map((d) =>
@@ -1623,7 +1695,6 @@ export default function DashboardPage() {
           )
           .sort((a, b) => (a.urutan || 0) - (b.urutan || 0))
       );
-      showToast(`Dokumen "${formDokumenJudul}" berhasil diperbarui!`);
     } else {
       const created = await createDokumen({
         judul: formDokumenJudul,
@@ -1638,7 +1709,7 @@ export default function DashboardPage() {
         setDokumenList((prev) =>
           [...prev, created].sort((a, b) => (a.urutan || 0) - (b.urutan || 0))
         );
-        showToast(`Dokumen "${formDokumenJudul}" berhasil diterbitkan!`);
+        showToast(`Dokumen "${formDokumenJudul}" berhasil disimpan ke database Supabase!`);
       } else {
         const localDoc: DokumenOrganisasi = {
           id: `doc-${Date.now()}`,
@@ -1652,7 +1723,7 @@ export default function DashboardPage() {
         setDokumenList((prev) =>
           [...prev, localDoc].sort((a, b) => (a.urutan || 0) - (b.urutan || 0))
         );
-        showToast(`Dokumen "${formDokumenJudul}" berhasil ditambahkan.`);
+        showToast("Peringatan: Tersimpan lokal di browser. Tabel 'dokumen_organisasi' belum dibuat di Supabase!");
       }
     }
 
@@ -1666,11 +1737,265 @@ export default function DashboardPage() {
     const targetId = dokumenToDelete.id;
     const targetJudul = dokumenToDelete.judul;
 
-    await deleteDokumen(targetId);
+    const deleted = await deleteDokumen(targetId);
+    if (!deleted) {
+      showToast("Peringatan: Gagal menghapus dari Supabase! Pastikan tabel telah dibuat di SQL Editor.");
+    } else {
+      showToast(`Dokumen "${targetJudul}" berhasil dihapus dari Supabase.`);
+    }
+
     setDokumenList((prev) => prev.filter((d) => d.id !== targetId));
     setDeletingDokumen(false);
     setDokumenToDelete(null);
-    showToast(`Dokumen "${targetJudul}" berhasil dihapus.`);
+  };
+
+  // 11C. Handler & Helper Kalender Agenda
+  const NAMA_BULAN_ID = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ];
+  const HARI_SINGKAT = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+
+  const handleAdminPrevMonth = () => {
+    let newYear = adminCalYear;
+    let newMonth = adminCalMonth - 1;
+    if (adminCalMonth === 0) {
+      newMonth = 11;
+      newYear = adminCalYear - 1;
+    }
+    setAdminCalMonth(newMonth);
+    setAdminCalYear(newYear);
+    setAdminSelectedDate(`${newYear}-${String(newMonth + 1).padStart(2, "0")}-01`);
+  };
+
+  const handleAdminNextMonth = () => {
+    let newYear = adminCalYear;
+    let newMonth = adminCalMonth + 1;
+    if (adminCalMonth === 11) {
+      newMonth = 0;
+      newYear = adminCalYear + 1;
+    }
+    setAdminCalMonth(newMonth);
+    setAdminCalYear(newYear);
+    setAdminSelectedDate(`${newYear}-${String(newMonth + 1).padStart(2, "0")}-01`);
+  };
+
+  const handleAdminToday = () => {
+    const today = new Date();
+    setAdminCalYear(today.getFullYear());
+    setAdminCalMonth(today.getMonth());
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    setAdminSelectedDate(dateStr);
+  };
+
+  const adminCalendarCells = useMemo(() => {
+    const firstDay = new Date(adminCalYear, adminCalMonth, 1);
+    const startDayOfWeek = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(adminCalYear, adminCalMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(adminCalYear, adminCalMonth, 0).getDate();
+
+    const cells: {
+      dayNumber: number;
+      monthOffset: -1 | 0 | 1;
+      fullDate: string;
+      isToday: boolean;
+      isSelected: boolean;
+      events: AgendaKalender[];
+    }[] = [];
+
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // Bulan sebelumnya
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const d = daysInPrevMonth - i;
+      const prevDate = new Date(adminCalYear, adminCalMonth - 1, d);
+      const dateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const evts = agendaList.filter((e) => isDateInEventRange(dateStr, e));
+      cells.push({
+        dayNumber: d,
+        monthOffset: -1,
+        fullDate: dateStr,
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === adminSelectedDate,
+        events: evts,
+      });
+    }
+
+    // Bulan sekarang
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dateStr = `${adminCalYear}-${String(adminCalMonth + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+      const evts = agendaList.filter((e) => isDateInEventRange(dateStr, e));
+      cells.push({
+        dayNumber: i,
+        monthOffset: 0,
+        fullDate: dateStr,
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === adminSelectedDate,
+        events: evts,
+      });
+    }
+
+    // Bulan selanjutnya
+    const totalCells = cells.length <= 35 ? 35 : 42;
+    const remaining = totalCells - cells.length;
+    for (let i = 1; i <= remaining; i++) {
+      const nextDate = new Date(adminCalYear, adminCalMonth + 1, i);
+      const dateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+      const evts = agendaList.filter((e) => isDateInEventRange(dateStr, e));
+      cells.push({
+        dayNumber: i,
+        monthOffset: 1,
+        fullDate: dateStr,
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === adminSelectedDate,
+        events: evts,
+      });
+    }
+
+    return cells;
+  }, [adminCalYear, adminCalMonth, adminSelectedDate, agendaList]);
+
+  const selectedDateEvents = useMemo(() => {
+    if (!adminSelectedDate) return [];
+    return agendaList.filter((e) => isDateInEventRange(adminSelectedDate, e));
+  }, [agendaList, adminSelectedDate]);
+
+  const handleOpenTambahAgenda = (prefillDate?: string) => {
+    setEditingAgenda(null);
+    const targetDate = prefillDate || adminSelectedDate || `${adminCalYear}-${String(adminCalMonth + 1).padStart(2, "0")}-01`;
+    setFormAgendaTanggalMulai(targetDate);
+    setFormAgendaTanggalSelesai("");
+    setFormAgendaIsMultiDay(false);
+    setFormAgendaJudul("");
+    setFormAgendaKategori("HIMASI");
+    setFormAgendaWaktu("Sepanjang Hari");
+    setFormAgendaLokasi("Kampus ISB Atma Luhur");
+    setFormAgendaDeskripsi("");
+    setIsAgendaModalOpen(true);
+  };
+
+  const handleOpenEditAgenda = (agenda: AgendaKalender) => {
+    setEditingAgenda(agenda);
+    setFormAgendaTanggalMulai(agenda.tanggal_mulai);
+    setFormAgendaTanggalSelesai(agenda.tanggal_selesai || "");
+    setFormAgendaIsMultiDay(Boolean(agenda.tanggal_selesai && agenda.tanggal_selesai !== agenda.tanggal_mulai));
+    setFormAgendaJudul(agenda.judul);
+    setFormAgendaKategori(agenda.kategori);
+    setFormAgendaWaktu(agenda.waktu || "Sepanjang Hari");
+    setFormAgendaLokasi(agenda.lokasi || "Kampus ISB Atma Luhur");
+    setFormAgendaDeskripsi(agenda.deskripsi || "");
+    setIsAgendaModalOpen(true);
+  };
+
+  const handleSaveAgenda = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formAgendaJudul.trim() || !formAgendaTanggalMulai) {
+      showToast("Judul dan tanggal mulai agenda wajib diisi!");
+      return;
+    }
+
+    if (formAgendaIsMultiDay && formAgendaTanggalSelesai && formAgendaTanggalSelesai < formAgendaTanggalMulai) {
+      showToast("Tanggal selesai tidak boleh lebih awal dari tanggal mulai!");
+      return;
+    }
+
+    setSavingAgenda(true);
+    const finalTanggalSelesai = formAgendaIsMultiDay && formAgendaTanggalSelesai ? formAgendaTanggalSelesai : null;
+
+    if (editingAgenda) {
+      const updated = await updateAgenda(editingAgenda.id, {
+        tanggal_mulai: formAgendaTanggalMulai,
+        tanggal_selesai: finalTanggalSelesai,
+        judul: formAgendaJudul,
+        kategori: formAgendaKategori,
+        waktu: formAgendaWaktu,
+        lokasi: formAgendaLokasi,
+        deskripsi: formAgendaDeskripsi,
+      });
+
+      if (updated) {
+        setAgendaList((prev) =>
+          prev.map((a) => (a.id === editingAgenda.id ? updated : a))
+        );
+        showToast(`Agenda "${formAgendaJudul}" berhasil diperbarui di Supabase!`);
+      } else {
+        setAgendaList((prev) =>
+          prev.map((a) =>
+            a.id === editingAgenda.id
+              ? {
+                  ...a,
+                  tanggal_mulai: formAgendaTanggalMulai,
+                  tanggal_selesai: finalTanggalSelesai,
+                  judul: formAgendaJudul,
+                  kategori: formAgendaKategori,
+                  waktu: formAgendaWaktu,
+                  lokasi: formAgendaLokasi,
+                  deskripsi: formAgendaDeskripsi,
+                }
+              : a
+          )
+        );
+        showToast("Peringatan: Gagal sinkron ke database Supabase! Pastikan tabel 'agenda_kalender' telah dibuat di SQL Editor.");
+      }
+    } else {
+      const created = await createAgenda({
+        tanggal_mulai: formAgendaTanggalMulai,
+        tanggal_selesai: finalTanggalSelesai,
+        judul: formAgendaJudul,
+        kategori: formAgendaKategori,
+        waktu: formAgendaWaktu,
+        lokasi: formAgendaLokasi,
+        deskripsi: formAgendaDeskripsi,
+      });
+
+      if (created) {
+        setAgendaList((prev) => [...prev, created]);
+        showToast(`Agenda "${formAgendaJudul}" berhasil disimpan ke database Supabase!`);
+      } else {
+        const localItem: AgendaKalender = {
+          id: `evt-${Date.now()}`,
+          tanggal_mulai: formAgendaTanggalMulai,
+          tanggal_selesai: finalTanggalSelesai,
+          judul: formAgendaJudul,
+          kategori: formAgendaKategori,
+          waktu: formAgendaWaktu,
+          lokasi: formAgendaLokasi,
+          deskripsi: formAgendaDeskripsi,
+        };
+        setAgendaList((prev) => [...prev, localItem]);
+        showToast("Peringatan: Tersimpan lokal di browser. Tabel 'agenda_kalender' belum dibuat di Supabase!");
+      }
+    }
+
+    setSavingAgenda(false);
+    setIsAgendaModalOpen(false);
+  };
+
+  const handleConfirmDeleteAgenda = async () => {
+    if (!agendaToDelete) return;
+    setDeletingAgenda(true);
+
+    const deleted = await deleteAgenda(agendaToDelete.id);
+    if (!deleted) {
+      showToast("Peringatan: Gagal menghapus dari Supabase! Pastikan tabel telah dibuat di SQL Editor.");
+    } else {
+      showToast(`Agenda "${agendaToDelete.judul}" berhasil dihapus dari Supabase.`);
+    }
+
+    setAgendaList((prev) => prev.filter((a) => a.id !== agendaToDelete.id));
+    setDeletingAgenda(false);
+    setAgendaToDelete(null);
+  };
+
+  const formatTanggalIndoFull = (dateStr: string) => {
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    const year = parts[0];
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(parseInt(year), month, day);
+    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"][d.getDay()];
+    return `${hari}, ${day} ${NAMA_BULAN_ID[month]} ${year}`;
   };
 
   // 12. Logout Pengurus
@@ -1825,7 +2150,7 @@ USING (
 
 -- 8. TABEL DOKUMEN ORGANISASI & STORAGE BUCKET
 CREATE TABLE IF NOT EXISTS public.dokumen_organisasi (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   judul TEXT NOT NULL,
   deskripsi TEXT NOT NULL,
   file_url TEXT NOT NULL,
@@ -1836,36 +2161,80 @@ CREATE TABLE IF NOT EXISTS public.dokumen_organisasi (
   updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
-ALTER TABLE public.dokumen_organisasi ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.dokumen_organisasi TO anon, authenticated, service_role;
+ALTER TABLE public.dokumen_organisasi DISABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Publik dapat membaca dokumen organisasi"
-  ON public.dokumen_organisasi FOR SELECT USING (true);
-
-CREATE POLICY "Admin dapat mengelola dokumen organisasi"
-  ON public.dokumen_organisasi FOR ALL TO authenticated USING (true);
+INSERT INTO public.dokumen_organisasi (id, judul, deskripsi, file_url, file_name, file_size, urutan)
+VALUES
+  ('doc-1', 'AD HIMASI', 'Anggaran Dasar HIMASI ISB Atma Luhur', '/documents/AD-ART-HIMASI-AtmaLuhur.pdf', 'AD-ART-HIMASI-AtmaLuhur.pdf', '1.2 MB', 1),
+  ('doc-2', 'ART HIMASI', 'Anggaran Rumah Tangga HIMASI ISB Atma Luhur', '/documents/BPPK-Pedoman-Pengurus-HIMASI.pdf', 'BPPK-Pedoman-Pengurus-HIMASI.pdf', '1.8 MB', 2),
+  ('doc-3', 'SK Kepengurusan', 'SK Kepengurusan HIMASI ISB Atma Luhur', '/documents/SK-Kepengurusan-HIMASI-AtmaLuhur.pdf', 'SK-Kepengurusan-HIMASI-AtmaLuhur.pdf', '850 KB', 3)
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('dokumen-organisasi', 'dokumen-organisasi', true, 26214400, ARRAY['application/pdf'])
 ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Public Read Dokumen Organisasi" ON storage.objects;
+DROP POLICY IF EXISTS "Public Upload Dokumen Organisasi" ON storage.objects;
+DROP POLICY IF EXISTS "Public Update Dokumen Organisasi" ON storage.objects;
+DROP POLICY IF EXISTS "Public Delete Dokumen Organisasi" ON storage.objects;
 
 CREATE POLICY "Public Read Dokumen Organisasi" 
 ON storage.objects FOR SELECT 
 TO public
 USING (bucket_id = 'dokumen-organisasi');
 
-CREATE POLICY "Authenticated Upload Dokumen Organisasi" 
+CREATE POLICY "Public Upload Dokumen Organisasi" 
 ON storage.objects FOR INSERT 
-TO authenticated 
-WITH CHECK (
-    bucket_id = 'dokumen-organisasi' AND 
-    auth.role() = 'authenticated'
+TO public
+WITH CHECK (bucket_id = 'dokumen-organisasi');
+
+CREATE POLICY "Public Update Dokumen Organisasi" 
+ON storage.objects FOR UPDATE 
+TO public
+USING (bucket_id = 'dokumen-organisasi');
+
+CREATE POLICY "Public Delete Dokumen Organisasi" 
+ON storage.objects FOR DELETE 
+TO public
+USING (bucket_id = 'dokumen-organisasi');
+
+-- 9. TABEL AGENDA KALENDER & SEED DATA
+CREATE TABLE IF NOT EXISTS public.agenda_kalender (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  tanggal_mulai DATE NOT NULL,
+  tanggal_selesai DATE,
+  judul TEXT NOT NULL,
+  kategori TEXT NOT NULL DEFAULT 'HIMASI',
+  waktu TEXT NOT NULL DEFAULT 'Sepanjang Hari',
+  lokasi TEXT NOT NULL DEFAULT 'Kampus ISB Atma Luhur',
+  deskripsi TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 9. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
+GRANT ALL ON TABLE public.agenda_kalender TO anon, authenticated, service_role;
+ALTER TABLE public.agenda_kalender DISABLE ROW LEVEL SECURITY;
+
+INSERT INTO public.agenda_kalender (id, tanggal_mulai, tanggal_selesai, judul, kategori, waktu, lokasi, deskripsi)
+VALUES
+  ('evt-sep-09', '2026-09-09', '2026-09-10', 'Ujian Sidang Skripsi & Tugas Akhir Gelombang I', 'Akademik', '08.30 - 16.00 WIB', 'Ruang Sidang Utama Lt. 2 ISB Atma Luhur', 'Pelaksanaan ujian sidang skripsi dan tugas akhir tahap 1 bagi mahasiswa tingkat akhir prodi Sistem Informasi.'),
+  ('evt-sep-14', '2026-09-14', NULL, 'Awal Perkuliahan Efektif Semester Ganjil 2026/2027', 'Akademik', '07.30 - 17.00 WIB', 'Seluruh Ruang Kelas Sistem Informasi ISB Atma Luhur', 'Dimulainya perkuliahan tatap muka minggu ke-1 seluruh mata kuliah prodi Sistem Informasi.'),
+  ('evt-sep-25', '2026-09-25', NULL, 'Malam Keakraban (MAKRAB) & Inaugurasi HIMASI 2026', 'HIMASI', '16.00 - 22.00 WIB', 'Auditorium & Lapangan Utama ISB Atma Luhur', 'Temu akrab mahasiswa baru bersama BPH & seluruh divisi HIMASI untuk menjalin sinergi.'),
+  ('evt-sep-29', '2026-09-29', NULL, 'HIMASI Tech Talk: Road to Cloud Engineer & AI Frontier', 'HIMASI', '13.30 - 16.30 WIB', 'Lab Komputer Cloud & Live Streaming YouTube HIMASI', 'Seminar teknologi komputasi awan dan rekayasa AI bersama alumni praktisi industri.'),
+  ('evt-aug-17', '2026-08-17', NULL, 'Upacara Peringatan HUT Kemerdekaan RI ke-81', 'Libur', '07.30 - 10.00 WIB', 'Lapangan Upacara ISB Atma Luhur', 'Upacara bendera peringatan kemerdekaan Republik Indonesia dan festival lomba kampus.'),
+  ('evt-aug-24', '2026-08-24', NULL, 'Masa Pengisian & Revisi KRS Online Semester Ganjil', 'Akademik', '09.00 - 23.59 WIB', 'Portal SIAKAD Online Atma Luhur', 'Konsultasi dosen pembimbing akademik (PA) dan penguncian jadwal rencana studi.'),
+  ('evt-oct-05', '2026-10-05', NULL, 'HIMASI Coding Clinic: Algoritma & Basis Data Relasional', 'HIMASI', '15.30 - 17.30 WIB', 'Lab Pemrograman Web Lt. 3', 'Sesi tutorial intensif dan bimbingan praktikum koding bersama tutor sebaya berprestasi HIMASI.'),
+  ('evt-oct-15', '2026-10-15', NULL, 'Batas Akhir Verifikasi Dispensasi Kuliah & Delegasi Lomba', 'Akademik', '16.00 WIB', 'Sekretariat Prodi Sistem Informasi', 'Batas akhir penyerahan berkas verifikasi dispensasi lomba akademik dan program magang bersertifikat MBKM.'),
+  ('evt-oct-26', '2026-10-26', '2026-10-31', 'Ujian Tengah Semester (UTS) Ganjil 2026/2027', 'Akademik', '08.00 - 16.00 WIB', 'Ruang Ujian Terpadu Kampus Atma Luhur', 'Pekan evaluasi tengah semester untuk seluruh mata kuliah teori dan praktikum sistem informasi.')
+ON CONFLICT (id) DO NOTHING;
+
+-- 10. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
 DO $$
 BEGIN
   BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus, public.dokumen_organisasi;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus, public.dokumen_organisasi, public.agenda_kalender;
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
@@ -2111,6 +2480,11 @@ NOTIFY pgrst, 'reload schema';`;
                     <Calendar className={`w-4 h-4 ${activeTab === "kalender" ? "text-[#00296E]" : "text-slate-400"}`} />
                     <span>Kalender Page</span>
                   </div>
+                  {agendaList.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-100 text-[#00296E] font-bold">
+                      {agendaList.length}
+                    </span>
+                  )}
                 </button>
 
                 {/* Aspirasi Masuk */}
@@ -3752,26 +4126,319 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
             )}
 
-            {/* TAB 7: KALENDER */}
+            {/* TAB 7: KALENDER AGENDA TERPADU (DUAL-PANE MASTER-DETAIL) */}
             {activeTab === "kalender" && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#00296E]">
-                      Kalender Program Kerja
-                    </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Jadwal dan rangkaian pelaksanaan program kerja HIMASI ISB Atma Luhur.
-                    </p>
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Header Kalender Dashboard */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#00296E] flex items-center justify-center border border-sky-100 shrink-0">
+                      <Calendar className="w-5 h-5 text-[#0094E0]" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-[#00296E] flex items-center gap-2">
+                        <span>Kalender Agenda Organisasi & Kampus</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-[#00296E] border border-sky-100">
+                          {agendaList.length} Agenda
+                        </span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Kelola jadwal kegiatan HIMASI, agenda akademik kampus, dan hari libur nasional secara terpusat.
+                      </p>
+                    </div>
                   </div>
 
-                  <Link
-                    href="/kalender"
-                    className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Lihat Halaman Publik</span>
-                  </Link>
+                  <div className="flex items-center gap-2 w-full md:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => fetchAgendaList()}
+                      disabled={loadingAgenda}
+                      className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs"
+                      title="Segarkan Data Kalender"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${loadingAgenda ? "animate-spin text-[#0094E0]" : ""}`} />
+                    </button>
+                    <Link
+                      href="/kalender"
+                      target="_blank"
+                      className="px-3.5 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-[#0094E0]" />
+                      <span>Halaman Publik</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenTambahAgenda()}
+                      className="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Tambah Acara</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* DUAL-PANE CONTAINER: KALENDER VISUAL (KIRI) & PANEL DETAIL HARI TERPILIH (KANAN) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* SISI KIRI: KALENDER BULANAN INTERAKTIF (7 KOLOM) */}
+                  <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs">
+                    {/* Header Navigasi Bulan */}
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                      <div>
+                        <h3 className="text-lg font-black text-[#00296E] tracking-tight">
+                          {NAMA_BULAN_ID[adminCalMonth]} {adminCalYear}
+                        </h3>
+                        <p className="text-[11px] text-slate-400 font-medium">
+                          Klik tanggal untuk melihat atau menambahkan agenda
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleAdminToday}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-bold transition-colors cursor-pointer"
+                        >
+                          Hari Ini
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAdminPrevMonth}
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+                          title="Bulan Sebelumnya"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAdminNextMonth}
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+                          title="Bulan Selanjutnya"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Legend / Keterangan Kategori */}
+                    <div className="flex items-center gap-4 py-2 px-3 mb-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] font-medium text-slate-600 flex-wrap">
+                      <span className="text-slate-400 font-bold">Kategori:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#1E88E5]" />
+                        <span>HIMASI</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#F2B705]" />
+                        <span>Akademik</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#8E24AA]" />
+                        <span>Libur</span>
+                      </div>
+                    </div>
+
+                    {/* Hari Singkat (Sen - Min) */}
+                    <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 mb-2">
+                      {HARI_SINGKAT.map((h) => (
+                        <div key={h} className="py-1">
+                          {h}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Grid Sel Kalender */}
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {adminCalendarCells.map((cell, idx) => {
+                        const isDiffMonth = cell.monthOffset !== 0;
+                        const isSelected = cell.fullDate === adminSelectedDate;
+
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => {
+                              if (cell.monthOffset === -1) handleAdminPrevMonth();
+                              if (cell.monthOffset === 1) handleAdminNextMonth();
+                              setAdminSelectedDate(cell.fullDate);
+                            }}
+                            className={`min-h-[72px] sm:min-h-[82px] p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                              isSelected
+                                ? "bg-sky-50/80 border-[#0094E0] ring-2 ring-[#0094E0]/20 shadow-xs"
+                                : cell.isToday
+                                ? "bg-amber-50/40 border-amber-300 hover:border-[#0094E0]/60"
+                                : isDiffMonth
+                                ? "bg-slate-50/40 border-slate-100 opacity-40 hover:opacity-80"
+                                : "bg-white border-slate-200/80 hover:border-[#0094E0]/50 hover:bg-slate-50/50"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span
+                                className={`text-xs font-bold leading-none ${
+                                  isSelected
+                                    ? "text-[#00296E] font-black"
+                                    : cell.isToday
+                                    ? "text-amber-700 font-black"
+                                    : "text-slate-700"
+                                }`}
+                              >
+                                {cell.dayNumber}
+                              </span>
+                              {cell.isToday && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Hari Ini" />
+                              )}
+                            </div>
+
+                            {/* Dots Indikator Agenda */}
+                            <div className="flex items-center gap-1 flex-wrap mt-1">
+                              {cell.events.slice(0, 3).map((e) => {
+                                const meta = getCategoryMeta(e.kategori);
+                                return (
+                                  <span
+                                    key={e.id}
+                                    className={`w-2 h-2 rounded-full ${meta.dot}`}
+                                    title={`${e.judul} (${meta.label})`}
+                                  />
+                                );
+                              })}
+                              {cell.events.length > 3 && (
+                                <span className="text-[9px] font-bold text-slate-400 leading-none">
+                                  +{cell.events.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* SISI KANAN: PANEL DETAIL HARI TERPILIH (5 KOLOM) */}
+                  <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
+                    {/* Header Panel Tanggal */}
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-sky-50 text-[#00296E] flex items-center justify-center shrink-0 border border-sky-100">
+                          <CalendarDays className="w-4 h-4 text-[#0094E0]" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-400">Agenda Tanggal:</h4>
+                          <p className="text-sm font-black text-[#00296E]">
+                            {formatTanggalIndoFull(adminSelectedDate)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTambahAgenda(adminSelectedDate)}
+                        className="px-3 py-1.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-[11px] font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah</span>
+                      </button>
+                    </div>
+
+                    {/* Daftar Acara pada Hari Terpilih */}
+                    {selectedDateEvents.length === 0 ? (
+                      <div className="py-12 px-4 rounded-2xl bg-slate-50/70 border border-dashed border-slate-200 text-center flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+                          <Calendar className="w-6 h-6 text-slate-400" />
+                        </div>
+                        <h5 className="text-xs font-bold text-slate-700">
+                          Tidak ada agenda di tanggal ini
+                        </h5>
+                        <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                          Belum ada kegiatan organisasi HIMASI, agenda akademik kampus, maupun libur nasional yang dijadwalkan.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTambahAgenda(adminSelectedDate)}
+                          className="mt-4 px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Buat Acara di Hari Ini</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[560px] overflow-y-auto pr-1">
+                        {selectedDateEvents.map((event) => {
+                          const meta = getCategoryMeta(event.kategori);
+                          const isMultiDay = Boolean(
+                            event.tanggal_selesai && event.tanggal_selesai !== event.tanggal_mulai
+                          );
+
+                          return (
+                            <div
+                              key={event.id}
+                              className={`p-4 rounded-2xl border ${meta.border} bg-white shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3`}
+                            >
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                  <span
+                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${meta.bgBadge} ${meta.textBadge}`}
+                                  >
+                                    {meta.label}
+                                  </span>
+
+                                  {isMultiDay && (
+                                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                      Rentang Hari
+                                    </span>
+                                  )}
+                                </div>
+
+                                <h5 className="text-xs sm:text-sm font-black text-slate-900 leading-snug">
+                                  {event.judul}
+                                </h5>
+
+                                <div className="mt-2 space-y-1 text-[11px] text-slate-500 font-medium">
+                                  {isMultiDay && (
+                                    <div className="flex items-center gap-1.5 text-indigo-600">
+                                      <Calendar className="w-3.5 h-3.5 shrink-0" />
+                                      <span>
+                                        {event.tanggal_mulai} s/d {event.tanggal_selesai}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <span>{event.waktu}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <span className="truncate">{event.lokasi}</span>
+                                  </div>
+                                </div>
+
+                                {event.deskripsi && (
+                                  <p className="mt-2 text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                    {event.deskripsi}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="pt-2.5 border-t border-slate-100 flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditAgenda(event)}
+                                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Edit3 className="w-3 h-3 text-[#0094E0]" />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setAgendaToDelete(event)}
+                                  className="px-2.5 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Hapus</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -4889,6 +5556,293 @@ NOTIFY pgrst, 'reload schema';`;
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
               >
                 {deletingDokumen ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Ya, Hapus</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: TAMBAH / EDIT AGENDA KALENDER */}
+      {isAgendaModalOpen && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200"
+          onClick={() => !savingAgenda && setIsAgendaModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-50 text-[#00296E] flex items-center justify-center border border-sky-100">
+                  <Calendar className="w-5 h-5 text-[#0094E0]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#00296E]">
+                    {editingAgenda ? "Edit Agenda Acara" : "Tambah Agenda Baru"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Jadwalkan kegiatan organisasi, agenda akademik, atau libur nasional
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={savingAgenda}
+                onClick={() => setIsAgendaModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form Agenda */}
+            <form onSubmit={handleSaveAgenda} className="mt-5 space-y-4">
+              {/* Judul Agenda */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Judul Agenda / Acara <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formAgendaJudul}
+                  onChange={(e) => setFormAgendaJudul(e.target.value)}
+                  placeholder="Contoh: Malam Keakraban (MAKRAB) HIMASI 2026"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800"
+                />
+              </div>
+
+              {/* Kategori Agenda */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Kategori Agenda <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["HIMASI", "Akademik", "Libur"] as EventCategory[]).map((cat) => {
+                    const isSelected = formAgendaKategori === cat;
+                    const meta = getCategoryMeta(cat);
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setFormAgendaKategori(cat)}
+                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          isSelected
+                            ? `${meta.border} ${meta.bgBadge} ${meta.textBadge} ring-2 ring-[#0094E0]/20 shadow-2xs`
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className={`w-2.5 h-2.5 rounded-full ${meta.dot}`} />
+                        <span>{meta.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Checkbox Rentang Tanggal */}
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formAgendaIsMultiDay}
+                    onChange={(e) => setFormAgendaIsMultiDay(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#0094E0] focus:ring-[#0094E0] border-slate-300"
+                  />
+                  <span className="text-xs font-bold text-slate-700">
+                    Acara berlangsung beberapa hari (Rentang Tanggal)
+                  </span>
+                </label>
+                <p className="text-[11px] text-slate-400 ml-6 mt-0.5">
+                  Centang jika acara memakan waktu lebih dari 1 hari (contoh: UTS, Sidang Gelombang I).
+                </p>
+              </div>
+
+              {/* Input Tanggal */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {formAgendaIsMultiDay ? "Tanggal Mulai" : "Tanggal Pelaksanaan"}{" "}
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={formAgendaTanggalMulai}
+                    onChange={(e) => {
+                      setFormAgendaTanggalMulai(e.target.value);
+                      if (!formAgendaTanggalSelesai || formAgendaTanggalSelesai < e.target.value) {
+                        setFormAgendaTanggalSelesai(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all text-slate-800"
+                  />
+                </div>
+
+                {formAgendaIsMultiDay && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Tanggal Selesai <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      min={formAgendaTanggalMulai}
+                      value={formAgendaTanggalSelesai}
+                      onChange={(e) => setFormAgendaTanggalSelesai(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all text-slate-800"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Waktu & Lokasi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Waktu / Jam Pelaksanaan
+                  </label>
+                  <input
+                    type="text"
+                    value={formAgendaWaktu}
+                    onChange={(e) => setFormAgendaWaktu(e.target.value)}
+                    placeholder="Contoh: 08.30 - 15.00 WIB atau Sepanjang Hari"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Lokasi Pelaksanaan
+                  </label>
+                  <input
+                    type="text"
+                    value={formAgendaLokasi}
+                    onChange={(e) => setFormAgendaLokasi(e.target.value)}
+                    placeholder="Contoh: Auditorium Utama / Online (Zoom)"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* Deskripsi */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Keterangan / Deskripsi Acara
+                </label>
+                <textarea
+                  rows={2}
+                  value={formAgendaDeskripsi}
+                  onChange={(e) => setFormAgendaDeskripsi(e.target.value)}
+                  placeholder="Keterangan singkat mengenai agenda atau sasaran kegiatan..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-normal focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800 resize-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  disabled={savingAgenda}
+                  onClick={() => setIsAgendaModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAgenda}
+                  className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  {savingAgenda ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{editingAgenda ? "Simpan Perubahan" : "Terbitkan Agenda"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: KONFIRMASI HAPUS AGENDA KALENDER */}
+      {agendaToDelete && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => !deletingAgenda && setAgendaToDelete(null)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <h3 className="text-base font-extrabold text-slate-900">
+              Hapus Agenda Kalender?
+            </h3>
+
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Anda akan menghapus agenda berikut dari kalender organisasi:
+            </p>
+
+            {/* Preview Agenda yang akan dihapus */}
+            <div className="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-left">
+              <span
+                className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold mb-1 ${
+                  getCategoryMeta(agendaToDelete.kategori).bgBadge
+                } ${getCategoryMeta(agendaToDelete.kategori).textBadge}`}
+              >
+                {getCategoryMeta(agendaToDelete.kategori).label}
+              </span>
+              <h4 className="text-xs font-black text-slate-900 leading-snug">
+                {agendaToDelete.judul}
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-1">
+                {agendaToDelete.tanggal_mulai}
+                {agendaToDelete.tanggal_selesai && ` s/d ${agendaToDelete.tanggal_selesai}`} &bull; {agendaToDelete.waktu}
+              </p>
+            </div>
+
+            <div className="mt-4 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium text-left">
+              Agenda ini tidak akan tampil lagi di kalender publik HIMASI.
+            </div>
+
+            <div className="mt-6 flex items-center gap-2.5">
+              <button
+                type="button"
+                disabled={deletingAgenda}
+                onClick={() => setAgendaToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deletingAgenda}
+                onClick={handleConfirmDeleteAgenda}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+              >
+                {deletingAgenda ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>Menghapus...</span>

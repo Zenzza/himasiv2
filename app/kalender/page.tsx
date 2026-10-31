@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -11,177 +11,22 @@ import {
   ExternalLink,
   Sparkles,
   Info,
-  CalendarDays
+  CalendarDays,
+  Clock,
+  MapPin,
+  RefreshCw
 } from "lucide-react";
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
-
-// ===================================================================
-// TIPE & DATA EVENT KALENDER
-// ===================================================================
-type EventCategory = "HIMASI" | "Akademik" | "Libur";
-
-type EventItem = {
-  id: string;
-  dateStr: string; // Format: YYYY-MM-DD
-  title: string;
-  category: EventCategory;
-  categoryLabel: string;
-  time: string;
-  location: string;
-  desc: string;
-  color: {
-    border: string;
-    dot: string;
-    bgBadge: string;
-    textBadge: string;
-  };
-};
-
-const CATEGORY_COLORS: Record<
-  EventCategory,
-  { border: string; dot: string; bgBadge: string; textBadge: string; label: string }
-> = {
-  HIMASI: {
-    border: "border-[#1E88E5]",
-    dot: "bg-[#1E88E5]",
-    bgBadge: "bg-[#1E88E5]/10",
-    textBadge: "text-[#00296E]",
-    label: "Agenda HIMASI",
-  },
-  Akademik: {
-    border: "border-[#F2B705]",
-    dot: "bg-[#F2B705]",
-    bgBadge: "bg-[#F2B705]/15",
-    textBadge: "text-amber-800",
-    label: "Akademik Kampus",
-  },
-  Libur: {
-    border: "border-[#8E24AA]",
-    dot: "bg-[#8E24AA]",
-    bgBadge: "bg-[#8E24AA]/10",
-    textBadge: "text-purple-800",
-    label: "Libur Nasional",
-  },
-};
-
-const ALL_EVENTS: EventItem[] = [
-  // --- September 2026 (Persis Sesuai Gambar Referensi) ---
-  {
-    id: "evt-sep-09",
-    dateStr: "2026-09-09",
-    title: "Ujian Sidang Skripsi & Tugas Akhir Gelombang I (Hari ke-1)",
-    category: "Akademik",
-    categoryLabel: "Akademik Kampus",
-    time: "08.30 - 16.00 WIB",
-    location: "Ruang Sidang Utama Lt. 2 ISB Atma Luhur",
-    desc: "Pelaksanaan ujian sidang skripsi dan tugas akhir tahap 1 bagi mahasiswa tingkat akhir Program Studi Sistem Informasi ISB Atma Luhur.",
-    color: CATEGORY_COLORS.Akademik,
-  },
-  {
-    id: "evt-sep-10",
-    dateStr: "2026-09-10",
-    title: "Ujian Sidang Skripsi & Tugas Akhir Gelombang I (Hari ke-2)",
-    category: "Akademik",
-    categoryLabel: "Akademik Kampus",
-    time: "08.30 - 15.30 WIB",
-    location: "Ruang Sidang Utama Lt. 2 ISB Atma Luhur",
-    desc: "Lanjutan sidang meja hijau dan verifikasi kelayakan naskah tugas akhir mahasiswa Program Studi Sistem Informasi.",
-    color: CATEGORY_COLORS.Akademik,
-  },
-  {
-    id: "evt-sep-14",
-    dateStr: "2026-09-14",
-    title: "Awal Perkuliahan Efektif Semester Ganjil 2026/2027",
-    category: "Akademik",
-    categoryLabel: "Akademik Kampus",
-    time: "07.30 - 17.00 WIB",
-    location: "Seluruh Ruang Kelas Sistem Informasi ISB Atma Luhur",
-    desc: "Dimulainya perkuliahan tatap muka minggu ke-1 seluruh mata kuliah prodi Sistem Informasi ISB Atma Luhur tahun akademik baru.",
-    color: CATEGORY_COLORS.Akademik,
-  },
-  {
-    id: "evt-sep-25",
-    dateStr: "2026-09-25",
-    title: "Malam Keakraban (MAKRAB) & Inaugurasi HIMASI 2026",
-    category: "HIMASI",
-    categoryLabel: "Agenda HIMASI",
-    time: "16.00 - 22.00 WIB",
-    location: "Auditorium & Lapangan Utama ISB Atma Luhur",
-    desc: "Temu akrab mahasiswa baru bersama BPH & seluruh divisi HIMASI untuk menjalin sinergi, pengenalan ormawa, dan pentas kebersamaan.",
-    color: CATEGORY_COLORS.HIMASI,
-  },
-  {
-    id: "evt-sep-29",
-    dateStr: "2026-09-29",
-    title: "HIMASI Tech Talk: Road to Cloud Engineer & AI Frontier",
-    category: "HIMASI",
-    categoryLabel: "Agenda HIMASI",
-    time: "13.30 - 16.30 WIB",
-    location: "Lab Komputer Cloud & Live Streaming YouTube HIMASI",
-    desc: "Seminar teknologi komputasi awan dan rekayasa kecerdasan buatan bersama alumni praktisi industri teknologi nasional.",
-    color: CATEGORY_COLORS.HIMASI,
-  },
-
-  // --- Agustus 2026 (Bulan Sebelumnya) ---
-  {
-    id: "evt-aug-17",
-    dateStr: "2026-08-17",
-    title: "Upacara Peringatan HUT Kemerdekaan RI ke-81",
-    category: "Libur",
-    categoryLabel: "Libur Nasional",
-    time: "07.30 - 10.00 WIB",
-    location: "Lapangan Upacara ISB Atma Luhur",
-    desc: "Upacara bendera peringatan kemerdekaan Republik Indonesia dan festival lomba ormawa kampus Atma Luhur.",
-    color: CATEGORY_COLORS.Libur,
-  },
-  {
-    id: "evt-aug-24",
-    dateStr: "2026-08-24",
-    title: "Masa Pengisian & Revisi KRS Online Semester Ganjil",
-    category: "Akademik",
-    categoryLabel: "Akademik Kampus",
-    time: "09.00 - 23.59 WIB",
-    location: "Portal SIAKAD Online Atma Luhur",
-    desc: "Konsultasi dosen pembimbing akademik (PA) dan penguncian jadwal rencana studi semester ganjil.",
-    color: CATEGORY_COLORS.Akademik,
-  },
-
-  // --- Oktober 2026 (Bulan Selanjutnya) ---
-  {
-    id: "evt-oct-05",
-    dateStr: "2026-10-05",
-    title: "HIMASI Coding Clinic: Algoritma & Basis Data Relasional",
-    category: "HIMASI",
-    categoryLabel: "Agenda HIMASI",
-    time: "15.30 - 17.30 WIB",
-    location: "Lab Pemrograman Web Lt. 3",
-    desc: "Sesi tutorial intensif dan bimbingan praktikum koding bersama tutor sebaya berprestasi HIMASI.",
-    color: CATEGORY_COLORS.HIMASI,
-  },
-  {
-    id: "evt-oct-15",
-    dateStr: "2026-10-15",
-    title: "Batas Akhir Verifikasi Dispensasi Kuliah & Delegasi Lomba",
-    category: "Akademik",
-    categoryLabel: "Akademik Kampus",
-    time: "16.00 WIB",
-    location: "Sekretariat Prodi Sistem Informasi",
-    desc: "Batas akhir penyerahan berkas verifikasi dispensasi lomba akademik dan program magang bersertifikat MBKM.",
-    color: CATEGORY_COLORS.Akademik,
-  },
-  {
-    id: "evt-oct-26",
-    dateStr: "2026-10-26",
-    title: "Ujian Tengah Semester (UTS) Ganjil 2026/2027",
-    category: "Akademik",
-    categoryLabel: "Akademik Kampus",
-    time: "08.00 - 16.00 WIB",
-    location: "Ruang Ujian Terpadu Kampus Atma Luhur",
-    desc: "Pekan evaluasi tengah semester untuk seluruh mata kuliah teori dan praktikum sistem informasi.",
-    color: CATEGORY_COLORS.Akademik,
-  },
-];
+import {
+  type AgendaKalender,
+  type EventCategory,
+  DEFAULT_AGENDA_EVENTS,
+  isDateInEventRange,
+  getCategoryMeta,
+} from "@/lib/types/kalender";
+import { getAgendaKalender } from "@/lib/supabase/kalender";
+import { supabase } from "@/lib/supabase/client";
 
 const MONTH_NAMES_EN = [
   "JANUARY",
@@ -238,13 +83,49 @@ const CATEGORY_FILTERS = [
 ];
 
 export default function KalenderPage() {
-  // Default to September 2026 to match reference screenshot perfectly
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(8); // 8 = September (0-indexed)
-  const [selectedDate, setSelectedDate] = useState<string | null>("2026-09-29"); // Default selected date 29
+  // Inisialisasi kalender dengan bulan & tahun yang sedang berjalan secara dinamis (real-time)
+  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+
+  // Dynamic Agenda List dari Supabase
+  const [agendaList, setAgendaList] = useState<AgendaKalender[]>(DEFAULT_AGENDA_EVENTS);
+  const [loadingAgenda, setLoadingAgenda] = useState(true);
+
+  const fetchAgendaData = useCallback(async () => {
+    try {
+      const data = await getAgendaKalender();
+      setAgendaList(data);
+    } catch (err) {
+      console.warn("Koneksi kalender offline, memakai data default:", err);
+      setAgendaList(DEFAULT_AGENDA_EVENTS);
+    } finally {
+      setLoadingAgenda(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAgendaData();
+
+    // Realtime Supabase Subscription
+    const channel = supabase
+      .channel("himasi_realtime_public_kalender")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "agenda_kalender" },
+        () => {
+          fetchAgendaData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAgendaData]);
 
   // Navigasi Bulan Sebelumnya
   const handlePrevMonth = () => {
@@ -268,6 +149,9 @@ export default function KalenderPage() {
 
   // Menghitung Grid Kalender Secara Dinamis
   const calendarCells = useMemo(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
     const firstDay = new Date(currentYear, currentMonth, 1);
     // Senin sebagai hari pertama (0 = Mon, ..., 6 = Sun)
     const startDayOfWeek = (firstDay.getDay() + 6) % 7;
@@ -279,6 +163,7 @@ export default function KalenderPage() {
       dayNumber: number;
       monthOffset: -1 | 0 | 1;
       fullDate: string;
+      isToday: boolean;
     }[] = [];
 
     // Hari dari bulan sebelumnya
@@ -286,13 +171,13 @@ export default function KalenderPage() {
       const d = daysInPrevMonth - i;
       const prevDate = new Date(currentYear, currentMonth - 1, d);
       const dateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      cells.push({ dayNumber: d, monthOffset: -1, fullDate: dateStr });
+      cells.push({ dayNumber: d, monthOffset: -1, fullDate: dateStr, isToday: dateStr === todayStr });
     }
 
     // Hari dari bulan sekarang
     for (let i = 1; i <= daysInMonth; i++) {
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-      cells.push({ dayNumber: i, monthOffset: 0, fullDate: dateStr });
+      cells.push({ dayNumber: i, monthOffset: 0, fullDate: dateStr, isToday: dateStr === todayStr });
     }
 
     // Hari dari bulan selanjutnya hingga genap kelipatan 7 (minimal 35 sel)
@@ -301,41 +186,37 @@ export default function KalenderPage() {
     for (let i = 1; i <= remaining; i++) {
       const nextDate = new Date(currentYear, currentMonth + 1, i);
       const dateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-      cells.push({ dayNumber: i, monthOffset: 1, fullDate: dateStr });
+      cells.push({ dayNumber: i, monthOffset: 1, fullDate: dateStr, isToday: dateStr === todayStr });
     }
 
     return cells;
   }, [currentYear, currentMonth]);
 
-  // Map Event Berdasarkan Tanggal
-  const eventsByDate = useMemo(() => {
-    const map = new Map<string, EventItem>();
-    ALL_EVENTS.forEach((e) => {
-      map.set(e.dateStr, e);
-    });
-    return map;
-  }, []);
-
   // Filter Event untuk List Keterangan di Bawah
   const currentMonthPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
 
   const displayedEvents = useMemo(() => {
-    let list = ALL_EVENTS.filter((e) => {
-      // Jika ada tanggal terpilih, tampilkan tanggal terpilih
+    const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const monthStart = `${currentMonthPrefix}-01`;
+    const monthEnd = `${currentMonthPrefix}-${String(daysInCurrentMonth).padStart(2, "0")}`;
+
+    let list = agendaList.filter((e) => {
+      // Jika ada tanggal terpilih, tampilkan acara yang mencakup tanggal terpilih
       if (selectedDate) {
-        return e.dateStr === selectedDate;
+        return isDateInEventRange(selectedDate, e);
       }
-      // Jika tidak ada tanggal terpilih, tampilkan semua agenda bulan yang sedang dibuka
-      return e.dateStr.startsWith(currentMonthPrefix);
+      // Jika tidak ada tanggal terpilih, tampilkan semua agenda yang beririsan dengan bulan aktif
+      const eventEnd = e.tanggal_selesai || e.tanggal_mulai;
+      return e.tanggal_mulai <= monthEnd && eventEnd >= monthStart;
     });
 
     if (selectedCategory !== "Semua") {
-      list = list.filter((e) => e.category === selectedCategory);
+      list = list.filter((e) => e.kategori === selectedCategory);
     }
 
-    // Urutkan berdasarkan tanggal
-    return list.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-  }, [selectedDate, currentMonthPrefix, selectedCategory]);
+    // Urutkan berdasarkan tanggal mulai
+    return list.sort((a, b) => a.tanggal_mulai.localeCompare(b.tanggal_mulai));
+  }, [agendaList, selectedDate, currentMonthPrefix, currentYear, currentMonth, selectedCategory]);
 
   // Handler Klik Tanggal pada Kalender
   const handleCellClick = (fullDate: string, monthOffset: -1 | 0 | 1) => {
@@ -364,29 +245,43 @@ export default function KalenderPage() {
   };
 
   const formatDayName = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return "";
+    const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
     const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
     return days[date.getDay()];
   };
 
   // Buat Google Calendar URL
-  const getGoogleCalendarUrl = (evt: EventItem) => {
-    const title = encodeURIComponent(evt.title);
+  const getGoogleCalendarUrl = (evt: AgendaKalender) => {
+    const meta = getCategoryMeta(evt.kategori);
+    const title = encodeURIComponent(evt.judul);
     const details = encodeURIComponent(
-      `${evt.desc}\n\nKategori: ${evt.categoryLabel}\nLokasi: ${evt.location}`
+      `${evt.deskripsi}\n\nKategori: ${meta.label}\nLokasi: ${evt.lokasi}\nWaktu: ${evt.waktu}`
     );
-    const location = encodeURIComponent(evt.location);
-    const cleanDate = evt.dateStr.replace(/-/g, "");
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${cleanDate}T080000Z/${cleanDate}T170000Z`;
+    const location = encodeURIComponent(evt.lokasi);
+    const cleanStartDate = evt.tanggal_mulai.replace(/-/g, "");
+    const cleanEndDate = (evt.tanggal_selesai || evt.tanggal_mulai).replace(/-/g, "");
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${cleanStartDate}T080000Z/${cleanEndDate}T170000Z`;
+  };
+
+  // Helper hitung hari berikutnya untuk format iCal RFC 5545 (DTEND non-inclusive)
+  const getIcsExclusiveEndDate = (dateStr: string) => {
+    const parts = dateStr.split("-").map(Number);
+    if (parts.length !== 3) return dateStr.replace(/-/g, "");
+    const dt = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+    return `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, "0")}${String(dt.getDate()).padStart(2, "0")}`;
   };
 
   // Unduh Berkas Kalender iCal (.ics)
   const handleExportICS = () => {
     let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//HIMASI ISB Atma Luhur//Kalender Kegiatan//ID\nCALSCALE:GREGORIAN\n";
     
-    ALL_EVENTS.forEach((evt) => {
-      const cleanDate = evt.dateStr.replace(/-/g, "");
-      icsContent += `BEGIN:VEVENT\nSUMMARY:${evt.title}\nDESCRIPTION:${evt.desc}\nLOCATION:${evt.location}\nDTSTART;VALUE=DATE:${cleanDate}\nDTEND;VALUE=DATE:${cleanDate}\nSTATUS:CONFIRMED\nEND:VEVENT\n`;
+    agendaList.forEach((evt) => {
+      const cleanStartDate = evt.tanggal_mulai.replace(/-/g, "");
+      const endBase = evt.tanggal_selesai || evt.tanggal_mulai;
+      const cleanEndDate = getIcsExclusiveEndDate(endBase);
+      icsContent += `BEGIN:VEVENT\nSUMMARY:${evt.judul}\nDESCRIPTION:${evt.deskripsi}\nLOCATION:${evt.lokasi}\nDTSTART;VALUE=DATE:${cleanStartDate}\nDTEND;VALUE=DATE:${cleanEndDate}\nSTATUS:CONFIRMED\nEND:VEVENT\n`;
     });
 
     icsContent += "END:VCALENDAR";
@@ -458,9 +353,25 @@ export default function KalenderPage() {
                 <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2]" />
               </button>
 
-              <h2 className="text-sm sm:text-base font-bold tracking-[0.22em] text-slate-400 uppercase select-none text-center">
-                {MONTH_NAMES_EN[currentMonth]} {currentYear}
-              </h2>
+              <div className="flex flex-col items-center">
+                <h2 className="text-sm sm:text-base font-bold tracking-[0.22em] text-slate-400 uppercase select-none text-center">
+                  {MONTH_NAMES_EN[currentMonth]} {currentYear}
+                </h2>
+                {(currentYear !== new Date().getFullYear() || currentMonth !== new Date().getMonth()) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      setCurrentYear(now.getFullYear());
+                      setCurrentMonth(now.getMonth());
+                      setSelectedDate(null);
+                    }}
+                    className="text-[10px] font-bold text-[#00296E] hover:text-[#0094E0] hover:underline transition-colors mt-0.5 cursor-pointer"
+                  >
+                    Kembali ke Bulan Ini
+                  </button>
+                )}
+              </div>
 
               <button
                 type="button"
@@ -487,8 +398,10 @@ export default function KalenderPage() {
             {/* Grid Tanggal Kalender (Persis Sesuai Style Gambar Referensi) */}
             <div className="grid grid-cols-7 gap-1.5 sm:gap-3 text-center items-center justify-items-center">
               {calendarCells.map((cell, idx) => {
-                const event = eventsByDate.get(cell.fullDate);
-                const hasEvent = Boolean(event);
+                const cellEvents = agendaList.filter((e) => isDateInEventRange(cell.fullDate, e));
+                const hasEvent = cellEvents.length > 0;
+                const primaryEvent = cellEvents[0];
+                const primaryMeta = primaryEvent ? getCategoryMeta(primaryEvent.kategori) : null;
                 const isSelected = selectedDate === cell.fullDate;
                 const isCurrentMonth = cell.monthOffset === 0;
                 const isHovered = hoveredDate === cell.fullDate;
@@ -537,8 +450,10 @@ export default function KalenderPage() {
                       className={`relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-sm sm:text-base font-semibold transition-all duration-200 select-none cursor-pointer ${
                         isSelected
                           ? "bg-[#FEF6D8] border-2 border-[#F2B705] rounded-[14px] sm:rounded-[16px] text-amber-900 font-bold shadow-xs scale-105"
-                          : hasEvent
-                          ? `${event?.color.border} border-2 rounded-[14px] sm:rounded-[16px] text-slate-800 hover:scale-105`
+                          : hasEvent && primaryMeta
+                          ? `${primaryMeta.border} border-2 rounded-[14px] sm:rounded-[16px] text-slate-800 hover:scale-105`
+                          : cell.isToday
+                          ? "bg-[#0094E0]/10 border-2 border-[#0094E0]/50 rounded-[14px] sm:rounded-[16px] text-[#00296E] font-bold shadow-xs hover:bg-[#0094E0]/20"
                           : !isCurrentMonth
                           ? "text-slate-300 font-normal hover:text-slate-500"
                           : "text-slate-700 font-medium hover:bg-slate-100 rounded-[14px] sm:rounded-[16px]"
@@ -547,9 +462,9 @@ export default function KalenderPage() {
                       <span>{cell.dayNumber}</span>
 
                       {/* Dot Indikator di Pojok Kanan Atas Persis Sesuai Gambar Referensi */}
-                      {hasEvent && !isSelected && (
+                      {hasEvent && !isSelected && primaryMeta && (
                         <span
-                          className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ring-2 ring-white ${event?.color.dot}`}
+                          className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ring-2 ring-white ${primaryMeta.dot}`}
                         />
                       )}
                     </button>
@@ -562,7 +477,7 @@ export default function KalenderPage() {
                           : "opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100"
                       } ${verticalClass} ${horizontalClass}`}
                     >
-                      {hasEvent && event ? (
+                      {hasEvent && primaryEvent && primaryMeta ? (
                         <div className="relative w-64 sm:w-72 p-4 rounded-2xl bg-white text-slate-800 shadow-[0_12px_36px_rgba(0,41,110,0.15)] border border-slate-200 text-left">
                           {/* Caret Triangle dengan border */}
                           <span className={`absolute w-0 h-0 pointer-events-none ${caretBorderClass}`} />
@@ -570,35 +485,52 @@ export default function KalenderPage() {
 
                           {/* Header: Tanggal & Badge Kategori */}
                           <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100 text-[11px]">
-                            <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                            <span className="font-semibold text-slate-500 flex items-center gap-1.5 flex-wrap">
                               <CalendarDays className="w-3.5 h-3.5 text-[#0094E0]" />
-                              {formatDayName(cell.fullDate)}, {cell.dayNumber} {MONTH_SHORT_ID[parseInt(cell.fullDate.split("-")[1], 10) - 1]}
+                              <span>{formatDayName(cell.fullDate)}, {cell.dayNumber} {MONTH_SHORT_ID[parseInt(cell.fullDate.split("-")[1], 10) - 1]}</span>
+                              {cell.isToday && (
+                                <span className="text-[9px] font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded-full">
+                                  Hari Ini
+                                </span>
+                              )}
                             </span>
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
-                                event.category === "HIMASI"
-                                  ? "bg-[#1E88E5] text-white"
-                                  : event.category === "Akademik"
-                                  ? "bg-[#F2B705] text-slate-900"
-                                  : "bg-[#8E24AA] text-white"
-                              }`}
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
+                                primaryMeta.bgBadge
+                              } ${primaryMeta.textBadge}`}
                             >
-                              {event.categoryLabel}
+                              {primaryMeta.label}
                             </span>
                           </div>
 
                           {/* Judul Event */}
-                          <h4 className="text-xs sm:text-[13px] font-bold text-[#00296E] leading-snug mb-1">
-                            {event.title}
-                          </h4>
+                          <div className="space-y-1.5">
+                            {cellEvents.map((e) => (
+                              <div key={e.id}>
+                                <h4 className="text-xs sm:text-[13px] font-bold text-[#00296E] leading-snug">
+                                  {e.judul}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                  {e.waktu} &bull; {e.lokasi}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ) : (
                         <div className="relative whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-white text-slate-700 shadow-xl border border-slate-200 text-center text-xs">
                           {/* Caret Triangle */}
                           <span className={`absolute w-0 h-0 pointer-events-none ${caretBorderClass}`} />
                           <span className={`absolute w-0 h-0 pointer-events-none ${caretBgClass}`} />
-                          <div className="text-[11px] font-medium text-slate-600">
-                            {cell.dayNumber} {MONTH_NAMES_ID[parseInt(cell.fullDate.split("-")[1], 10) - 1]} • <span className="text-slate-400">Tidak ada agenda</span>
+                          <div className="text-[11px] font-medium text-slate-600 flex items-center justify-center gap-1.5">
+                            <span>{cell.dayNumber} {MONTH_NAMES_ID[parseInt(cell.fullDate.split("-")[1], 10) - 1]}</span>
+                            {cell.isToday && (
+                              <span className="text-[9px] font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded-full">
+                                Hari Ini
+                              </span>
+                            )}
+                            <span>•</span>
+                            <span className="text-slate-400">Tidak ada agenda</span>
                           </div>
                         </div>
                       )}
@@ -700,63 +632,112 @@ export default function KalenderPage() {
           {/* List Event Cards */}
           {displayedEvents.length > 0 ? (
             <div className="space-y-4">
-              {displayedEvents.map((evt, idx) => (
-                <ScrollReveal key={evt.id} direction="left" delay={idx * 100}>
-                  <div
-                    className="group relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 hover:border-[#0094E0]/40 p-5 sm:p-6 shadow-xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-5"
-                  >
-                    <div className="flex items-start sm:items-center gap-4 sm:gap-5">
-                      {/* Kotak Tanggal di Kiri */}
-                      <div
-                        className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border-2 flex flex-col items-center justify-center shrink-0 ${evt.color.border} bg-white shadow-xs`}
-                      >
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          {formatDayName(evt.dateStr).slice(0, 3)}
-                        </span>
-                        <span className="text-xl sm:text-2xl font-black text-[#00296E] leading-tight">
-                          {evt.dateStr.split("-")[2]}
-                        </span>
-                        <span className="text-[9px] font-semibold text-slate-400 uppercase">
-                          {MONTH_SHORT_ID[parseInt(evt.dateStr.split("-")[1], 10) - 1]}
-                        </span>
-                      </div>
+              {displayedEvents.map((evt, idx) => {
+                const meta = getCategoryMeta(evt.kategori);
+                const isMultiDay = Boolean(
+                  evt.tanggal_selesai && evt.tanggal_selesai !== evt.tanggal_mulai
+                );
+                const startMonthIdx = parseInt(evt.tanggal_mulai.split("-")[1], 10) - 1;
+                const endMonthIdx = evt.tanggal_selesai
+                  ? parseInt(evt.tanggal_selesai.split("-")[1], 10) - 1
+                  : startMonthIdx;
+                const startDay = parseInt(evt.tanggal_mulai.split("-")[2], 10);
+                const endDay = evt.tanggal_selesai
+                  ? parseInt(evt.tanggal_selesai.split("-")[2], 10)
+                  : startDay;
+                const spansDiffMonth = isMultiDay && startMonthIdx !== endMonthIdx;
 
-                      {/* Rincian Keterangan Event */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${evt.color.bgBadge} ${evt.color.textBadge}`}
-                          >
-                            {evt.categoryLabel}
-                          </span>
+                return (
+                  <ScrollReveal key={evt.id} direction="left" delay={idx * 100}>
+                    <div
+                      className="group relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 hover:border-[#0094E0]/40 p-5 sm:p-6 shadow-xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-5"
+                    >
+                      <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
+                        {/* Kotak Tanggal di Kiri */}
+                        <div
+                          className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border-2 flex flex-col items-center justify-center shrink-0 ${meta.border} bg-white shadow-xs p-1`}
+                        >
+                          {spansDiffMonth ? (
+                            <div className="flex flex-col items-center justify-center text-center">
+                              <span className="text-[11px] sm:text-xs font-black text-[#00296E] leading-tight">
+                                {startDay} {MONTH_SHORT_ID[startMonthIdx]}
+                              </span>
+                              <span className="text-[8px] font-bold text-slate-400 leading-none my-0.5">s/d</span>
+                              <span className="text-[11px] sm:text-xs font-black text-[#00296E] leading-tight">
+                                {endDay} {MONTH_SHORT_ID[endMonthIdx]}
+                              </span>
+                            </div>
+                          ) : (
+                            <>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                {formatDayName(evt.tanggal_mulai).slice(0, 3)}
+                              </span>
+                              <span className="text-base sm:text-lg font-black text-[#00296E] leading-tight">
+                                {isMultiDay ? `${startDay}-${endDay}` : startDay}
+                              </span>
+                              <span className="text-[9px] font-semibold text-slate-400 uppercase">
+                                {MONTH_SHORT_ID[startMonthIdx]}
+                              </span>
+                            </>
+                          )}
                         </div>
 
-                        <h3 className="text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-snug">
-                          {evt.title}
-                        </h3>
+                        {/* Rincian Keterangan Event */}
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${meta.bgBadge} ${meta.textBadge}`}
+                            >
+                              {meta.label}
+                            </span>
+                            {isMultiDay && (
+                              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                                {evt.tanggal_mulai} s/d {evt.tanggal_selesai}
+                              </span>
+                            )}
+                          </div>
 
-                        <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-2xl">
-                          {evt.desc}
-                        </p>
+                          <h3 className="text-base sm:text-lg font-bold text-[#00296E] group-hover:text-[#0094E0] transition-colors leading-snug">
+                            {evt.judul}
+                          </h3>
+
+                          <div className="flex items-center gap-3 text-xs text-slate-500 font-medium flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-400" />
+                              {evt.waktu}
+                            </span>
+                            <span>&bull;</span>
+                            <span className="flex items-center gap-1 truncate">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                              {evt.lokasi}
+                            </span>
+                          </div>
+
+                          {evt.deskripsi && (
+                            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-2xl">
+                              {evt.deskripsi}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Tombol Simpan ke Google Calendar di Kanan */}
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+                        <a
+                          href={getGoogleCalendarUrl(evt)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-[#00296E] bg-slate-100 hover:bg-[#00296E] hover:text-white transition-all shadow-xs cursor-pointer group/cal"
+                        >
+                          <CalendarIcon className="w-3.5 h-3.5 text-[#0094E0] group-hover/cal:text-white" />
+                          <span>Simpan ke Kalender</span>
+                          <ExternalLink className="w-3 h-3 opacity-60" />
+                        </a>
                       </div>
                     </div>
-
-                    {/* Tombol Simpan ke Google Calendar di Kanan */}
-                    <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
-                      <a
-                        href={getGoogleCalendarUrl(evt)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-[#00296E] bg-slate-100 hover:bg-[#00296E] hover:text-white transition-all shadow-xs cursor-pointer group/cal"
-                      >
-                        <CalendarIcon className="w-3.5 h-3.5 text-[#0094E0] group-hover/cal:text-white" />
-                        <span>Simpan ke Kalender</span>
-                        <ExternalLink className="w-3 h-3 opacity-60" />
-                      </a>
-                    </div>
-                  </div>
-                </ScrollReveal>
-              ))}
+                  </ScrollReveal>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16 px-4 bg-slate-50/70 rounded-3xl border border-slate-200/80">
