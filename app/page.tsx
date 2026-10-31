@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -27,12 +27,16 @@ import {
   BookOpen,
   FileText,
   MessageSquare,
-  PlayCircle
+  PlayCircle,
+  Tag
 } from "lucide-react";
 import Footer from "@/components/footer";
 import FormAspirasi from "@/components/form-aspirasi";
 import ScrollReveal from "@/components/scroll-reveal";
 import HeroBannerImage from "@/components/hero-banner-image";
+import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
+import { getPublishedBerita } from "@/lib/supabase/berita";
+import { formatBeritaDate } from "@/lib/utils/slug";
 
 // URL Video YouTube Company Profile HIMASI (Ganti link di sini sesuai kebutuhan)
 const YOUTUBE_VIDEO_URL = "https://youtu.be/Q-SbWMLlmoI?si=5uNeFPoj9BzOo0bT";
@@ -51,102 +55,6 @@ function getYouTubeVideoId(url: string): string {
   }
   return "dQw4w9WgXcQ";
 }
-
-// Data Berita & Informasi HIMASI untuk News Carousel (Sesuai Referensi Card)
-const NEWS_ITEMS = [
-  {
-    id: 1,
-    tag: "#prestasi",
-    title: "Mahasiswa Sistem Informasi Sabet Juara 1 UI/UX Design Competition Nasional 2026",
-    excerpt:
-      "Tim 'Inovasi Digital' HIMASI ISB Atma Luhur berhasil mengungguli 85 tim dari berbagai universitas dengan rancangan solusi aplikasi aksesibilitas perkuliahan modern berbasis mobile.",
-    image:
-      "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=800&auto=format&fit=crop",
-    author: "Kominfo HIMASI",
-    authorAvatar:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop",
-    date: "12 Maret 2026",
-    href: "/berita",
-  },
-  {
-    id: 2,
-    tag: "#teknologi",
-    title: "Kuliah Tamu & Workshop: Transformasi Enterprise Architecture dengan Cloud & GenAI",
-    excerpt:
-      "Menghadirkan Principal Solution Architect AWS untuk mengupas tuntas implementasi scalable microservices, AI workflow, dan tata kelola data di industri finansial modern.",
-    image:
-      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop",
-    author: "Divisi Akademik",
-    authorAvatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop",
-    date: "05 Maret 2026",
-    href: "/berita",
-  },
-  {
-    id: 3,
-    tag: "#kegiatan",
-    title: "HIMASI Fest 2026: Kolaborasi Kreatif Coding, E-Sport, dan Pameran Proyek Sistem Informasi",
-    excerpt:
-      "Ajang akbar tahunan mahasiswa Sistem Informasi kembali hadir mempertemukan ratusan talenta muda melalui hackathon coding, turnamen esport, dan seminar teknologi interaktif.",
-    image:
-      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
-    author: "BPH HIMASI",
-    authorAvatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop",
-    date: "28 Februari 2026",
-    href: "/berita",
-  },
-  {
-    id: 4,
-    tag: "#organisasi",
-    title: "Rapat Kerja & Upgrading Kabinet REKSABUDAYA: Menyongsong Inovasi Berkelanjutan",
-    excerpt:
-      "Seluruh fungsionaris kabinet mematangkan eksekusi program kerja strategis yang berfokus pada penguatan kompetensi digital, kepemimpinan berintegritas, dan sinergi organisasi.",
-    image:
-      "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop",
-    author: "Sekretariat Kabinet",
-    authorAvatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop",
-    date: "15 Februari 2026",
-    href: "/berita",
-  },
-  {
-    id: 5,
-    tag: "#akademik",
-    title: "Sosialisasi Program Magang MBKM & Studi Independen Bersertifikat (MSIB) Batch 7",
-    excerpt:
-      "Fakultas dan HIMASI fasilitasi mahasiswa raih pengalaman kerja nyata di industri tech unicorns melalui kurikulum konversi 20 SKS.",
-    image:
-      "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
-    author: "Biro Karir",
-    authorAvatar:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&auto=format&fit=crop",
-    date: "02 Februari 2026",
-    href: "/berita",
-  },
-  {
-    id: 6,
-    tag: "#pengabdian",
-    title: "SI Mengajar & Literasi Digital: Edukasi Cyber Awareness untuk Generasi Muda",
-    excerpt:
-      "Aksi sosial HIMASI mengedukasi keamanan siber, etika berinternet, dan pengenalan logika pemrograman bagi siswa sekolah menengah.",
-    image:
-      "https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=800&auto=format&fit=crop",
-    author: "Pengabdian",
-    authorAvatar:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop",
-    date: "25 Januari 2026",
-    href: "/berita",
-  },
-];
-
-// Jumlah clone untuk infinite loop mulus tanpa jeda
-const CLONES_COUNT = 4;
-const SLIDES = [
-  ...NEWS_ITEMS.slice(-CLONES_COUNT).map((item, idx) => ({ ...item, uniqueKey: `clone-before-${idx}` })),
-  ...NEWS_ITEMS.map((item, idx) => ({ ...item, uniqueKey: `real-${idx}` })),
-  ...NEWS_ITEMS.slice(0, CLONES_COUNT).map((item, idx) => ({ ...item, uniqueKey: `clone-after-${idx}` })),
-];
 
 // Data Pengurus HIMASI Sesuai Referensi Gambar Layout (Jordi Venzen - Ketua Umum dkk.)
 const PENGURUS_ITEMS = [
@@ -283,12 +191,65 @@ export default function Home() {
     `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
   );
 
-  // State untuk Infinite Carousel Berita & Informasi
-  const [currentIndex, setCurrentIndex] = useState(CLONES_COUNT);
+  // State untuk Infinite Carousel Berita & Informasi (Sinkron Live dengan Berita Page)
+  const [newsList, setNewsList] = useState<BeritaItem[]>([]);
+  const [loadingNews, setLoadingNews] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [transitionEnabled, setTransitionEnabled] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [copiedToast, setCopiedToast] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+
+  // Clones Count dinamis
+  const clonesCount = useMemo(() => {
+    if (newsList.length <= 2) return 0;
+    return Math.min(4, newsList.length);
+  }, [newsList.length]);
+
+  // Slides dinamis dengan clones untuk infinite looping mulus
+  const slides = useMemo(() => {
+    if (newsList.length === 0) return [];
+    if (newsList.length <= 2) {
+      return newsList.map((item, idx) => ({ ...item, uniqueKey: `single-${idx}` }));
+    }
+    return [
+      ...newsList.slice(-clonesCount).map((item, idx) => ({ ...item, uniqueKey: `clone-before-${idx}` })),
+      ...newsList.map((item, idx) => ({ ...item, uniqueKey: `real-${idx}` })),
+      ...newsList.slice(0, clonesCount).map((item, idx) => ({ ...item, uniqueKey: `clone-after-${idx}` })),
+    ];
+  }, [newsList, clonesCount]);
+
+  // Memuat data berita live dari Supabase / cache lokal
+  useEffect(() => {
+    let isMounted = true;
+    async function loadHomeNews() {
+      setLoadingNews(true);
+      try {
+        const liveArticles = await getPublishedBerita();
+        if (isMounted) {
+          if (liveArticles && liveArticles.length > 0) {
+            setNewsList(liveArticles);
+          } else {
+            setNewsList(FALLBACK_BERITA);
+          }
+        }
+      } catch (err) {
+        console.warn("[HomeNews] Menggunakan berita fallback:", err);
+        if (isMounted) setNewsList(FALLBACK_BERITA);
+      } finally {
+        if (isMounted) setLoadingNews(false);
+      }
+    }
+    loadHomeNews();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Update currentIndex ke clonesCount saat berita termuat
+  useEffect(() => {
+    setCurrentIndex(clonesCount);
+  }, [clonesCount]);
 
   // State untuk Drag & Swipe Geser (Mouse & Touch)
   const [isDragging, setIsDragging] = useState(false);
@@ -325,7 +286,7 @@ export default function Home() {
 
   // Fungsi Navigasi Maju (Next)
   const handleNext = () => {
-    if (isTransitioning) return;
+    if (isTransitioning || newsList.length <= 1) return;
     setIsTransitioning(true);
     setTransitionEnabled(true);
     setCurrentIndex((prev) => prev + 1);
@@ -333,7 +294,7 @@ export default function Home() {
 
   // Fungsi Navigasi Mundur (Prev)
   const handlePrev = () => {
-    if (isTransitioning) return;
+    if (isTransitioning || newsList.length <= 1) return;
     setIsTransitioning(true);
     setTransitionEnabled(true);
     setCurrentIndex((prev) => prev - 1);
@@ -342,29 +303,30 @@ export default function Home() {
   // Logika Infinite Loop Reset pada boundary clone
   const handleTransitionEnd = () => {
     setIsTransitioning(false);
-    if (currentIndex >= CLONES_COUNT + NEWS_ITEMS.length) {
+    if (newsList.length <= 2) return;
+    if (currentIndex >= clonesCount + newsList.length) {
       // Sampai di clone setelah item akhir -> reset instan ke awal tanpa transisi
       setTransitionEnabled(false);
-      setCurrentIndex((prev) => prev - NEWS_ITEMS.length);
-    } else if (currentIndex < CLONES_COUNT) {
+      setCurrentIndex((prev) => prev - newsList.length);
+    } else if (currentIndex < clonesCount) {
       // Sampai di clone sebelum item awal -> reset instan ke akhir tanpa transisi
       setTransitionEnabled(false);
-      setCurrentIndex((prev) => prev + NEWS_ITEMS.length);
+      setCurrentIndex((prev) => prev + newsList.length);
     }
   };
 
   // Auto-play infinite carousel setiap 5.5 detik saat tidak di-hover dan tidak di-drag
   useEffect(() => {
-    if (isHovered || isDragging) return;
+    if (isHovered || isDragging || newsList.length <= 1) return;
     const interval = setInterval(() => {
       handleNext();
     }, 5500);
     return () => clearInterval(interval);
-  }, [isHovered, isDragging, currentIndex, isTransitioning]);
+  }, [isHovered, isDragging, currentIndex, isTransitioning, newsList.length]);
 
   // Handler Drag & Geser Mouse / Touch
   const handleDragStart = (clientX: number) => {
-    if (isTransitioning) return;
+    if (isTransitioning || newsList.length <= 1) return;
     setIsDragging(true);
     setStartX(clientX);
     setDragOffset(0);
@@ -391,27 +353,33 @@ export default function Home() {
     setDragOffset(0);
   };
 
-  // Titik aktif pagination yang diselaraskan dengan indeks asli berita (0 - 5)
+  // Titik aktif pagination yang diselaraskan dengan indeks asli berita
   const activeDotIndex =
-    ((currentIndex - CLONES_COUNT) % NEWS_ITEMS.length + NEWS_ITEMS.length) %
-    NEWS_ITEMS.length;
+    newsList.length > 0
+      ? ((currentIndex - clonesCount) % newsList.length + newsList.length) % newsList.length
+      : 0;
 
   const goToDot = (dotIdx: number) => {
-    if (isTransitioning) return;
+    if (isTransitioning || newsList.length <= 1) return;
     setIsTransitioning(true);
     setTransitionEnabled(true);
-    setCurrentIndex(CLONES_COUNT + dotIdx);
+    setCurrentIndex(clonesCount + dotIdx);
   };
 
-  const handleShare = (article: (typeof NEWS_ITEMS)[0]) => {
+  const handleShare = (article: BeritaItem) => {
+    const articleUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/berita/${article.slug}`
+        : `/berita/${article.slug}`;
+
     if (typeof navigator !== "undefined" && navigator.share) {
       navigator.share({
         title: article.title,
         text: article.excerpt,
-        url: window.location.href,
+        url: articleUrl,
       }).catch(() => {});
     } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(`${article.title} - ${window.location.origin}/berita`);
+      navigator.clipboard.writeText(`${article.title} - ${articleUrl}`);
       setCopiedToast(true);
       setTimeout(() => setCopiedToast(false), 2500);
     }
@@ -908,124 +876,167 @@ export default function Home() {
           </div>
 
           {/* Carousel Slider Card Container: 2 Kolom Card Per View (Infinite & Geser Drag/Swipe) */}
-          <div
-            className={`relative w-full max-w-full overflow-hidden select-none ${
-              isDragging ? "cursor-grabbing" : "cursor-grab"
-            }`}
-            onMouseDown={(e) => handleDragStart(e.clientX)}
-            onMouseMove={(e) => handleDragMove(e.clientX)}
-            onMouseUp={handleDragEnd}
-            onMouseLeave={() => {
-              handleDragEnd();
-              setIsHovered(false);
-            }}
-            onMouseEnter={() => setIsHovered(true)}
-            onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
-            onTouchMove={(e) => handleDragMove(e.touches[0].clientX)}
-            onTouchEnd={handleDragEnd}
-          >
-            <div
-              className="flex"
-              onTransitionEnd={handleTransitionEnd}
-              style={{
-                transform: isDragging
-                  ? `translateX(calc(-${currentIndex * (isDesktop ? 50 : 100)}% + ${dragOffset}px))`
-                  : `translateX(-${currentIndex * (isDesktop ? 50 : 100)}%)`,
-                transition: isDragging
-                  ? "none"
-                  : transitionEnabled
-                  ? "transform 450ms cubic-bezier(0.25, 1, 0.5, 1)"
-                  : "none",
-              }}
-            >
-              {SLIDES.map((item) => (
-                <div
-                  key={item.uniqueKey}
-                  className="w-full md:w-1/2 shrink-0 px-2 sm:px-3"
-                  onClickCapture={(e) => {
-                    if (hasMoved) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }
-                  }}
-                >
-                  {/* Card Component Sesuai Referensi Gambar */}
-                  <div className="bg-slate-50 rounded-[24px] sm:rounded-[28px] p-4 sm:p-5 border border-slate-100 hover:border-slate-200/80 flex flex-col sm:flex-row gap-4 sm:gap-4.5 items-stretch transition-all duration-300 h-full">
-                    
-                    {/* Sisi Kiri: Gambar dengan Tag Kategori Sesuai Gambar Referensi */}
-                    <div className="relative w-full sm:w-[155px] md:w-[165px] lg:w-[185px] aspect-[16/10] sm:aspect-square shrink-0 rounded-[18px] sm:rounded-[20px] overflow-hidden bg-slate-900 group/img select-none">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        draggable={false}
-                        className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 pointer-events-none"
-                      />
-                      {/* Tag Kategori (seperti #science pada gambar referensi) */}
-                      <span className="absolute top-2.5 left-2.5 z-10 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-white/95 bg-black/45 backdrop-blur-md border border-white/10 tracking-wide pointer-events-none">
-                        {item.tag}
-                      </span>
-                    </div>
-
-                    {/* Sisi Kanan: Judul, Deskripsi, Penulis, dan Tombol Aksi */}
-                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
-                      <div>
-                        <Link href={item.href} draggable={false}>
-                          <h3 className="text-base sm:text-[17px] lg:text-lg font-bold text-[#00296E] hover:text-[#0094E0] transition-colors leading-snug line-clamp-2 cursor-pointer">
-                            {item.title}
-                          </h3>
-                        </Link>
-                        <p className="mt-2 text-slate-500 text-xs sm:text-[13px] leading-relaxed line-clamp-2 sm:line-clamp-3 font-normal">
-                          {item.excerpt}
-                        </p>
+          {loadingNews ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 select-none">
+              {[1, 2].map((i) => (
+                <div key={i} className="px-2 sm:px-3 animate-pulse">
+                  <div className="bg-slate-50 rounded-[24px] sm:rounded-[28px] p-4 sm:p-5 border border-slate-100 flex flex-col sm:flex-row gap-4 sm:gap-4.5 items-stretch h-full">
+                    <div className="w-full sm:w-[155px] md:w-[165px] lg:w-[185px] aspect-[16/10] sm:aspect-square shrink-0 rounded-[18px] sm:rounded-[20px] bg-slate-200" />
+                    <div className="flex-1 flex flex-col justify-between py-1 space-y-3">
+                      <div className="space-y-2">
+                        <div className="w-20 h-4 bg-slate-200 rounded-full" />
+                        <div className="w-full h-5 bg-slate-200 rounded" />
+                        <div className="w-3/4 h-5 bg-slate-200 rounded" />
+                        <div className="w-full h-3.5 bg-slate-200 rounded mt-2" />
+                        <div className="w-5/6 h-3.5 bg-slate-200 rounded" />
                       </div>
-
-                      {/* Bar Bawah: Action Buttons */}
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                        {/* Action Buttons: Bulatan Share (HIMASI Style) & Bulatan Opsi (...) */}
-                        <button
-                          type="button"
-                          onClick={() => handleShare(item)}
-                          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#00296E] hover:bg-[#0094E0] text-white flex items-center justify-center shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                          aria-label="Bagikan Berita"
-                          title="Bagikan Tautan Berita"
-                        >
-                          <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
-                        </button>
-                        <Link
-                          href={item.href}
-                          draggable={false}
-                          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200 hover:border-[#00296E] hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                          aria-label="Baca Selengkapnya"
-                          title="Detail Berita"
-                        >
-                          <MoreHorizontal className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.2]" />
-                        </Link>
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div className="w-24 h-3 bg-slate-200 rounded" />
+                        <div className="flex gap-2">
+                          <div className="w-8 h-8 rounded-full bg-slate-200" />
+                          <div className="w-8 h-8 rounded-full bg-slate-200" />
+                        </div>
                       </div>
-
                     </div>
-
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          ) : slides.length > 0 ? (
+            <div
+              className={`relative w-full max-w-full overflow-hidden select-none ${
+                isDragging ? "cursor-grabbing" : "cursor-grab"
+              }`}
+              onMouseDown={(e) => handleDragStart(e.clientX)}
+              onMouseMove={(e) => handleDragMove(e.clientX)}
+              onMouseUp={handleDragEnd}
+              onMouseLeave={() => {
+                handleDragEnd();
+                setIsHovered(false);
+              }}
+              onMouseEnter={() => setIsHovered(true)}
+              onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
+              onTouchMove={(e) => handleDragMove(e.touches[0].clientX)}
+              onTouchEnd={handleDragEnd}
+            >
+              <div
+                className="flex"
+                onTransitionEnd={handleTransitionEnd}
+                style={{
+                  transform: isDragging
+                    ? `translateX(calc(-${currentIndex * (isDesktop ? 50 : 100)}% + ${dragOffset}px))`
+                    : `translateX(-${currentIndex * (isDesktop ? 50 : 100)}%)`,
+                  transition: isDragging
+                    ? "none"
+                    : transitionEnabled
+                    ? "transform 450ms cubic-bezier(0.25, 1, 0.5, 1)"
+                    : "none",
+                }}
+              >
+                {slides.map((item) => (
+                  <div
+                    key={item.uniqueKey}
+                    className="w-full md:w-1/2 shrink-0 px-2 sm:px-3"
+                    onClickCapture={(e) => {
+                      if (hasMoved) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
+                    {/* Card Component Sesuai Referensi Gambar */}
+                    <div className="bg-slate-50 rounded-[24px] sm:rounded-[28px] p-4 sm:p-5 border border-slate-100 hover:border-slate-200/80 flex flex-col sm:flex-row gap-4 sm:gap-4.5 items-stretch transition-all duration-300 h-full">
+                      
+                      {/* Sisi Kiri: Gambar dengan Tag Kategori Sesuai Gambar Referensi */}
+                      <Link
+                        href={`/berita/${item.slug}`}
+                        draggable={false}
+                        className="relative w-full sm:w-[155px] md:w-[165px] lg:w-[185px] aspect-[16/10] sm:aspect-square shrink-0 rounded-[18px] sm:rounded-[20px] overflow-hidden bg-slate-900 group/img select-none block"
+                      >
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          draggable={false}
+                          className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 pointer-events-none"
+                        />
+                        {/* Tag Kategori (seperti #science pada gambar referensi) */}
+                        <span className="absolute top-2.5 left-2.5 z-10 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-white/95 bg-black/45 backdrop-blur-md border border-white/10 tracking-wide pointer-events-none">
+                          #{item.category_key || "berita"}
+                        </span>
+                      </Link>
+
+                      {/* Sisi Kanan: Judul, Deskripsi, Penulis, dan Tombol Aksi */}
+                      <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                        <div>
+                          <Link href={`/berita/${item.slug}`} draggable={false}>
+                            <h3 className="text-base sm:text-[17px] lg:text-lg font-bold text-[#00296E] hover:text-[#0094E0] transition-colors leading-snug line-clamp-2 cursor-pointer">
+                              {item.title}
+                            </h3>
+                          </Link>
+                          <p className="mt-2 text-slate-500 text-xs sm:text-[13px] leading-relaxed line-clamp-2 sm:line-clamp-3 font-normal">
+                            {item.excerpt}
+                          </p>
+                        </div>
+
+                        {/* Bar Bawah: Tanggal & Action Buttons */}
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-[11px] text-slate-400 font-medium">
+                            {formatBeritaDate(item.published_at)}
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleShare(item)}
+                              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#00296E] hover:bg-[#0094E0] text-white flex items-center justify-center shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                              aria-label="Bagikan Berita"
+                              title="Bagikan Tautan Berita"
+                            >
+                              <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
+                            </button>
+                            <Link
+                              href={`/berita/${item.slug}`}
+                              draggable={false}
+                              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200 hover:border-[#00296E] hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                              aria-label="Baca Selengkapnya"
+                              title="Detail Berita"
+                            >
+                              <MoreHorizontal className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.2]" />
+                            </Link>
+                          </div>
+                        </div>
+
+                      </div>
+
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-slate-500 text-sm">Belum ada kabar berita terbaru.</p>
+            </div>
+          )}
 
           {/* Indikator Titik Pagination Carousel */}
-          <div className="mt-6 sm:mt-8 flex items-center justify-center gap-2">
-            {NEWS_ITEMS.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => goToDot(idx)}
-                className={`transition-all duration-300 rounded-full cursor-pointer ${
-                  activeDotIndex === idx
-                    ? "w-8 h-2.5 bg-[#00296E]"
-                    : "w-2.5 h-2.5 bg-slate-300 hover:bg-slate-400"
-                }`}
-                aria-label={`Ke slide ${idx + 1}`}
-              />
-            ))}
-          </div>
+          {!loadingNews && newsList.length > 1 && (
+            <div className="mt-6 sm:mt-8 flex items-center justify-center gap-2">
+              {newsList.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => goToDot(idx)}
+                  className={`transition-all duration-300 rounded-full cursor-pointer ${
+                    activeDotIndex === idx
+                      ? "w-8 h-2.5 bg-[#00296E]"
+                      : "w-2.5 h-2.5 bg-slate-300 hover:bg-slate-400"
+                  }`}
+                  aria-label={`Ke slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Mobile Link ke Semua Berita */}
           <div className="mt-6 text-center sm:hidden">

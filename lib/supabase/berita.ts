@@ -43,29 +43,36 @@ export async function getPublishedBerita(): Promise<BeritaItem[]> {
       .eq("is_published", true)
       .order("published_at", { ascending: false });
 
-    if (!error && data && data.length > 0) {
-      // Normalisasi field jika ada perbedaan nama kolom
-      return data.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        slug: item.slug || slugify(item.title),
-        excerpt: item.excerpt || "",
-        content: item.content || "",
-        category_key: item.category_key || "event",
-        category_label: item.category_label || "Kegiatan Himpunan",
-        author: item.author || "HIMASI Media",
-        read_time: item.read_time || "5 min read",
-        image_url: item.image_url || "/DSC01203.png",
-        is_published: item.is_published ?? true,
-        created_at: item.created_at,
-        published_at: item.published_at || item.created_at || new Date().toISOString(),
-      }));
+    if (!error && data) {
+      if (data.length > 0) {
+        // Normalisasi field jika ada perbedaan nama kolom
+        const mapped: BeritaItem[] = data.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          slug: item.slug || slugify(item.title),
+          excerpt: item.excerpt || "",
+          content: item.content || "",
+          category_key: item.category_key || "event",
+          category_label: item.category_label || "Kegiatan Himpunan",
+          author: item.author || "HIMASI Media",
+          read_time: item.read_time || "5 min read",
+          image_url: item.image_url || "/DSC01203.png",
+          is_published: item.is_published ?? true,
+          created_at: item.created_at,
+          published_at: item.published_at || item.created_at || new Date().toISOString(),
+        }));
+        // Selalu perbarui cache lokal dengan data terbaru
+        saveLocalCache(mapped);
+        return mapped;
+      }
+      // Jika Supabase kosong (0 data terbit)
+      return [];
     }
   } catch (err) {
     console.warn("[Berita] Menggunakan fallback lokal:", err);
   }
 
-  // Gunakan cache lokal / fallback jika Supabase belum ada data
+  // Gunakan cache lokal / fallback HANYA jika koneksi Supabase gagal
   const local = getLocalCache();
   return local.filter((b) => b.is_published);
 }

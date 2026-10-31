@@ -2995,7 +2995,13 @@ NOTIFY pgrst, 'reload schema';`;
                   <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
                     <div>
                       <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Total Berita</p>
-                      <p className="text-lg font-bold text-slate-800 mt-0.5">{beritaList.length} Artikel</p>
+                      <p className="text-lg font-bold text-slate-800 mt-0.5">
+                        {loadingBerita ? (
+                          <span className="inline-block w-14 h-5 bg-slate-200 rounded animate-pulse" />
+                        ) : (
+                          `${beritaList.length} Artikel`
+                        )}
+                      </p>
                     </div>
                     <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
                       <Newspaper className="w-4 h-4" />
@@ -3006,7 +3012,11 @@ NOTIFY pgrst, 'reload schema';`;
                     <div>
                       <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Berita Terbit</p>
                       <p className="text-lg font-bold text-emerald-700 mt-0.5">
-                        {beritaList.filter((b) => b.is_published).length} Publik
+                        {loadingBerita ? (
+                          <span className="inline-block w-14 h-5 bg-emerald-100 rounded animate-pulse" />
+                        ) : (
+                          `${beritaList.filter((b) => b.is_published).length} Publik`
+                        )}
                       </p>
                     </div>
                     <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -3018,7 +3028,11 @@ NOTIFY pgrst, 'reload schema';`;
                     <div>
                       <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Draf Tersimpan</p>
                       <p className="text-lg font-bold text-amber-700 mt-0.5">
-                        {beritaList.filter((b) => !b.is_published).length} Draf
+                        {loadingBerita ? (
+                          <span className="inline-block w-14 h-5 bg-amber-100 rounded animate-pulse" />
+                        ) : (
+                          `${beritaList.filter((b) => !b.is_published).length} Draf`
+                        )}
                       </p>
                     </div>
                     <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">

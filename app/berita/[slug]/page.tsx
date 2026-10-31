@@ -34,15 +34,7 @@ export default function BeritaDetailPage({ params }: PageProps) {
   const rawSlug = unwrappedParams?.slug || (routerParams?.slug as string);
   const slug = typeof rawSlug === "string" ? decodeURIComponent(rawSlug) : "";
 
-  const [article, setArticle] = useState<BeritaItem | null>(() => {
-    // Instant preload match from fallback data to avoid initial flicker
-    if (!slug) return null;
-    return (
-      FALLBACK_BERITA.find(
-        (b) => b.slug === slug || String(b.id) === String(slug)
-      ) || null
-    );
-  });
+  const [article, setArticle] = useState<BeritaItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [relatedArticles, setRelatedArticles] = useState<BeritaItem[]>([]);
@@ -66,7 +58,7 @@ export default function BeritaDetailPage({ params }: PageProps) {
           if (liveArticle) {
             setArticle(liveArticle);
           } else {
-            // Cek kembali di data fallback
+            // Cek kembali di data fallback jika database belum terisi
             const fallbackMatch = FALLBACK_BERITA.find(
               (b) => b.slug === slug || String(b.id) === String(slug)
             );
@@ -90,8 +82,15 @@ export default function BeritaDetailPage({ params }: PageProps) {
         }
       } catch (err) {
         console.warn("[BeritaDetail] Error fetching article:", err);
-        if (isMounted && !article) {
-          setNotFound(true);
+        if (isMounted) {
+          const fallbackMatch = FALLBACK_BERITA.find(
+            (b) => b.slug === slug || String(b.id) === String(slug)
+          );
+          if (fallbackMatch) {
+            setArticle(fallbackMatch);
+          } else {
+            setNotFound(true);
+          }
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -134,6 +133,69 @@ export default function BeritaDetailPage({ params }: PageProps) {
       .map((p) => p.trim())
       .filter(Boolean);
   }, [article?.content]);
+
+  // Tampilan Shimmer Skeleton Saat Artikel Sedang Dimuat (Mencegah Flashing Data Lama)
+  if (loading) {
+    return (
+      <div className="flex flex-col w-full min-h-screen bg-white text-[#091e42]">
+        <header className="relative pt-8 sm:pt-12 pb-6 px-4 sm:px-6 lg:px-8 bg-white border-b border-slate-100 w-full overflow-hidden">
+          <div className="max-w-4xl mx-auto animate-pulse">
+            {/* Breadcrumb Skeleton */}
+            <div className="w-48 h-3.5 bg-slate-200/80 rounded mb-5" />
+
+            {/* Badge & Back Button Skeleton */}
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="w-32 h-6 rounded-full bg-slate-200/80" />
+              <div className="w-24 h-4 rounded bg-slate-200/60" />
+            </div>
+
+            {/* Title Skeleton */}
+            <div className="space-y-3 mb-6">
+              <div className="w-full h-8 sm:h-12 rounded-lg bg-slate-200/80" />
+              <div className="w-4/5 h-8 sm:h-12 rounded-lg bg-slate-200/80" />
+            </div>
+
+            {/* Metadata Bar Skeleton */}
+            <div className="pt-5 border-t border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-slate-200/80" />
+                <div className="space-y-1.5">
+                  <div className="w-28 h-3.5 rounded bg-slate-200/80" />
+                  <div className="w-20 h-2.5 rounded bg-slate-200/60" />
+                </div>
+              </div>
+              <div className="w-36 h-4 rounded bg-slate-200/60" />
+            </div>
+          </div>
+        </header>
+
+        {/* Content Skeleton */}
+        <main className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8 bg-white w-full">
+          <div className="max-w-4xl mx-auto animate-pulse">
+            {/* Hero Image Skeleton */}
+            <div className="w-full aspect-[16/10] sm:aspect-[21/10] rounded-[24px] sm:rounded-[32px] bg-slate-200/80 mb-8 sm:mb-10" />
+
+            {/* Excerpt Box Skeleton */}
+            <div className="p-6 rounded-[20px] bg-slate-100/70 border-l-4 border-slate-200 mb-8 space-y-2">
+              <div className="w-full h-4 rounded bg-slate-200/80" />
+              <div className="w-3/4 h-4 rounded bg-slate-200/80" />
+            </div>
+
+            {/* Paragraph Lines Skeleton */}
+            <div className="space-y-4">
+              <div className="w-full h-4 rounded bg-slate-200/70" />
+              <div className="w-full h-4 rounded bg-slate-200/70" />
+              <div className="w-5/6 h-4 rounded bg-slate-200/70" />
+              <div className="w-full h-4 rounded bg-slate-200/70 mt-6" />
+              <div className="w-11/12 h-4 rounded bg-slate-200/70" />
+              <div className="w-4/5 h-4 rounded bg-slate-200/70" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   // Tampilan 404 jika artikel tidak ditemukan
   if (!loading && (notFound || !article)) {

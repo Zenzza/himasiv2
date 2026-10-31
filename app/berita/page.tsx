@@ -25,8 +25,8 @@ const CATEGORIES = [
 ];
 
 export default function BeritaPage() {
-  const [articles, setArticles] = useState<BeritaItem[]>(FALLBACK_BERITA);
-  const [loading, setLoading] = useState(false);
+  const [articles, setArticles] = useState<BeritaItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,11 +41,17 @@ export default function BeritaPage() {
       setLoading(true);
       try {
         const liveArticles = await getPublishedBerita();
-        if (isMounted && liveArticles && liveArticles.length > 0) {
-          setArticles(liveArticles);
+        if (isMounted) {
+          if (liveArticles && liveArticles.length > 0) {
+            setArticles(liveArticles);
+          } else {
+            // Gunakan fallback hanya jika Supabase benar-benar kosong
+            setArticles(FALLBACK_BERITA);
+          }
         }
       } catch (err) {
         console.warn("[BeritaPage] Menggunakan artikel fallback:", err);
+        if (isMounted) setArticles(FALLBACK_BERITA);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -188,7 +194,25 @@ export default function BeritaPage() {
               </div>
 
               {/* Grid Artikel (2 Kolom di sisi kiri) */}
-              {paginatedArticles.length > 0 ? (
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-7 sm:gap-8">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex flex-col items-start animate-pulse select-none">
+                      <div className="w-full aspect-[16/10.5] rounded-[22px] sm:rounded-[24px] bg-slate-200/80" />
+                      <div className="mt-4 w-28 h-6 rounded-full bg-slate-200/70" />
+                      <div className="mt-2.5 w-36 h-3.5 rounded bg-slate-200/60" />
+                      <div className="mt-2.5 w-full h-5 rounded bg-slate-200/80" />
+                      <div className="mt-1.5 w-3/4 h-5 rounded bg-slate-200/80" />
+                      <div className="mt-3 w-full h-3.5 rounded bg-slate-200/60" />
+                      <div className="mt-1.5 w-4/5 h-3.5 rounded bg-slate-200/60" />
+                      <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between">
+                        <div className="w-24 h-4 rounded bg-slate-200/60" />
+                        <div className="w-8 h-8 rounded-full bg-slate-200/60" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : paginatedArticles.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-7 sm:gap-8">
                   {paginatedArticles.map((article, idx) => {
                     const cornerShape =
@@ -406,7 +430,7 @@ export default function BeritaPage() {
                               : "text-slate-400 group-hover:text-slate-600"
                           }`}
                         >
-                          {cat.badge} ({count})
+                          {loading ? cat.badge : `${cat.badge} (${count})`}
                         </span>
                       </button>
                     );
@@ -421,20 +445,34 @@ export default function BeritaPage() {
                   {loading && <Loader2 className="w-3.5 h-3.5 text-[#0094E0] animate-spin" />}
                 </h2>
                 <div className="divide-y divide-slate-100">
-                  {recentArticles.map((news) => (
-                    <Link
-                      key={news.id}
-                      href={`/berita/${news.slug}`}
-                      className="py-3.5 first:pt-0 last:pb-0 group block cursor-pointer"
-                    >
-                      <h3 className="text-[13px] sm:text-[13.5px] font-semibold text-slate-800 group-hover:text-[#00296E] leading-snug line-clamp-2 transition-colors">
-                        {news.title}
-                      </h3>
-                      <p className="mt-1.5 text-xs text-slate-400 font-normal">
-                        {formatBeritaDate(news.published_at)}
-                      </p>
-                    </Link>
-                  ))}
+                  {loading ? (
+                    <div className="space-y-4 py-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="animate-pulse space-y-1.5">
+                          <div className="w-full h-3.5 rounded bg-slate-200/80" />
+                          <div className="w-2/3 h-3.5 rounded bg-slate-200/70" />
+                          <div className="w-20 h-2.5 rounded bg-slate-200/50 mt-1" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : recentArticles.length > 0 ? (
+                    recentArticles.map((news) => (
+                      <Link
+                        key={news.id}
+                        href={`/berita/${news.slug}`}
+                        className="py-3.5 first:pt-0 last:pb-0 group block cursor-pointer"
+                      >
+                        <h3 className="text-[13px] sm:text-[13.5px] font-semibold text-slate-800 group-hover:text-[#00296E] leading-snug line-clamp-2 transition-colors">
+                          {news.title}
+                        </h3>
+                        <p className="mt-1.5 text-xs text-slate-400 font-normal">
+                          {formatBeritaDate(news.published_at)}
+                        </p>
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-400 py-3">Belum ada berita terbaru</p>
+                  )}
                 </div>
               </div>
             </aside>
