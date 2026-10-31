@@ -1,0 +1,156 @@
+<h2>Pilihan Arah Desain Dashboard Admin HIMASI</h2>
+<p class="subtitle">Berdasarkan keinginan Anda: menghilangkan warna/simbol yang terlalu ramai, menghapus teks dekoratif yang tidak perlu, dan fokus pada efisiensi pengaturan fitur front-end.</p>
+
+<div class="options">
+  
+  <!-- Opsi A -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Opsi A: Clean Minimalist (Gaya Linear / Vercel) &mdash; <em>Rekomendasi</em></h3>
+      <p style="margin-bottom: 12px; color: #64748b;">
+        Serba monokrom, latar belakang abu-abu sangat lembut (<code>#F8FAFC</code>), kartu putih bersih dengan garis tepi 1px halus. Menghapus banner gradien besar, menghapus bola cahaya pendar, dan seluruh ikon menggunakan 1 warna tunggal yang konsisten.
+      </p>
+      
+      <!-- Mini Mockup Opsi A -->
+      <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; font-family: system-ui, sans-serif; font-size: 11px;">
+        <div style="display: flex; gap: 12px;">
+          <!-- Mini Sidebar -->
+          <div style="width: 110px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px;">
+            <div style="font-weight: 700; color: #00296E; font-size: 10px; margin-bottom: 8px;">HIMASI Admin</div>
+            <div style="background: #F1F5F9; color: #00296E; font-weight: 600; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px;">Ringkasan</div>
+            <div style="color: #64748b; padding: 4px 6px;">Absensi</div>
+            <div style="color: #64748b; padding: 4px 6px;">Peserta</div>
+            <div style="color: #64748b; padding: 4px 6px;">Aspirasi</div>
+            <div style="color: #64748b; padding: 4px 6px;">Hero Banner</div>
+          </div>
+          <!-- Mini Main -->
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 13px; font-weight: 700; color: #0F172A;">Dashboard</span>
+                <span style="font-size: 10px; color: #94A3B8; margin-left: 6px;">Kabinet REKSABUDAYA</span>
+              </div>
+              <div style="background: #00296E; color: #fff; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;">+ Kegiatan Baru</div>
+            </div>
+            <!-- 3 Simple Stat Cards -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+              <div style="background: #fff; border: 1px solid #E2E8F0; padding: 8px; border-radius: 6px;">
+                <div style="color: #64748b; font-size: 9px;">Kehadiran Hari Ini</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0F172A;">13 / 13</div>
+              </div>
+              <div style="background: #fff; border: 1px solid #E2E8F0; padding: 8px; border-radius: 6px;">
+                <div style="color: #64748b; font-size: 9px;">Aspirasi Baru</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0F172A;">4 Pesan</div>
+              </div>
+              <div style="background: #fff; border: 1px solid #E2E8F0; padding: 8px; border-radius: 6px;">
+                <div style="color: #64748b; font-size: 9px;">Total Pengurus</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0F172A;">13 Anggota</div>
+              </div>
+            </div>
+            <!-- Clean Table Preview -->
+            <div style="background: #fff; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px;">
+              <div style="font-weight: 600; color: #334155; font-size: 10px; margin-bottom: 4px;">Daftar Kegiatan Absensi Terkini</div>
+              <div style="color: #64748b; font-size: 9px; display: flex; justify-content: space-between; border-top: 1px solid #F1F5F9; padding: 3px 0;">
+                <span>Rapat Kerja Internal HIMASI</span>
+                <span style="color: #0F172A; font-weight: 500;">31 Okt 2026</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opsi B -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Opsi B: Modern Professional (Gaya Supabase / Stripe Dashboard)</h3>
+      <p style="margin-bottom: 12px; color: #64748b;">
+        Sidebar gelap kalem bertema biru navy pekat yang teratur rapi tanpa warna-warni neon, area konten berwarna putih bersih dengan tata letak horizontal terstruktur. Teks sambutan dihapus dan diganti header fungsional ringkas.
+      </p>
+      
+      <!-- Mini Mockup Opsi B -->
+      <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 12px; padding: 14px; font-family: system-ui, sans-serif; font-size: 11px;">
+        <div style="display: flex; gap: 12px;">
+          <!-- Mini Dark Navy Sidebar -->
+          <div style="width: 110px; background: #00296E; border-radius: 8px; padding: 8px; color: #CBD5E1;">
+            <div style="font-weight: 700; color: #FFFFFF; font-size: 10px; margin-bottom: 8px;">HIMASI Admin</div>
+            <div style="background: rgba(255,255,255,0.15); color: #FFFFFF; font-weight: 600; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px;">Overview</div>
+            <div style="color: #93C5FD; padding: 4px 6px;">Absensi</div>
+            <div style="color: #93C5FD; padding: 4px 6px;">Peserta</div>
+            <div style="color: #93C5FD; padding: 4px 6px;">Aspirasi</div>
+            <div style="color: #93C5FD; padding: 4px 6px;">Banner</div>
+          </div>
+          <!-- Mini Main -->
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <div style="border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 12px; font-weight: 700; color: #00296E;">Panel Kontrol Administrasi</span>
+              </div>
+              <span style="font-size: 9px; background: #E0F2FE; color: #0369A1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Status: Siap</span>
+            </div>
+            <!-- 2 Big Cards Grid -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
+              <div style="border: 1px solid #E2E8F0; padding: 8px; border-radius: 6px;">
+                <div style="font-weight: 600; color: #0F172A; font-size: 10px;">Quick Scan Absensi</div>
+                <p style="color: #64748b; font-size: 9px; margin-top: 2px;">Kamera & input manual langsung siap.</p>
+              </div>
+              <div style="border: 1px solid #E2E8F0; padding: 8px; border-radius: 6px;">
+                <div style="font-weight: 600; color: #0F172A; font-size: 10px;">Rekapitulasi PDF</div>
+                <p style="color: #64748b; font-size: 9px; margin-top: 2px;">Cetak rekapitulasi kop surat resmi.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opsi C -->
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Opsi C: Compact Workspace (Gaya Notion / macOS Utility)</h3>
+      <p style="margin-bottom: 12px; color: #64748b;">
+        Format data super-padat dan efisien (*high-density*). Sidebar dapat dilipat tipis, hampir tanpa kartu berlebih, langsung memusatkan layar pada tabel data dan kontrol form pengaturan front-end tanpa ada teks basa-basi sama sekali.
+      </p>
+      
+      <!-- Mini Mockup Opsi C -->
+      <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 12px; padding: 14px; font-family: system-ui, sans-serif; font-size: 11px;">
+        <div style="display: flex; gap: 10px;">
+          <!-- Mini Thin Sidebar -->
+          <div style="width: 70px; background: #F1F5F9; border-radius: 6px; padding: 6px; font-size: 9px; color: #475569;">
+            <div style="font-weight: 800; color: #0F172A; margin-bottom: 6px;">HIMASI</div>
+            <div style="color: #0F172A; font-weight: 700; margin-bottom: 3px;">Home</div>
+            <div style="margin-bottom: 3px;">Absen</div>
+            <div style="margin-bottom: 3px;">Data</div>
+            <div style="margin-bottom: 3px;">Pesan</div>
+          </div>
+          <!-- Dense Content -->
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">
+              <span style="font-weight: 700; color: #0F172A; font-size: 11px;">Pusat Kontrol Front-End</span>
+              <div style="display: flex; gap: 4px;">
+                <span style="border: 1px solid #CBD5E1; padding: 1px 5px; border-radius: 4px; font-size: 9px;">Filter</span>
+                <span style="background: #0F172A; color: #fff; padding: 1px 5px; border-radius: 4px; font-size: 9px;">+ Tambah</span>
+              </div>
+            </div>
+            <!-- Data Grid List -->
+            <div style="border: 1px solid #E2E8F0; border-radius: 4px; padding: 4px 6px; font-size: 9px; display: flex; justify-content: space-between;">
+              <span>1. Banner Desktop & Mobile</span>
+              <span style="color: #10B981; font-weight: 600;">Aktif</span>
+            </div>
+            <div style="border: 1px solid #E2E8F0; border-radius: 4px; padding: 4px 6px; font-size: 9px; display: flex; justify-content: space-between;">
+              <span>2. Agenda Kalender Semester</span>
+              <span style="color: #64748b;">4 Agenda</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
