@@ -61,22 +61,27 @@ const KABINET_METRICS = [
 const MISI_ITEMS = [
   {
     no: "01",
-    text: "Menyelenggarakan kegiatan akademik dan non-akademik yang mendukung pengembangan ilmu pengetahuan dan keterampilan.",
+    text: "Membangun lingkungan himpunan yang inklusif & supportive dengan menciptakan suasana organisasi yang nyaman, terbuka dan saling bantu, supaya semua anggota merasa didengar dan berkembang tanpa takut ketinggalan.",
     highlight: false,
   },
   {
     no: "02",
-    text: "Meningkatkan kualitas sumber daya mahasiswa melalui pembinaan, pelatihan, dan kolaborasi.",
+    text: "Mengoptimalkan media digital HIMASI secara edukatif, kreatif, dan interaktif yang tetap relevan dengan tujuan HIMASI sebagai sumber informasi dan inspirasi untuk mahasiswa SI",
     highlight: false,
   },
   {
     no: "03",
-    text: "Memperkuat jejaring dan kemitraan dengan berbagai pihak.",
+    text: "Menguatkan kolaborasi eksternal dengan menjalin kerja sama dengan startup, UMKM, dan komunitas digital untuk membuka peluang sponsor, informasi, dan jaringan HIMASI",
     highlight: false,
   },
   {
     no: "04",
-    text: "Menumbuhkan jiwa kepemimpinan, kreativitas, dan kepedulian sosial.",
+    text: "Mempercepat adaptasi teknologi dalam kegiatan organisasi dengan menggunakan platform digital untuk administrasi, koordinasi hingga evaluasi, supaya HIMASI lebih gesit dan efisien",
+    highlight: false,
+  },
+  {
+    no: "05",
+    text: "Meneruskan program unggulan yang sudah berjalan dengan lebih terstruktur",
     highlight: false,
   },
 ];
@@ -311,13 +316,13 @@ export default function ProfilPage() {
               <div className="relative w-full rounded-[30px] sm:rounded-[36px] bg-white p-3 sm:p-4 shadow-[0_20px_50px_rgba(0,41,110,0.12)] border border-slate-100">
                 <div className="aspect-[4/3] w-full rounded-[24px] sm:rounded-[28px] overflow-hidden bg-slate-100 relative group">
                   <img
-                    src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop"
+                    src="/hero-banner.png"
                     alt="Kepengurusan Kabinet REKSABUDAYA HIMASI"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#002257]/90 via-[#002257]/20 to-transparent flex flex-col justify-end p-5 text-white">
                     <span className="text-[11px] font-bold tracking-wider uppercase text-sky-300">
-                      Periode 2025 / 2026
+                      Periode 2026
                     </span>
                     <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white mt-0.5">
                       Kabinet REKSABUDAYA
@@ -441,44 +446,50 @@ export default function ProfilPage() {
 
                 {/* Content within Trapezoid */}
                 <div className="relative z-10 flex flex-col justify-between h-full">
-                  <div>
-                    {/* Header: ── VISI */}
-                    <div className="flex items-center gap-2 text-xl font-bold tracking-[0.25em] text-[#FFFFFF] uppercase mb-4 sm:mb-6">
-                      <span>VISI KABINET</span>
-                    </div>
+                  {/* Header: VISI KABINET */}
+                  <div className="flex items-center gap-2.5 text-xl font-bold tracking-[0.25em] text-white uppercase">
+                    <span className="w-2 h-2 rounded-full bg-[#0094E0]" />
+                    <span>VISI KABINET</span>
+                  </div>
 
-                    {/* Content */}
-                    <div className="pr-6 sm:pr-12 lg:pr-16">
-                      <p className="text-white text-base sm:text-lg lg:text-xl font-medium leading-relaxed tracking-normal">
-                        Menjadi lembaga keilmuan yang <strong className="font-extrabold text-white">unggul</strong> dalam pengembangan potensi mahasiswa Sistem Informasi yang berdaya saing, berintegritas, dan berkontribusi bagi masyarakat.
-                      </p>
-                    </div>
+                  {/* Body: Visi Statement with Balanced Typography */}
+                  <div className="my-auto py-5 sm:py-7 pr-4 sm:pr-8 lg:pr-12">
+                    <p className="text-white text-lg sm:text-xl lg:text-[22px] xl:text-[23px] font-normal leading-[1.65] sm:leading-[1.7] tracking-normal">
+                      Mewujudkan HIMASI sebagai pusat <strong className="font-extrabold text-white underline decoration-[#0094E0] decoration-2 underline-offset-4">kreativitas dan perkembangan teknologi</strong> yang kreatif, kolaboratif, dan relevan di mana setiap mahasiswa bisa berkembang bersama tanpa takut tertinggal.
+                    </p>
+                  </div>
+
+                  {/* Bottom: Minimal Signature Line (Clean & Simple, No Badges) */}
+                  <div className="pt-4 sm:pt-5 border-t border-white/10 flex items-center justify-between text-xs tracking-wider text-white/50 font-mono">
+                    <span>KABINET REKSABUDAYA</span>
+                    <span>HIMASI</span>
                   </div>
                 </div>
               </div>
             </ScrollReveal>
 
-            {/* Kolom Kanan: MISI (4 Pill Horizontal Sesuai Homepage - Muncul Satu Persatu) */}
+            {/* Kolom Kanan: MISI (5 Pill Horizontal Sesuai Homepage - Muncul Satu Persatu) */}
             <div className="lg:col-span-7 flex flex-col justify-center py-2">
-              {/* Header: ── MISI */}
+              {/* Header: MISI KABINET */}
               <ScrollReveal direction="up">
-                <div className="flex items-center gap-2 text-xl font-bold tracking-[0.25em] text-[#00296E] uppercase mb-4 sm:mb-5">
+                <div className="flex items-center gap-2.5 text-xl font-bold tracking-[0.25em] text-[#00296E] uppercase mb-4 sm:mb-5">
+                  <span className="w-2 h-2 rounded-full bg-[#0094E0]" />
                   <span>MISI KABINET</span>
                 </div>
               </ScrollReveal>
 
-              {/* 4 Misi Items with Numbered Circle Badges (Muncul satu persatu bergantian) */}
+              {/* 5 Misi Items with Numbered Circle Badges (Muncul satu persatu bergantian) */}
               <div className="space-y-3 sm:space-y-3.5">
                 {MISI_ITEMS.map((misi, idx) => (
-                  <ScrollReveal key={idx} direction="left" delay={idx * 140}>
+                  <ScrollReveal key={idx} direction="left" delay={idx * 120}>
                     <div className="flex items-center gap-3 sm:gap-4 group">
-                      {/* Circle Badge 01, 02, 03, 04 */}
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#00296E] text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 shadow-md transition-all duration-200">
+                      {/* Circle Badge 01, 02, 03, 04, 05 */}
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#00296E] text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:bg-[#0094E0]">
                         {misi.no}
                       </div>
 
                       {/* Pill Text Container */}
-                      <div className="flex-1 py-3 px-4 sm:px-5 rounded-2xl sm:rounded-full bg-slate-50 border border-slate-100 transition-all duration-200">
+                      <div className="flex-1 py-3 px-4 sm:px-5 rounded-2xl sm:rounded-[22px] bg-slate-50 border border-slate-100 transition-all duration-200 group-hover:bg-slate-100/80 group-hover:border-slate-200">
                         <p className={`text-xs sm:text-sm leading-relaxed ${misi.highlight ? "text-[#0094E0] font-semibold" : "text-slate-700 font-medium"}`}>
                           {misi.text}
                         </p>

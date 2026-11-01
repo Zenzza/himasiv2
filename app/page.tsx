@@ -37,6 +37,20 @@ import HeroBannerImage from "@/components/hero-banner-image";
 import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
 import { getPublishedBerita } from "@/lib/supabase/berita";
 import { formatBeritaDate } from "@/lib/utils/slug";
+import { supabase } from "@/lib/supabase/client";
+import {
+  type PengurusMember,
+  DAFTAR_PENGURUS_HIMASI,
+  sortKabinetHomepage,
+} from "@/lib/data/pengurus";
+import {
+  type FiturUtamaSectionConfig,
+  type FiturItemConfig,
+  DEFAULT_FITUR_UTAMA,
+  getFiturUtamaConfig,
+  fetchFiturUtamaFromSupabase,
+  FITUR_UTAMA_UPDATE_EVENT,
+} from "@/lib/constants/fitur-utama";
 
 // URL Video YouTube Company Profile HIMASI (Ganti link di sini sesuai kebutuhan)
 const YOUTUBE_VIDEO_URL = "https://youtu.be/Q-SbWMLlmoI?si=5uNeFPoj9BzOo0bT";
@@ -55,74 +69,6 @@ function getYouTubeVideoId(url: string): string {
   }
   return "dQw4w9WgXcQ";
 }
-
-// Data Pengurus HIMASI Sesuai Referensi Gambar Layout (Jordi Venzen - Ketua Umum dkk.)
-const PENGURUS_ITEMS = [
-  {
-    id: 1,
-    name: "JORDI VENZEN",
-    role: "KETUA UMUM HIMASI",
-    period: "2025/2026",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: 2,
-    name: "MUHAMMAD FADHIL",
-    role: "WAKIL KETUA UMUM",
-    period: "2025/2026",
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: 3,
-    name: "ANINDYA PUTRI",
-    role: "SEKRETARIS UMUM",
-    period: "2025/2026",
-    image:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: 4,
-    name: "ZAHRA SALSABILA",
-    role: "BENDAHARA UMUM",
-    period: "2025/2026",
-    image:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: 5,
-    name: "DIMAS ARYA PRATAMA",
-    role: "KORD. DIVISI AKADEMIK & RISET",
-    period: "2025/2026",
-    image:
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: 6,
-    name: "KEVIN ALAMSYAH",
-    role: "KORD. DIVISI MEDKOMINFO",
-    period: "2025/2026",
-    image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: 7,
-    name: "NABILA SYAHRANI",
-    role: "KORD. DIVISI HUBLU",
-    period: "2025/2026",
-    image:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: 8,
-    name: "RIAN HIDAYAT",
-    role: "KORD. DIVISI MINAT & BAKAT",
-    period: "2025/2026",
-    image:
-      "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=800&auto=format&fit=crop",
-  },
-];
 
 // Data Pertanyaan FAQ HIMASI Sesuai Referensi Desain
 const FAQ_ITEMS = [
@@ -181,6 +127,37 @@ const FAQ_ITEMS = [
     question: "Apakah HIMASI menyediakan rekaman tutorial atau materi pembelajaran?",
     answer:
       "Ya, dokumentasi materi workshop, rekaman webinar, dan tutorial teknologi dapat diakses melalui kanal YouTube resmi HIMASI ISB Atma Luhur serta arsip dokumentasi digital di website ini.",
+  },
+];
+
+// ===================================================================
+// MISI KABINET (PERSIS SESUAI PROFILE PAGE)
+// ===================================================================
+const MISI_KABINET_ITEMS = [
+  {
+    no: "01",
+    text: "Membangun lingkungan himpunan yang inklusif & supportive dengan menciptakan suasana organisasi yang nyaman, terbuka dan saling bantu, supaya semua anggota merasa didengar dan berkembang tanpa takut ketinggalan.",
+    highlight: false,
+  },
+  {
+    no: "02",
+    text: "Mengoptimalkan media digital HIMASI secara edukatif, kreatif, dan interaktif yang tetap relevan dengan tujuan HIMASI sebagai sumber informasi dan inspirasi untuk mahasiswa SI",
+    highlight: false,
+  },
+  {
+    no: "03",
+    text: "Menguatkan kolaborasi eksternal dengan menjalin kerja sama dengan startup, UMKM, dan komunitas digital untuk membuka peluang sponsor, informasi, dan jaringan HIMASI",
+    highlight: false,
+  },
+  {
+    no: "04",
+    text: "Mempercepat adaptasi teknologi dalam kegiatan organisasi dengan menggunakan platform digital untuk administrasi, koordinasi hingga evaluasi, supaya HIMASI lebih gesit dan efisien",
+    highlight: false,
+  },
+  {
+    no: "05",
+    text: "Meneruskan program unggulan yang sudah berjalan dengan lebih terstruktur",
+    highlight: false,
   },
 ];
 
@@ -385,9 +362,139 @@ export default function Home() {
     }
   };
 
+  // Dynamic Pengurus Kabinet HIMASI (Tersinkronisasi Realtime dengan Supabase & Dashboard)
+  const [pengurusList, setPengurusList] = useState<PengurusMember[]>(() =>
+    sortKabinetHomepage(DAFTAR_PENGURUS_HIMASI)
+  );
+  const [loadingPengurus, setLoadingPengurus] = useState(true);
+
+  const fetchPengurusData = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("pengurus")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        const activeRows = data.filter((row: any) => row.is_active !== false);
+        const mapped: PengurusMember[] = activeRows.map((row: any) => ({
+          id: String(row.id),
+          nim: row.nim || "",
+          nama: row.nama || "",
+          jabatan: row.jabatan || "",
+          divisi: (row.divisi || "").trim().toUpperCase(),
+          qrToken: row.qr_token || "",
+          image: row.foto_url || "/DSC01203.png",
+          email: row.email || "",
+          urutan: row.urutan != null ? Number(row.urutan) : undefined,
+        }));
+        setPengurusList(sortKabinetHomepage(mapped));
+      } else {
+        setPengurusList(sortKabinetHomepage(DAFTAR_PENGURUS_HIMASI));
+      }
+    } catch (err) {
+      console.warn("Koneksi pengurus homepage offline, memakai data fallback:", err);
+      setPengurusList(sortKabinetHomepage(DAFTAR_PENGURUS_HIMASI));
+    } finally {
+      setLoadingPengurus(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPengurusData();
+
+    // Supabase Realtime Listener agar sinkron otomatis saat Dashboard mengubah data pengurus
+    const channel = supabase
+      .channel("himasi_realtime_homepage_pengurus")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pengurus" },
+        () => {
+          fetchPengurusData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchPengurusData]);
+
+  // Memastikan track marquee terisi cukup banyak elemen agar infinite loop mulus tanpa celah kosong
+  const displayPengurus = useMemo(() => {
+    if (pengurusList.length === 0) return [];
+    if (pengurusList.length < 5) {
+      let list = [...pengurusList];
+      while (list.length < 8) {
+        list = [...list, ...pengurusList];
+      }
+      return list;
+    }
+    return pengurusList;
+  }, [pengurusList]);
+
   // State untuk Infinite Smooth Carousel Pengurus HIMASI (berjalan sendiri secara smooth)
   const [pengurusDirection, setPengurusDirection] = useState<"normal" | "reverse">("normal");
   const [isPengurusPaused, setIsPengurusPaused] = useState(false);
+
+  // Dynamic Fitur Utama State (Tersinkronisasi Realtime dengan Dashboard & Supabase)
+  const [fiturConfig, setFiturConfig] = useState<FiturUtamaSectionConfig>(DEFAULT_FITUR_UTAMA);
+  const [fiturNoticeToast, setFiturNoticeToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 1. Muat dari localStorage / default
+    setFiturConfig(getFiturUtamaConfig());
+
+    // 2. Fetch data dari Supabase jika tersedia
+    fetchFiturUtamaFromSupabase().then((data) => {
+      if (data) setFiturConfig(data);
+    });
+
+    // 3. Listener event custom antar-tab & saat dashboard menyimpan
+    const handleFiturUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<FiturUtamaSectionConfig>;
+      if (customEvent.detail) {
+        setFiturConfig(customEvent.detail);
+      } else {
+        setFiturConfig(getFiturUtamaConfig());
+      }
+    };
+
+    window.addEventListener(FITUR_UTAMA_UPDATE_EVENT, handleFiturUpdate);
+
+    // 4. Supabase Realtime Listener untuk tabel fitur_utama
+    const channel = supabase
+      .channel("himasi_realtime_homepage_fitur_utama")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "fitur_utama" },
+        () => {
+          fetchFiturUtamaFromSupabase().then((data) => {
+            if (data) setFiturConfig(data);
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      window.removeEventListener(FITUR_UTAMA_UPDATE_EVENT, handleFiturUpdate);
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const getFiturIcon = (iconName: string) => {
+    switch (iconName) {
+      case "UserPlus":
+        return UserPlus;
+      case "Shirt":
+        return Shirt;
+      case "Trophy":
+        return Trophy;
+      case "Award":
+      default:
+        return Award;
+    }
+  };
 
   return (
     <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
@@ -662,14 +769,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION: VISI & MISI HIMASI */}
-      <section id="visi-misi" className="relative py-12 sm:py-18 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
-        <div className="relative max-w-6xl mx-auto">
+      {/* SECTION: VISI & MISI KABINET (PERSIS SESUAI PROFILE PAGE) */}
+      <section id="visi-misi" className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full overflow-hidden scroll-mt-16">
+        <div className="max-w-6xl mx-auto">
+          
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
             
-            {/* Kolom Kiri: VISI (Bentuk Trapesium Presisi Sesuai Gambar Referensi - Card Pop) */}
+            {/* Kolom Kiri: VISI (Bentuk Trapesium Presisi Sesuai Profile Page - Card Pop) */}
             <ScrollReveal direction="card-pop" className="lg:col-span-5 h-full">
-              <div className="relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-hidden h-full rounded-2xl">
+              <div className="relative flex flex-col justify-between p-7 sm:p-9 lg:p-10 min-h-[380px] drop-shadow-2xl group overflow-hidden rounded-2xl h-full">
                 {/* Background SVG Trapesium with exact path - Single Solid Color #00296E */}
                 <svg
                   className="absolute inset-0 w-full h-full -z-0"
@@ -688,65 +796,50 @@ export default function Home() {
 
                 {/* Content within Trapezoid */}
                 <div className="relative z-10 flex flex-col justify-between h-full">
-                  <div>
-                    {/* Header: ── VISI */}
-                    <div className="flex items-center gap-2 text-xl font-bold tracking-[0.25em] text-[#FFFFFF] uppercase mb-4 sm:mb-6">
-                      <span>VISI HIMASI</span>
-                    </div>
+                  {/* Header: VISI KABINET */}
+                  <div className="flex items-center gap-2.5 text-xl font-bold tracking-[0.25em] text-white uppercase">
+                    <span className="w-2 h-2 rounded-full bg-[#0094E0]" />
+                    <span>VISI KABINET</span>
+                  </div>
 
-                    {/* Quote Icon & Content */}
-                    <div className="pr-6 sm:pr-12 lg:pr-16">
-                      <p className="text-white text-base sm:text-lg lg:text-xl font-medium leading-relaxed tracking-normal">
-                        Menjadi lembaga keilmuan yang <strong className="font-extrabold text-white">unggul</strong> dalam pengembangan potensi mahasiswa Sistem Informasi yang berdaya saing, berintegritas, dan berkontribusi bagi masyarakat.
-                      </p>
-                    </div>
+                  {/* Body: Visi Statement with Balanced Typography */}
+                  <div className="my-auto py-5 sm:py-7 pr-4 sm:pr-8 lg:pr-12">
+                    <p className="text-white text-lg sm:text-xl lg:text-[22px] xl:text-[23px] font-normal leading-[1.65] sm:leading-[1.7] tracking-normal">
+                      Mewujudkan HIMASI sebagai pusat <strong className="font-extrabold text-white underline decoration-[#0094E0] decoration-2 underline-offset-4">kreativitas dan perkembangan teknologi</strong> yang kreatif, kolaboratif, dan relevan di mana setiap mahasiswa bisa berkembang bersama tanpa takut tertinggal.
+                    </p>
+                  </div>
+
+                  {/* Bottom: Minimal Signature Line (Clean & Simple, No Badges) */}
+                  <div className="pt-4 sm:pt-5 border-t border-white/10 flex items-center justify-between text-xs tracking-wider text-white/50 font-mono">
+                    <span>KABINET REKSABUDAYA</span>
+                    <span>HIMASI</span>
                   </div>
                 </div>
               </div>
             </ScrollReveal>
 
-            {/* Kolom Kanan: MISI (4 Pill Horizontal Sesuai Gambar - Muncul Satu Persatu) */}
+            {/* Kolom Kanan: MISI (5 Pill Horizontal Sesuai Profile Page - Muncul Satu Persatu) */}
             <div className="lg:col-span-7 flex flex-col justify-center py-2">
-              {/* Header: ── MISI */}
+              {/* Header: MISI KABINET */}
               <ScrollReveal direction="up">
-                <div className="flex items-center gap-2 text-xl font-bold tracking-[0.25em] text-[#00296E] uppercase mb-4 sm:mb-5">
-                  <span>MISI HIMASI</span>
+                <div className="flex items-center gap-2.5 text-xl font-bold tracking-[0.25em] text-[#00296E] uppercase mb-4 sm:mb-5">
+                  <span className="w-2 h-2 rounded-full bg-[#0094E0]" />
+                  <span>MISI KABINET</span>
                 </div>
               </ScrollReveal>
 
-              {/* 4 Misi Items with Numbered Circle Badges (Muncul satu persatu bergantian) */}
+              {/* 5 Misi Items with Numbered Circle Badges (Muncul satu persatu bergantian) */}
               <div className="space-y-3 sm:space-y-3.5">
-                {[
-                  {
-                    no: "01",
-                    text: "Menyelenggarakan kegiatan akademik dan non-akademik yang mendukung pengembangan ilmu pengetahuan dan keterampilan.",
-                    highlight: false,
-                  },
-                  {
-                    no: "02",
-                    text: "Meningkatkan kualitas sumber daya mahasiswa melalui pembinaan, pelatihan, dan kolaborasi.",
-                    highlight: false,
-                  },
-                  {
-                    no: "03",
-                    text: "Memperkuat jejaring dan kemitraan dengan berbagai pihak.",
-                    highlight: false,
-                  },
-                  {
-                    no: "04",
-                    text: "Menumbuhkan jiwa kepemimpinan, kreativitas, dan kepedulian sosial.",
-                    highlight: false,
-                  },
-                ].map((misi, idx) => (
-                  <ScrollReveal key={idx} direction="left" delay={idx * 140}>
+                {MISI_KABINET_ITEMS.map((misi, idx) => (
+                  <ScrollReveal key={idx} direction="left" delay={idx * 120}>
                     <div className="flex items-center gap-3 sm:gap-4 group">
-                      {/* Circle Badge 01, 02, 03, 04 */}
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#00296E] text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 shadow-md transition-all duration-200">
+                      {/* Circle Badge 01, 02, 03, 04, 05 */}
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#00296E] text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:bg-[#0094E0]">
                         {misi.no}
                       </div>
 
                       {/* Pill Text Container */}
-                      <div className="flex-1 py-3 px-4 sm:px-5 rounded-2xl sm:rounded-full bg-slate-50 border border-slate-100 transition-all duration-200">
+                      <div className="flex-1 py-3 px-4 sm:px-5 rounded-2xl sm:rounded-[22px] bg-slate-50 border border-slate-100 transition-all duration-200 group-hover:bg-slate-100/80 group-hover:border-slate-200">
                         <p className={`text-xs sm:text-sm leading-relaxed ${misi.highlight ? "text-[#0094E0] font-semibold" : "text-slate-700 font-medium"}`}>
                           {misi.text}
                         </p>
@@ -756,82 +849,85 @@ export default function Home() {
                 ))}
               </div>
             </div>
+
           </div>
+
         </div>
       </section>
 
-      {/* SECTION: DAFTAR FITUR UTAMA */}
-      <section id="fitur-utama" className="relative py-8 sm:py-2 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
-        <ScrollReveal className="relative max-w-6xl mx-auto">
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#00296E] tracking-tight">
-              Daftar Fitur Utama
-            </h2>
-          </div>
+      {/* SECTION: DAFTAR FITUR UTAMA (TOGGLE OPEN / CLOSED DARI DASHBOARD) */}
+      {fiturConfig.showSection && (
+        <section id="fitur-utama" className="relative py-8 sm:py-2 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden scroll-mt-16">
+          <ScrollReveal className="relative max-w-6xl mx-auto">
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#00296E] tracking-tight">
+                Daftar Fitur Utama
+              </h2>
+            </div>
 
-          {/* Cards Grid: 4 Fitur Utama Persis Sesuai Referensi Gambar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {[
-              {
-                title: "Recruitment HIMASI",
-                icon: UserPlus,
-                href: "/oprec",
-                status: "Coming Soon",
-                statusColor: "text-[#eb5f5f]",
-              },
-              {
-                title: "Order Baju Jurusan",
-                icon: Shirt,
-                href: "/order-baju",
-                status: "Coming Soon",
-                statusColor: "text-[#eb5f5f]",
-              },
-              {
-                title: "Pusat Informasi",
-                icon: Trophy,
-                href: "/prestasi",
-                status: "Coming Soon",
-                statusColor: "text-[#eb5f5f]",
-              },
-              {
-                title: "Apresia-SI",
-                icon: Award,
-                href: "/apresiasi",
-                status: "Lihat Selengkapnya",
-                statusColor: "text-[#22c55e]",
-              },
-            ].map((card, idx) => {
-              const IconComp = card.icon;
-              return (
-                <Link
-                  key={idx}
-                  href={card.href}
-                  className="group relative flex flex-col justify-between p-6 sm:p-7 min-h-[160px] sm:min-h-[175px] rounded-2xl hover:-translate-y-1.5 transition-all duration-300 select-none overflow-hidden cursor-pointer"
-                  style={{
-                    background: "#00296E",
-                  }}
-                >
-                  {/* Top: Icon + Title */}
-                  <div className="flex items-center gap-3.5 sm:gap-4">
-                    <IconComp className="w-8 h-8 text-white stroke-[2.2] shrink-0 group-hover:scale-105 transition-transform duration-300" />
-                    <h3 className="text-white font-bold text-base sm:text-lg tracking-tight leading-snug">
-                      {card.title}
-                    </h3>
-                  </div>
+            {/* Cards Grid: 4 Fitur Utama (Status Open / Closed Dinamis dari Dashboard) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+              {fiturConfig.items.map((card) => {
+                const IconComp = getFiturIcon(card.iconName);
+                const isOpen = card.isOpen;
+                const statusLabel = isOpen
+                  ? (card.statusOpenText || "Lihat Selengkapnya")
+                  : (card.statusClosedText || "Coming Soon");
+                const statusColor = isOpen ? "text-[#22c55e]" : "text-[#eb5f5f]";
+                const isLocked = !isOpen && card.lockWhenClosed;
 
-                  {/* Bottom: Status Action Text */}
-                  <div className="mt-auto pt-6 flex items-center justify-between">
-                    <span className={`text-xs sm:text-sm font-semibold tracking-wide ${card.statusColor}`}>
-                      {card.status}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                const handleCardClick = (e: React.MouseEvent) => {
+                  if (isLocked) {
+                    e.preventDefault();
+                    setFiturNoticeToast(
+                      `Fitur ${card.title} saat ini sedang ditutup (${statusLabel}). Pantau terus informasi terbaru di media sosial resmi HIMASI!`
+                    );
+                    setTimeout(() => setFiturNoticeToast(null), 4000);
+                  }
+                };
 
-        </ScrollReveal>
-      </section>
+                return (
+                  <Link
+                    key={card.id}
+                    href={card.href}
+                    onClick={handleCardClick}
+                    className={`group relative flex flex-col justify-between p-6 sm:p-7 min-h-[160px] sm:min-h-[175px] rounded-2xl transition-all duration-300 select-none overflow-hidden ${
+                      isLocked
+                        ? "cursor-not-allowed opacity-95 hover:border-rose-400/40"
+                        : "cursor-pointer hover:-translate-y-1.5"
+                    }`}
+                    style={{
+                      background: "#00296E",
+                    }}
+                    title={isLocked ? `${card.title} (${statusLabel})` : card.title}
+                  >
+                    {/* Top: Icon + Title */}
+                    <div className="flex items-center gap-3.5 sm:gap-4">
+                      <IconComp className="w-8 h-8 text-white stroke-[2.2] shrink-0 group-hover:scale-105 transition-transform duration-300" />
+                      <h3 className="text-white font-bold text-base sm:text-lg tracking-tight leading-snug">
+                        {card.title}
+                      </h3>
+                    </div>
+
+                    {/* Bottom: Status Action Text */}
+                    <div className="mt-auto pt-6 flex items-center justify-between">
+                      <span className={`text-xs sm:text-sm font-semibold tracking-wide ${statusColor}`}>
+                        {statusLabel}
+                      </span>
+                      {!isOpen && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30">
+                          Closed
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+          </ScrollReveal>
+        </section>
+      )}
 
       {/* SECTION: BERITA & INFORMASI TERKINI (CAROUSEL SESUAI REFERENSI) */}
       <section id="berita-informasi" className="relative py-14 sm:py-20 px-4 sm:px-6 lg:px-12 bg-[#FFFFFF] w-full overflow-hidden ">
@@ -1096,31 +1192,34 @@ export default function Home() {
                   animationPlayState: isPengurusPaused ? "paused" : "running",
                 }}
               >
-                {PENGURUS_ITEMS.map((item) => (
+                {displayPengurus.map((item, idx) => (
                   <div
-                    key={`track1-${item.id}`}
+                    key={`track1-${item.id}-${idx}`}
                     className="w-[280px] sm:w-[320px] md:w-[350px] shrink-0"
                   >
-                    <div className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end">
-                      {/* Foto Pengurus Full Tanpa Gradasi */}
+                    <div className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end">
+                      {/* Foto Pengurus Full */}
                       <div className="absolute inset-0 bg-slate-100 overflow-hidden">
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={item.image || "/DSC01203.png"}
+                          alt={item.nama}
                           draggable={false}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                          }}
                           className="w-full h-full object-cover object-top group-hover/card:scale-105 transition-transform duration-500 pointer-events-none"
                         />
                       </div>
 
                       {/* Konten Bawah: Banner Biru untuk Nama + Subtitle Jabatan Sesuai Gambar Referensi */}
-                      <div className="relative z-10 p-5 sm:p-6 pb-5 sm:pb-6 flex flex-col items-start">
-                        <div className="inline-block px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xs bg-gradient-to-r from-[#003B96] via-[#0055D4] to-[#FFFFFF]/20">
-                          <h3 className="text-white font-black text-lg sm:text-xl lg:text-[22px] tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.55)] leading-tight select-none">
-                            {item.name}
+                      <div className="relative z-10 p-4 sm:p-5 pb-5 sm:pb-6 flex flex-col items-start max-w-full">
+                        <div className="inline-block px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xs bg-gradient-to-r from-[#003B96] via-[#0055D4] to-[#FFFFFF]/20 max-w-full">
+                          <h3 className="text-white font-black text-sm sm:text-base lg:text-[17px] xl:text-[18px] tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.55)] leading-tight select-none truncate max-w-full">
+                            {item.nama}
                           </h3>
                         </div>
-                        <p className="mt-1.5 sm:mt-2 text-white font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5">
-                          {item.role}
+                        <p className="mt-1.5 sm:mt-2 text-white font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] truncate max-w-full">
+                          {item.jabatan}
                         </p>
                       </div>
                     </div>
@@ -1137,33 +1236,34 @@ export default function Home() {
                   animationPlayState: isPengurusPaused ? "paused" : "running",
                 }}
               >
-                {PENGURUS_ITEMS.map((item) => (
+                {displayPengurus.map((item, idx) => (
                   <div
-                    key={`track2-${item.id}`}
+                    key={`track2-${item.id}-${idx}`}
                     className="w-[280px] sm:w-[320px] md:w-[350px] shrink-0"
                   >
-                    <div className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end">
-                      {/* Foto Pengurus */}
+                    <div className="relative aspect-[3/4] sm:aspect-[3/4.1] rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group/card select-none flex flex-col justify-end">
+                      {/* Foto Pengurus Full */}
                       <div className="absolute inset-0 bg-slate-100 overflow-hidden">
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={item.image || "/DSC01203.png"}
+                          alt={item.nama}
                           draggable={false}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                          }}
                           className="w-full h-full object-cover object-top group-hover/card:scale-105 transition-transform duration-500 pointer-events-none"
                         />
-                        {/* Gradient Fade di Bawah */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent pointer-events-none" />
                       </div>
 
                       {/* Konten Bawah: Banner Biru untuk Nama + Subtitle Jabatan Sesuai Gambar Referensi */}
-                      <div className="relative z-10 p-5 sm:p-6 pb-5 sm:pb-6 flex flex-col items-start">
-                        <div className="inline-block px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xs bg-gradient-to-r from-[#003B96] via-[#0055D4] to-[#0077F5]/20 shadow-sm">
-                          <h3 className="text-white font-black text-lg sm:text-xl lg:text-[22px] tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.55)] leading-tight select-none">
-                            {item.name}
+                      <div className="relative z-10 p-4 sm:p-5 pb-5 sm:pb-6 flex flex-col items-start max-w-full">
+                        <div className="inline-block px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xs bg-gradient-to-r from-[#003B96] via-[#0055D4] to-[#FFFFFF]/20 max-w-full">
+                          <h3 className="text-white font-black text-sm sm:text-base lg:text-[17px] xl:text-[18px] tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.55)] leading-tight select-none truncate max-w-full">
+                            {item.nama}
                           </h3>
                         </div>
-                        <p className="mt-1.5 sm:mt-2 text-white font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5">
-                          {item.role}
+                        <p className="mt-1.5 sm:mt-2 text-white font-extrabold text-xs sm:text-[13px] tracking-[0.14em] uppercase select-none pl-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] truncate max-w-full">
+                          {item.jabatan}
                         </p>
                       </div>
                     </div>
@@ -1279,6 +1379,21 @@ export default function Home() {
         <div className="fixed bottom-6 right-6 z-50 bg-[#00296E] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs sm:text-sm font-semibold animate-bounce">
           <Check className="w-4 h-4 text-emerald-400" />
           <span>Tautan berita berhasil disalin!</span>
+        </div>
+      )}
+
+      {/* Toast Notifikasi Fitur Tertutup (Closed) */}
+      {fiturNoticeToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-[92%] sm:w-auto px-4 sm:px-5 py-3 rounded-2xl bg-slate-900/95 text-white text-xs sm:text-sm shadow-2xl backdrop-blur-md border border-slate-700/60 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <span className="text-base shrink-0">🔒</span>
+          <p className="font-medium leading-snug">{fiturNoticeToast}</p>
+          <button
+            type="button"
+            onClick={() => setFiturNoticeToast(null)}
+            className="ml-auto text-slate-400 hover:text-white p-1 cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
       )}
 

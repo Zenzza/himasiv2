@@ -306,3 +306,43 @@ export function sortPengurusMembers(members: PengurusMember[]): PengurusMember[]
     return (a.nama || "").localeCompare(b.nama || "");
   });
 }
+
+export const DIVISI_KABINET_ORDER: Record<string, number> = {
+  BPH: 1,
+  MEDKOMINFO: 2,
+  HUMAS: 3,
+  "BISNIS KREATIF": 4,
+  PENASIHAT: 5,
+  PEMBINA: 6,
+};
+
+/**
+ * Mengurutkan pengurus untuk showcase/marquee Kabinet di Homepage:
+ * 1. Prioritas hierarki divisi (BPH -> Medkominfo -> Humas -> Bisnis Kreatif -> Penasihat -> Pembina)
+ * 2. Nomor urutan di dalam divisi (urutan 1 = pimpinan/koordinator)
+ * 3. Bobot hierarki jabatan (Ketua, Wakil, Sekretaris, Bendahara, dll.)
+ * 4. Nama abjad
+ */
+export function sortKabinetHomepage(members: PengurusMember[]): PengurusMember[] {
+  return [...members].sort((a, b) => {
+    const divA = DIVISI_KABINET_ORDER[(a.divisi || "").trim().toUpperCase()] || 5;
+    const divB = DIVISI_KABINET_ORDER[(b.divisi || "").trim().toUpperCase()] || 5;
+    if (divA !== divB) {
+      return divA - divB;
+    }
+
+    const orderA = a.urutan != null && a.urutan > 0 ? a.urutan : 9999;
+    const orderB = b.urutan != null && b.urutan > 0 ? b.urutan : 9999;
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+
+    const priorityA = getRolePriority(a.jabatan);
+    const priorityB = getRolePriority(b.jabatan);
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+
+    return (a.nama || "").localeCompare(b.nama || "");
+  });
+}

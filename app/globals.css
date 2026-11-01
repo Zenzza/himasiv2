@@ -85,7 +85,7 @@ body {
 }
 
 .animate-cards-marquee {
-  animation: cardsMarquee 38s linear infinite;
+  animation: cardsMarquee 55s linear infinite;
   will-change: transform;
 }
 

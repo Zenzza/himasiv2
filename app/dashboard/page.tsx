@@ -54,7 +54,12 @@ import {
   Monitor,
   Smartphone,
   MapPin,
-  CalendarDays
+  CalendarDays,
+  Shirt,
+  Trophy,
+  Award,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import {
   DEFAULT_HERO_BANNER,
@@ -63,6 +68,16 @@ import {
   resetHeroBannerConfig,
   type HeroBannerConfig,
 } from "@/lib/constants/banner";
+import {
+  type FiturUtamaSectionConfig,
+  type FiturItemConfig,
+  DEFAULT_FITUR_UTAMA,
+  getFiturUtamaConfig,
+  saveFiturUtamaConfig,
+  resetFiturUtamaConfig,
+  fetchFiturUtamaFromSupabase,
+  FITUR_UTAMA_UPDATE_EVENT,
+} from "@/lib/constants/fitur-utama";
 import { supabase } from "@/lib/supabase/client";
 import {
   DAFTAR_PENGURUS_HIMASI,
@@ -73,6 +88,7 @@ import {
 } from "@/lib/data/pengurus";
 import AdminQrScanner, { type AbsensiRecord } from "@/components/absensi/admin-qr-scanner";
 import PengurusQrCard from "@/components/absensi/pengurus-qr-card";
+import ApresiasiManager from "@/components/dashboard/apresiasi-manager";
 import RekapAbsensiView, {
   type KegiatanItem,
   formatTanggalIndo,
@@ -159,7 +175,7 @@ export default function DashboardPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "aspirasi" | "berita" | "kalender" | "database" | "banner"
+    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "aspirasi" | "berita" | "kalender" | "database" | "banner" | "apresiasi"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -183,6 +199,32 @@ export default function DashboardPage() {
     setFormMobileImage(loaded.mobileImage);
     setFormDesktopPos(loaded.desktopPosition || "object-[center_65%]");
     setFormMobilePos(loaded.mobilePosition || "object-center");
+  }, []);
+
+  // Sub-tab Home Page di Dashboard: "banner" | "fitur"
+  const [homeSubTab, setHomeSubTab] = useState<"banner" | "fitur">("banner");
+
+  // State Pengaturan Fitur Utama Beranda (Open / Closed Toggle)
+  const [fiturConfig, setFiturConfig] = useState<FiturUtamaSectionConfig>(DEFAULT_FITUR_UTAMA);
+  const [savingFitur, setSavingFitur] = useState(false);
+
+  useEffect(() => {
+    const loadedFitur = getFiturUtamaConfig();
+    setFiturConfig(loadedFitur);
+
+    fetchFiturUtamaFromSupabase().then((data) => {
+      if (data) setFiturConfig(data);
+    });
+
+    const handleFiturUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<FiturUtamaSectionConfig>;
+      if (customEvent.detail) {
+        setFiturConfig(customEvent.detail);
+      }
+    };
+
+    window.addEventListener(FITUR_UTAMA_UPDATE_EVENT, handleFiturUpdate);
+    return () => window.removeEventListener(FITUR_UTAMA_UPDATE_EVENT, handleFiturUpdate);
   }, []);
 
   // Folder Menu State: Absensi (otomatis terbuka jika submenu aktif)
@@ -580,6 +622,53 @@ export default function DashboardPage() {
     setFormDesktopPos(def.desktopPosition || "object-[center_65%]");
     setFormMobilePos(def.mobilePosition || "object-center");
     showToast("Hero Banner berhasil di-reset ke konfigurasi bawaan.");
+  };
+
+  // Handlers untuk Pengaturan Fitur Utama (Open / Closed Toggle)
+  const handleToggleFiturItem = (id: string) => {
+    setFiturConfig((prev) => {
+      const updatedItems = prev.items.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            isOpen: !item.isOpen,
+          };
+        }
+        return item;
+      });
+      const nextConfig = { ...prev, items: updatedItems };
+      saveFiturUtamaConfig(nextConfig);
+      return nextConfig;
+    });
+    showToast("Status fitur berhasil diperbarui & disinkronkan ke beranda!");
+  };
+
+  const handleUpdateFiturItemField = (id: string, field: keyof FiturItemConfig, value: any) => {
+    setFiturConfig((prev) => {
+      const updatedItems = prev.items.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            [field]: value,
+          };
+        }
+        return item;
+      });
+      return { ...prev, items: updatedItems };
+    });
+  };
+
+  const handleSaveAllFitur = async () => {
+    setSavingFitur(true);
+    saveFiturUtamaConfig(fiturConfig);
+    showToast("Pengaturan Fitur Utama berhasil disimpan & tersinkronisasi!");
+    setSavingFitur(false);
+  };
+
+  const handleResetFitur = () => {
+    const def = resetFiturUtamaConfig();
+    setFiturConfig(def);
+    showToast("Fitur Utama berhasil di-reset ke pengaturan bawaan.");
   };
 
   // Kartu QR Modal / Detail State
@@ -2230,11 +2319,71 @@ VALUES
   ('evt-oct-26', '2026-10-26', '2026-10-31', 'Ujian Tengah Semester (UTS) Ganjil 2026/2027', 'Akademik', '08.00 - 16.00 WIB', 'Ruang Ujian Terpadu Kampus Atma Luhur', 'Pekan evaluasi tengah semester untuk seluruh mata kuliah teori dan praktikum sistem informasi.')
 ON CONFLICT (id) DO NOTHING;
 
--- 10. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
+-- 10. TABEL APRESIA-SI (SHOWCASE & SUBMISI MAHASISWA)
+CREATE TABLE IF NOT EXISTS public.apresiasi_showcase (
+  id BIGSERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'karya',
+  category_label TEXT,
+  badge TEXT,
+  student_name TEXT NOT NULL,
+  team_members TEXT,
+  nim TEXT,
+  batch TEXT DEFAULT '2024',
+  organizer_or_company TEXT,
+  level TEXT DEFAULT 'Nasional',
+  description TEXT NOT NULL,
+  full_story TEXT,
+  mentor_or_lecturer TEXT,
+  image TEXT DEFAULT 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop',
+  live_url TEXT,
+  github_url TEXT,
+  proof_url TEXT,
+  likes INT DEFAULT 0,
+  featured BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.apresiasi_showcase ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.apresiasi_showcase TO anon, authenticated, service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+DROP POLICY IF EXISTS "Publik dapat melihat showcase apresiasi" ON public.apresiasi_showcase;
+CREATE POLICY "Publik dapat melihat showcase apresiasi" ON public.apresiasi_showcase FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Pengurus dapat mengelola showcase apresiasi" ON public.apresiasi_showcase;
+CREATE POLICY "Pengurus dapat mengelola showcase apresiasi" ON public.apresiasi_showcase FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.apresiasi_submisi (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category TEXT NOT NULL,
+  title TEXT NOT NULL,
+  student_name TEXT NOT NULL,
+  team_members TEXT,
+  nim TEXT NOT NULL,
+  batch TEXT NOT NULL,
+  contact TEXT NOT NULL,
+  organizer_or_company TEXT NOT NULL,
+  level TEXT DEFAULT 'Nasional',
+  description TEXT NOT NULL,
+  link_demo_or_repo TEXT,
+  proof_url TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.apresiasi_submisi ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.apresiasi_submisi TO anon, authenticated, service_role;
+
+DROP POLICY IF EXISTS "Mahasiswa dapat mengajukan apresiasi" ON public.apresiasi_submisi;
+CREATE POLICY "Mahasiswa dapat mengajukan apresiasi" ON public.apresiasi_submisi FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Pengurus dapat mengelola submisi apresiasi" ON public.apresiasi_submisi;
+CREATE POLICY "Pengurus dapat mengelola submisi apresiasi" ON public.apresiasi_submisi FOR ALL USING (true) WITH CHECK (true);
+
+-- 11. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
 DO $$
 BEGIN
   BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus, public.dokumen_organisasi, public.agenda_kalender;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus, public.dokumen_organisasi, public.agenda_kalender, public.apresiasi_showcase, public.apresiasi_submisi;
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
@@ -2378,7 +2527,7 @@ NOTIFY pgrst, 'reload schema';`;
                   Kontrol Halaman
                 </div>
 
-                {/* Home Page (Hero Banner Mobile & Desktop) */}
+                {/* Home Page (Hero Banner Mobile & Desktop + Fitur Utama) */}
                 <button
                   type="button"
                   onClick={() => {
@@ -2393,11 +2542,8 @@ NOTIFY pgrst, 'reload schema';`;
                 >
                   <div className="flex items-center gap-2.5">
                     <ImageIcon className={`w-4 h-4 ${activeTab === "banner" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Home Page (Banner)</span>
+                    <span>Home Page (Banner &amp; Fitur)</span>
                   </div>
-                  <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                    Dual
-                  </span>
                 </button>
 
                 {/* Berita Page */}
@@ -2436,9 +2582,6 @@ NOTIFY pgrst, 'reload schema';`;
                     <Users className={`w-4 h-4 ${activeTab === "kartu-qr" ? "text-[#00296E]" : "text-slate-400"}`} />
                     <span>Kabinet &amp; Profil</span>
                   </div>
-                  <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                    {pengurusList.length}
-                  </span>
                 </button>
 
                 {/* Dokumen Organisasi */}
@@ -2458,9 +2601,6 @@ NOTIFY pgrst, 'reload schema';`;
                     <FileText className={`w-4 h-4 ${activeTab === "dokumen" ? "text-[#00296E]" : "text-slate-400"}`} />
                     <span>Dokumen Organisasi</span>
                   </div>
-                  <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                    {dokumenList.length}
-                  </span>
                 </button>
 
                 {/* Kalender Page */}
@@ -2480,11 +2620,6 @@ NOTIFY pgrst, 'reload schema';`;
                     <Calendar className={`w-4 h-4 ${activeTab === "kalender" ? "text-[#00296E]" : "text-slate-400"}`} />
                     <span>Kalender Page</span>
                   </div>
-                  {agendaList.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-100 text-[#00296E] font-bold">
-                      {agendaList.length}
-                    </span>
-                  )}
                 </button>
 
                 {/* Aspirasi Masuk */}
@@ -2504,11 +2639,25 @@ NOTIFY pgrst, 'reload schema';`;
                     <MessageSquare className={`w-4 h-4 ${activeTab === "aspirasi" ? "text-[#00296E]" : "text-slate-400"}`} />
                     <span>Aspirasi Mahasiswa</span>
                   </div>
-                  {countBaru > 0 && (
-                    <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
-                      {countBaru} Baru
-                    </span>
-                  )}
+                </button>
+
+                {/* Apresia-SI (Prestasi & Karya) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("apresiasi");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    activeTab === "apresiasi"
+                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Trophy className={`w-4 h-4 ${activeTab === "apresiasi" ? "text-amber-500" : "text-slate-400"}`} />
+                    <span>Apresia-SI (Prestasi &amp; Karya)</span>
+                  </div>
                 </button>
               </div>
 
@@ -2644,12 +2793,13 @@ NOTIFY pgrst, 'reload schema';`;
                 <span className="text-slate-300">/</span>
                 <span className="font-bold text-[#00296E]">
                   {activeTab === "overview" && "Ringkasan"}
-                  {activeTab === "banner" && "Home Page (Hero Banner)"}
+                  {activeTab === "banner" && (homeSubTab === "banner" ? "Home Page (Hero Banner)" : "Home Page (Fitur Utama)")}
                   {activeTab === "berita" && "Berita Page (Warta)"}
                   {activeTab === "kartu-qr" && "Kabinet & Profil"}
                   {activeTab === "dokumen" && "Dokumen Organisasi"}
                   {activeTab === "kalender" && "Kalender Page"}
                   {activeTab === "aspirasi" && "Aspirasi Mahasiswa"}
+                  {activeTab === "apresiasi" && "Apresia-SI (Karya & Prestasi)"}
                   {activeTab === "absensi" && "Scan Absensi QR"}
                   {activeTab === "rekap-absensi" && "Rekapitulasi PDF"}
                   {activeTab === "database" && "Database Supabase"}
@@ -3764,6 +3914,11 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
             )}
 
+            {/* TAB APRESIA-SI (KARYA, PRESTASI & SUBMISI MAHASISWA) */}
+            {activeTab === "apresiasi" && (
+              <ApresiasiManager />
+            )}
+
             {/* TAB 6: BERITA CRUD MANAGEMENT */}
             {activeTab === "berita" && (
               <div className="space-y-5 animate-in fade-in duration-200">
@@ -4513,9 +4668,43 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
             )}
 
-            {/* TAB 9: HERO BANNER (MOBILE & DESKTOP) */}
+            {/* TAB 9: HERO BANNER & FITUR UTAMA BERANDA */}
             {activeTab === "banner" && (
               <div className="space-y-5 animate-in fade-in duration-200">
+                {/* Segmented Sub-Tab Switch: Hero Banner vs Fitur Utama */}
+                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-xl w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setHomeSubTab("banner")}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      homeSubTab === "banner"
+                        ? "bg-white text-[#00296E] shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Hero Banner (Desktop &amp; Mobile)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHomeSubTab("fitur")}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      homeSubTab === "fitur"
+                        ? "bg-white text-[#00296E] shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <Award className="w-4 h-4 text-emerald-600" />
+                    <span>Daftar Fitur Utama (Toggle Buka / Tutup)</span>
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800">
+                      Open / Closed
+                    </span>
+                  </button>
+                </div>
+
+                {homeSubTab === "banner" && (
+                  <div className="space-y-5">
                 {/* Header Info Card */}
                 <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -4886,6 +5075,265 @@ NOTIFY pgrst, 'reload schema';`;
                     </button>
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* PANEL SUB-TAB: PENGATURAN STATUS FITUR UTAMA (OPEN / CLOSED TOGGLE) */}
+            {homeSubTab === "fitur" && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                {/* Header Info Card */}
+                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                      <Award className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-[#00296E] flex items-center gap-2">
+                        <span>Pengaturan Status Fitur Utama Beranda</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                          Toggle Open / Closed
+                        </span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Aktifkan atau nonaktifkan fitur utama pada halaman beranda dengan status Buka (Open) atau Ditutup (Closed / Coming Soon).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Master Switch Tampilkan Section di Homepage */}
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer select-none transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={fiturConfig.showSection}
+                        onChange={(e) => {
+                          const next = { ...fiturConfig, showSection: e.target.checked };
+                          setFiturConfig(next);
+                          saveFiturUtamaConfig(next);
+                          showToast(
+                            e.target.checked
+                              ? "Section Fitur Utama kini AKTIF di halaman beranda!"
+                              : "Section Fitur Utama DISEMBUNYIKAN dari beranda."
+                          );
+                        }}
+                        className="w-4 h-4 text-[#00296E] rounded accent-[#00296E] cursor-pointer"
+                      />
+                      <span>Tampilkan Section di Beranda</span>
+                    </label>
+
+                    <a
+                      href="/#fitur-utama"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-[#00296E] hover:border-slate-300 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+                    >
+                      <span>Lihat Beranda</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => handleResetFitur()}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
+                      title="Kembalikan semua ke default"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Reset</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 Cards Grid Editor */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                  {fiturConfig.items.map((item) => {
+                    const isOpen = item.isOpen;
+                    const previewLabel = isOpen
+                      ? (item.statusOpenText || "Lihat Selengkapnya")
+                      : (item.statusClosedText || "Coming Soon");
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`bg-white rounded-2xl border transition-all duration-200 p-4 sm:p-5 flex flex-col justify-between shadow-2xs ${
+                          isOpen
+                            ? "border-emerald-300/80 ring-1 ring-emerald-500/15"
+                            : "border-slate-200/90"
+                        }`}
+                      >
+                        <div>
+                          {/* Top Bar Card */}
+                          <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-[#00296E] text-white flex items-center justify-center shrink-0 shadow-xs">
+                                {item.iconName === "UserPlus" && <UserPlus className="w-5 h-5 stroke-[2.2]" />}
+                                {item.iconName === "Shirt" && <Shirt className="w-5 h-5 stroke-[2.2]" />}
+                                {item.iconName === "Trophy" && <Trophy className="w-5 h-5 stroke-[2.2]" />}
+                                {item.iconName === "Award" && <Award className="w-5 h-5 stroke-[2.2]" />}
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-sm text-[#00296E] leading-snug">
+                                  {item.title}
+                                </h3>
+                                <span className="text-[11px] font-mono text-slate-400">
+                                  Tautan: {item.href}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Status Indicator Pill */}
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 ${
+                                isOpen
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                  : "bg-rose-100 text-rose-800 border border-rose-200"
+                              }`}
+                            >
+                              <span className={`w-2 h-2 rounded-full ${isOpen ? "bg-emerald-600 animate-pulse" : "bg-rose-600"}`} />
+                              {isOpen ? "Open" : "Closed"}
+                            </span>
+                          </div>
+
+                          {/* Big Segmented Toggle Switch (OPEN vs CLOSED) */}
+                          <div className="mb-4">
+                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                              Status Fitur di Beranda
+                            </label>
+                            <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!isOpen) handleToggleFiturItem(item.id);
+                                }}
+                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                  isOpen
+                                    ? "bg-emerald-600 text-white shadow-xs"
+                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                                }`}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>OPEN (Dibuka)</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isOpen) handleToggleFiturItem(item.id);
+                                }}
+                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                  !isOpen
+                                    ? "bg-rose-600 text-white shadow-xs"
+                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                                }`}
+                              >
+                                <Lock className="w-3.5 h-3.5" />
+                                <span>CLOSED (Ditutup)</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Setting Label Input Fields */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                            <div>
+                              <label className="text-[11px] font-medium text-slate-600 block mb-1">
+                                Label saat <strong className="text-emerald-700">Open</strong>
+                              </label>
+                              <input
+                                type="text"
+                                value={item.statusOpenText}
+                                onChange={(e) => handleUpdateFiturItemField(item.id, "statusOpenText", e.target.value)}
+                                placeholder="Lihat Selengkapnya"
+                                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[11px] font-medium text-slate-600 block mb-1">
+                                Label saat <strong className="text-rose-700">Closed</strong>
+                              </label>
+                              <input
+                                type="text"
+                                value={item.statusClosedText}
+                                onChange={(e) => handleUpdateFiturItemField(item.id, "statusClosedText", e.target.value)}
+                                placeholder="Coming Soon"
+                                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Opsi Kunci Akses saat Closed */}
+                          <div className="mb-4 pt-2 border-t border-slate-100">
+                            <label className="flex items-start gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={item.lockWhenClosed !== false}
+                                onChange={(e) => handleUpdateFiturItemField(item.id, "lockWhenClosed", e.target.checked)}
+                                className="mt-0.5 w-3.5 h-3.5 text-[#00296E] rounded accent-[#00296E] cursor-pointer"
+                              />
+                              <span className="text-[11px] text-slate-600 leading-tight">
+                                Kunci klik saat <strong>Closed</strong> (menampilkan pemberitahuan bahwa fitur sedang ditutup dan mencegah pembukaan form)
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Live Visual Preview Kartu Sesuai Tampilan Homepage */}
+                        <div className="pt-3 border-t border-slate-100">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                            Pratinjau Tampilan di Beranda:
+                          </span>
+                          <div
+                            className="rounded-2xl p-5 flex flex-col justify-between min-h-[140px] select-none text-white shadow-xs transition-transform hover:-translate-y-0.5"
+                            style={{ background: "#00296E" }}
+                          >
+                            <div className="flex items-center gap-3">
+                              {item.iconName === "UserPlus" && <UserPlus className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
+                              {item.iconName === "Shirt" && <Shirt className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
+                              {item.iconName === "Trophy" && <Trophy className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
+                              {item.iconName === "Award" && <Award className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
+                              <h4 className="font-bold text-base text-white leading-snug">
+                                {item.title}
+                              </h4>
+                            </div>
+                            <div className="mt-4 flex items-center justify-between">
+                              <span className={`text-xs font-semibold tracking-wide ${isOpen ? "text-[#22c55e]" : "text-[#eb5f5f]"}`}>
+                                {previewLabel}
+                              </span>
+                              {!isOpen && (
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30">
+                                  Closed
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bottom Bar: Simpan Perubahan Fitur */}
+                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-[#00296E]">
+                      Simpan &amp; Sinkronisasi Seluruh Perubahan
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Perubahan status Open/Closed dan label teks akan langsung aktif untuk seluruh pengunjung website.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveAllFitur}
+                    disabled={savingFitur}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Simpan Pengaturan Fitur</span>
+                  </button>
+                </div>
+              </div>
+            )}
               </div>
             )}
 

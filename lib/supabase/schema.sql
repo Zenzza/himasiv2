@@ -292,7 +292,214 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.fitur_utama;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
 END $$;
+
+
+-- ===================================================================
+-- 8. TABEL FITUR UTAMA BERANDA (TOGGLE STATUS OPEN / CLOSED)
+-- ===================================================================
+CREATE TABLE IF NOT EXISTS public.fitur_utama (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  href TEXT NOT NULL,
+  icon_name TEXT DEFAULT 'Award',
+  is_open BOOLEAN NOT NULL DEFAULT true,
+  status_open_text TEXT DEFAULT 'Lihat Selengkapnya',
+  status_closed_text TEXT DEFAULT 'Coming Soon',
+  lock_when_closed BOOLEAN DEFAULT true,
+  urutan INT DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+GRANT ALL ON TABLE public.fitur_utama TO anon, authenticated, service_role;
+ALTER TABLE public.fitur_utama DISABLE ROW LEVEL SECURITY;
+
+-- Seed Data Awal Fitur Utama Beranda
+INSERT INTO public.fitur_utama (id, title, href, icon_name, is_open, status_open_text, status_closed_text, lock_when_closed, urutan)
+VALUES
+  ('recruitment', 'Recruitment HIMASI', '/oprec', 'UserPlus', false, 'Lihat Selengkapnya', 'Coming Soon', true, 1),
+  ('order-baju', 'Order Baju Jurusan', '/order-baju', 'Shirt', false, 'Lihat Selengkapnya', 'Coming Soon', true, 2),
+  ('informasi', 'Pusat Informasi', '/prestasi', 'Trophy', false, 'Lihat Selengkapnya', 'Coming Soon', true, 3),
+  ('apresiasi', 'Apresia-SI', '/apresiasi', 'Award', true, 'Lihat Selengkapnya', 'Coming Soon', false, 4)
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  href = EXCLUDED.href;
+
+
+-- ===================================================================
+-- 9. TABEL APRESIA-SI (SHOWCASE PRESTASI & SUBMISI MAHASISWA)
+-- ===================================================================
+
+-- 1. Tabel Galeri Showcase Apresia-SI (Karya & Prestasi Terbit)
+CREATE TABLE IF NOT EXISTS public.apresiasi_showcase (
+  id BIGSERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'karya', -- 'lomba', 'karya', 'magang'
+  category_label TEXT,
+  badge TEXT,
+  student_name TEXT NOT NULL,
+  team_members TEXT,
+  nim TEXT,
+  batch TEXT DEFAULT '2024',
+  organizer_or_company TEXT,
+  level TEXT DEFAULT 'Nasional',
+  description TEXT NOT NULL,
+  full_story TEXT,
+  mentor_or_lecturer TEXT,
+  image TEXT DEFAULT 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop',
+  live_url TEXT,
+  github_url TEXT,
+  proof_url TEXT,
+  likes INT DEFAULT 0,
+  featured BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Hak Akses & Kebijakan RLS Showcase
+ALTER TABLE public.apresiasi_showcase ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.apresiasi_showcase TO anon, authenticated, service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+DROP POLICY IF EXISTS "Publik dapat melihat showcase apresiasi" ON public.apresiasi_showcase;
+CREATE POLICY "Publik dapat melihat showcase apresiasi"
+  ON public.apresiasi_showcase FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Pengurus dapat mengelola showcase apresiasi" ON public.apresiasi_showcase;
+CREATE POLICY "Pengurus dapat mengelola showcase apresiasi"
+  ON public.apresiasi_showcase FOR ALL USING (true) WITH CHECK (true);
+
+
+-- 2. Tabel Pengajuan Submisi Mandiri Apresiasi Mahasiswa
+CREATE TABLE IF NOT EXISTS public.apresiasi_submisi (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category TEXT NOT NULL, -- 'lomba', 'karya', 'magang'
+  title TEXT NOT NULL,
+  student_name TEXT NOT NULL,
+  team_members TEXT,
+  nim TEXT NOT NULL,
+  batch TEXT NOT NULL,
+  contact TEXT NOT NULL,
+  organizer_or_company TEXT NOT NULL,
+  level TEXT DEFAULT 'Nasional',
+  description TEXT NOT NULL,
+  link_demo_or_repo TEXT,
+  proof_url TEXT,
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Hak Akses & Kebijakan RLS Submisi
+ALTER TABLE public.apresiasi_submisi ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.apresiasi_submisi TO anon, authenticated, service_role;
+
+DROP POLICY IF EXISTS "Mahasiswa dapat mengajukan apresiasi" ON public.apresiasi_submisi;
+CREATE POLICY "Mahasiswa dapat mengajukan apresiasi"
+  ON public.apresiasi_submisi FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Pengurus dapat mengelola submisi apresiasi" ON public.apresiasi_submisi;
+CREATE POLICY "Pengurus dapat mengelola submisi apresiasi"
+  ON public.apresiasi_submisi FOR ALL USING (true) WITH CHECK (true);
+
+
+-- 3. Data Awal (Seed Data) Galeri Showcase Apresia-SI
+INSERT INTO public.apresiasi_showcase (
+  title, category, category_label, badge, student_name, team_members, nim, batch,
+  organizer_or_company, level, description, full_story, mentor_or_lecturer, image,
+  live_url, github_url, proof_url, likes, featured
+) VALUES
+(
+  'Juara 1 - National UI/UX Design Hackathon 2026', 'lomba', 'Juara Lomba', 'Juara 1 Nasional',
+  'Muhammad Fadhil', 'Anindya Putri, Zahra Salsabila', '231150002', '2024',
+  'TechFest Nasional x Kemendikbudristek', 'Nasional',
+  'Mengembangkan aplikasi asisten perkuliahan cerdas untuk penyandang disabilitas sensorik dengan pengenalan suara dan gestur berbasis AI.',
+  'Dalam kompetisi hackathon nasional berdurasi 48 jam yang diikuti lebih dari 120 universitas di seluruh Indonesia, Tim Inovasi Aksesibel SI berhasil meraih Juara 1 dengan menciptakan solusi Aksesibel-SI.',
+  'Dosen Pembina HIMASI ISB Atma Luhur', 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop',
+  'https://github.com/himasi-atmaluhur', 'https://github.com/himasi-atmaluhur', '/DSC01203.png', 84, true
+),
+(
+  'Best Paper Award - International Conference on Information Systems (ICIS 2025)', 'lomba', 'Juara Lomba', 'Best Paper Internasional',
+  'Arya Wijaya', 'Tim Riset Data Mahasiswa SI', '221150019', '2023',
+  'IEEE Computer Society & AIS', 'Internasional',
+  'Menerbitkan penelitian ilmiah bereputasi internasional mengenai arsitektur sistem informasi prediktif pada rantai pasok maritim kepulauan.',
+  'Penelitian ini menganalisis efisiensi logistik distribusi komoditas antarpulau di Kepulauan Bangka Belitung menggunakan model prediktif berbasis machine learning.',
+  'Kaprodi Sistem Informasi ISB Atma Luhur', 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=800&auto=format&fit=crop',
+  'https://ieee.org', NULL, '/DSC01203.png', 72, true
+),
+(
+  'SmartAgri Bangka - Sistem Monitoring IoT & Prediksi Panen Lada Putih', 'karya', 'Karya Aplikasi', 'Inovasi Daerah',
+  'Rian Hidayat', 'Nabila Syahrani, Dimas Arya Pratama', '231150028', '2024',
+  'Dinas Pertanian Prov. Kep. Bangka Belitung', 'Regional',
+  'Perangkat IoT cerdas terintegrasi dashboard analitik cloud untuk memantau kelembaban mikro dan mendeteksi dini penyakit busuk batang tanaman lada.',
+  'Proyek SmartAgri Bangka lahir dari kepedulian terhadap para petani lada putih di Bangka Belitung dengan telemetri ESP32 dan dashboard cloud.',
+  'Laboratorium Komputasi & IoT ISB Atma Luhur', 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=800&auto=format&fit=crop',
+  'https://github.com/himasi-atmaluhur', 'https://github.com/himasi-atmaluhur', NULL, 96, true
+),
+(
+  'Software Engineer Intern di PT Bank Mandiri (Persero) Tbk - MSIB Batch 6', 'magang', 'Magang & MSIB', 'MSIB Batch 6',
+  'Muhammad Evan Elua', NULL, '221150035', '2023',
+  'Kampus Merdeka x PT Bank Mandiri (Persero) Tbk', 'Nasional',
+  'Membangun dan mengoptimasi microservices backend pemrosesan transaksi perbankan digital serta mengimplementasikan automated API testing.',
+  'Terpilih dari puluhan ribu pendaftar MSIB Kampus Merdeka untuk berkolaborasi di Divisi Digital Banking Core System.',
+  NULL, 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop',
+  'https://kampusmerdeka.kemdikbud.go.id', NULL, NULL, 67, false
+),
+(
+  'Juara 3 - National Cyber Security & Penetration Testing Challenge 2025', 'lomba', 'Juara Lomba', 'Juara 3 Nasional',
+  'Dimas Arya Pratama', 'Kevin Alamsyah', '221150041', '2023',
+  'Badan Siber & Sandi Negara (BSSN) Challenge', 'Nasional',
+  'Kompetisi Capture The Flag (CTF) kategori Web Exploitation, Reverse Engineering, dan Forensik Jaringan tingkat universitas se-Indonesia.',
+  'Menghadapi 40 tim finalis dari seluruh perguruan tinggi, perwakilan HIMASI berhasil menyelesaikan skenario forensik digital.',
+  NULL, 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop',
+  NULL, NULL, '/DSC01203.png', 58, false
+),
+(
+  'AtmaCare - Aplikasi Konseling Mahasiswa & Reservasi Sesi Psikolog Kampus', 'karya', 'Karya Aplikasi', 'Startup Digital',
+  'Leysa Regita Parhusip', 'Felicia Angelica', '231150011', '2024',
+  'Inkubator Bisnis & Inovasi ISB Atma Luhur', 'Kampus',
+  'Aplikasi mobile-first untuk mendukung kesehatan mental mahasiswa dengan fitur jurnal refleksi harian dan booking konsultasi aman anonim.',
+  'Dirancang untuk memberikan wadah bercerita yang aman bagi mahasiswa ISB Atma Luhur.',
+  NULL, 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=800&auto=format&fit=crop',
+  'https://github.com/himasi-atmaluhur', 'https://github.com/himasi-atmaluhur', NULL, 81, false
+),
+(
+  'Product Design & UI/UX Intern di Tokopedia (GoTo Group) - MSIB Batch 5', 'magang', 'Magang & MSIB', 'MSIB Batch 5',
+  'Beatriks Maria', NULL, '221150058', '2023',
+  'Kampus Merdeka x Tokopedia (GoTo Group)', 'Nasional',
+  'Merancang alur wireframing, user journey flow, serta pengujian kegunaan antarmuka (usability testing) pada fitur loyalty checkout rewards.',
+  'Berkolaborasi langsung dengan tim UX Researcher Tokopedia dalam optimalisasi conversion checkout.',
+  NULL, 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=800&auto=format&fit=crop',
+  'https://kampusmerdeka.kemdikbud.go.id', NULL, NULL, 63, false
+),
+(
+  'DevSI Open Source Library - Kumpulan Komponen UI Responsif HIMASI', 'karya', 'Karya Aplikasi', 'Open Source',
+  'Kevin Saputra', 'Tim Medkominfo & Litbang HIMASI', '231150064', '2024',
+  'HIMASI Developer Community', 'Nasional',
+  'Koleksi komponen UI reusable berbasis Tailwind CSS dan accessible design system untuk standarisasi pembuatan situs web organisasi mahasiswa.',
+  'Mempermudah mahasiswa prodi Sistem Informasi dalam membangun website kepanitiaan dan proyek akademik.',
+  NULL, 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop',
+  NULL, 'https://github.com/himasi-atmaluhur', NULL, 91, false
+)
+ON CONFLICT DO NOTHING;
+
+-- Realtime Publication & Reload
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.apresiasi_showcase, public.apresiasi_submisi;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+END $$;
+
+NOTIFY pgrst, 'reload schema';
+
+
+
 
 
 
