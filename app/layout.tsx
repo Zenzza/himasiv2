@@ -38,13 +38,13 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               body {
-                background-color: #00296E;
+                background-color: #ffffff;
               }
             `,
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans bg-[#00296E] text-[#091e42] selection:bg-[#0094E0]/20 selection:text-[#00296E]">
+      <body className="min-h-full flex flex-col font-sans bg-white text-[#091e42] selection:bg-[#0094E0]/20 selection:text-[#00296E]">
         <ScrollToTopOnNav />
         <LoadingScreen>
           <Navbar />

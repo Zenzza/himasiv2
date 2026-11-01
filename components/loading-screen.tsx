@@ -20,12 +20,49 @@ const INITIAL_DELAY_MS = 1000; // Jeda awal 1 detik sebelum bar mulai berhitung
 const PROGRESS_DURATION_MS = 2400; // Durasi animasi hitungan dari 0% hingga 100%
 const SEGMENT_INDICES = Array.from({ length: TOTAL_SEGMENTS }, (_, i) => i);
 
+const KNOWN_STATIC_ROUTES = new Set([
+  "/",
+  "/berita",
+  "/profil",
+  "/tentang",
+  "/kalender",
+  "/apresiasi",
+  "/order-baju",
+  "/prestasi",
+  "/informasi",
+  "/oprec",
+  "/login",
+]);
+
+function isExcludedFromLoading(pathname: string | null | undefined): boolean {
+  if (!pathname) return true;
+  if (pathname.startsWith("/dashboard") || pathname === "/login") return true;
+  if (pathname.startsWith("/error") || pathname === "/_not-found") return true;
+  if (KNOWN_STATIC_ROUTES.has(pathname)) return false;
+  if (pathname.startsWith("/berita/")) return false;
+  // Rute tidak dikenal / acak akan memicu 404, kecualikan dari loading screen seketika
+  return true;
+}
+
 export default function LoadingScreen({ children, forceShow = false, onComplete }: LoadingScreenProps) {
   const pathname = usePathname();
-  const isExcludedPath = pathname?.startsWith("/dashboard") || pathname === "/login";
+  const isExcludedPath = isExcludedFromLoading(pathname);
 
   // State fase: 'idle' (delay awal) -> 'animating' (bar jalan) -> 'exiting' (seluruh kontainer naik) -> 'hidden' (selesai)
-  const [phase, setPhase] = useState<"idle" | "animating" | "exiting" | "hidden">("idle");
+  const [phase, setPhase] = useState<"idle" | "animating" | "exiting" | "hidden">(
+    isExcludedPath ? "hidden" : "idle"
+  );
+
+  useEffect(() => {
+    const handleDismiss = () => {
+      setPhase("hidden");
+      restoreScroll();
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("himasi:dismiss-preloader", handleDismiss);
+      return () => window.removeEventListener("himasi:dismiss-preloader", handleDismiss);
+    }
+  }, []);
   const [progress, setProgress] = useState(0);
   const [showText, setShowText] = useState(false);
 

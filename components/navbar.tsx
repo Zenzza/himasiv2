@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Mail } from "lucide-react";
+import { getMaintenanceMode } from "@/lib/supabase/system-settings";
+import { supabase } from "@/lib/supabase/client";
 
 // Nav items mapped for desktop and mobile
 const himasiNavItems = [
@@ -59,6 +61,51 @@ export default function Navbar() {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     }
+  }, [pathname]);
+
+  // Guard Mode Pemeliharaan (503) untuk seluruh rute publik
+  useEffect(() => {
+    if (!pathname || pathname === "/login" || pathname.startsWith("/dashboard") || pathname.startsWith("/error")) {
+      return;
+    }
+
+    const checkMaintenance = () => {
+      getMaintenanceMode().then(async (m) => {
+        if (m.enabled) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+              window.location.replace("/error/503");
+            }
+          } catch {
+            window.location.replace("/error/503");
+          }
+        }
+      });
+    };
+
+    checkMaintenance();
+
+    // Langganan perubahan status real-time dari database Supabase
+    const channel = supabase
+      .channel("system_settings_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "system_settings",
+          filter: "key=eq.maintenance_mode",
+        },
+        () => {
+          checkMaintenance();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [pathname]);
 
   // Handler klik link menu navigasi (memastikan layar selalu kembali ke puncak atas)

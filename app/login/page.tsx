@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { sanitizeRedirectUrl } from "@/lib/constants/error-configs";
 import {
   Lock,
   Mail,
@@ -18,8 +19,12 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawRedirect = searchParams?.get("redirect");
+  const targetRedirect = sanitizeRedirectUrl(rawRedirect) || "/dashboard";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -128,10 +133,10 @@ export default function LoginPage() {
 
       if (data.session) {
         setSuccessMessage(
-          "Autentikasi berhasil! Mengarahkan ke Dashboard Pengurus..."
+          "Autentikasi berhasil! Mengarahkan..."
         );
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push(targetRedirect);
         }, 600);
       }
     } catch (err: unknown) {
@@ -366,5 +371,13 @@ export default function LoginPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#00173d]" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

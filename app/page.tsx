@@ -51,6 +51,7 @@ import {
   fetchFiturUtamaFromSupabase,
   FITUR_UTAMA_UPDATE_EVENT,
 } from "@/lib/constants/fitur-utama";
+import { getMaintenanceMode } from "@/lib/supabase/system-settings";
 
 // URL Video YouTube Company Profile HIMASI (Ganti link di sini sesuai kebutuhan)
 const YOUTUBE_VIDEO_URL = "https://youtu.be/Q-SbWMLlmoI?si=5uNeFPoj9BzOo0bT";
@@ -170,6 +171,22 @@ export default function Home() {
         window.location.replace(`/login${hash}`);
       }
     }
+  }, []);
+
+  // Periksa apakah mode pemeliharaan (503) sedang aktif untuk pengunjung publik
+  useEffect(() => {
+    getMaintenanceMode().then(async (m) => {
+      if (m.enabled) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            window.location.replace("/error/503");
+          }
+        } catch {
+          window.location.replace("/error/503");
+        }
+      }
+    });
   }, []);
 
   const [isPlayingInline, setIsPlayingInline] = useState(false);

@@ -18,6 +18,10 @@ import {
   X,
   Code2,
   Lock,
+  Wrench,
+  ToggleLeft,
+  ToggleRight,
+  Clock,
 } from "lucide-react";
 import {
   UserProfile,
@@ -26,6 +30,7 @@ import {
   ROLE_BADGE_STYLES,
 } from "@/lib/types/auth";
 import { getAllUserProfiles, updateUserRole } from "@/lib/supabase/users";
+import { getMaintenanceMode, setMaintenanceMode } from "@/lib/supabase/system-settings";
 
 interface UserManagerProps {
   currentUserEmail?: string;
@@ -57,6 +62,47 @@ export default function UserManager({ currentUserEmail }: UserManagerProps) {
   // SQL Migration Banner Toggle
   const [showSqlMigration, setShowSqlMigration] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
+
+  // Maintenance Mode (503) State
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceEstimated, setMaintenanceEstimated] = useState("~15-30 Menit");
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
+  const [maintenanceToast, setMaintenanceToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMaintenanceMode().then((settings) => {
+      setMaintenanceEnabled(settings.enabled);
+      if (settings.estimatedEnd) {
+        setMaintenanceEstimated(settings.estimatedEnd);
+      }
+    });
+  }, []);
+
+  const handleToggleMaintenance = async () => {
+    setSavingMaintenance(true);
+    try {
+      const nextState = !maintenanceEnabled;
+      await setMaintenanceMode(nextState, undefined, maintenanceEstimated);
+      setMaintenanceEnabled(nextState);
+      setMaintenanceToast(
+        nextState
+          ? "Mode pemeliharaan sistem AKTIF. Pengunjung umum kini dialihkan ke /error/503."
+          : "Mode pemeliharaan sistem DINONAKTIFKAN. Seluruh halaman web dapat diakses normal."
+      );
+      setTimeout(() => setMaintenanceToast(null), 4000);
+    } catch (err) {
+      console.error("Gagal mengubah mode maintenance:", err);
+    } finally {
+      setSavingMaintenance(false);
+    }
+  };
+
+  const handleUpdateEstimatedTime = async (newTime: string) => {
+    setMaintenanceEstimated(newTime);
+    if (maintenanceEnabled) {
+      await setMaintenanceMode(true, undefined, newTime);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -226,6 +272,32 @@ ALTER TABLE public.agenda_kalender
 ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published',
 ADD COLUMN IF NOT EXISTS catatan_revisi TEXT;
 
+-- 6. Tabel Pengaturan Sistem & Mode Pemeliharaan (503)
+CREATE TABLE IF NOT EXISTS public.system_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Pengaturan sistem dapat dibaca publik" ON public.system_settings;
+CREATE POLICY "Pengaturan sistem dapat dibaca publik"
+  ON public.system_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Super admin dapat mengelola pengaturan sistem" ON public.system_settings;
+CREATE POLICY "Super admin dapat mengelola pengaturan sistem"
+  ON public.system_settings FOR ALL TO authenticated USING (true);
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.system_settings;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+END $$;
+
 NOTIFY pgrst, 'reload schema';`;
 
   const handleCopySql = () => {
@@ -302,6 +374,93 @@ NOTIFY pgrst, 'reload schema';`;
           </p>
         </div>
       )}
+
+      {/* 2.1 Mode Pemeliharaan Sistem (503) Super Admin Gate */}
+      <div
+        className={`p-5 rounded-2xl border transition-all duration-200 shadow-2xs ${
+          maintenanceEnabled
+            ? "bg-amber-50/80 border-amber-300 text-amber-950"
+            : "bg-white border-slate-200/80 text-slate-900"
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                maintenanceEnabled
+                  ? "bg-amber-500 text-white shadow-md shadow-amber-500/25"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              <Wrench className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold tracking-tight text-[#00296E]">
+                  Mode Pemeliharaan Sistem (Error 503 Gate)
+                </h3>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${
+                    maintenanceEnabled
+                      ? "bg-amber-200 text-amber-900 border border-amber-300"
+                      : "bg-slate-100 text-slate-600 border border-slate-200"
+                  }`}
+                >
+                  {maintenanceEnabled ? "Aktif (Terkunci)" : "Nonaktif (Normal)"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                Ketika aktif, pengunjung publik dialihkan otomatis ke halaman <strong>/error/503</strong> penuh.
+                Halaman <strong>/login</strong> dan dashboard pengurus tetap terbuka agar Super Admin dapat mengelola sistem.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="flex items-center gap-1.5 bg-white sm:bg-transparent px-3 py-1.5 rounded-xl border border-slate-200 sm:border-0 text-xs">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] text-slate-500">Estimasi:</span>
+              <input
+                type="text"
+                value={maintenanceEstimated}
+                onChange={(e) => handleUpdateEstimatedTime(e.target.value)}
+                placeholder="misal ~15-30 Menit"
+                className="w-28 text-xs font-semibold text-[#00296E] bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-lg px-2 py-1 outline-hidden"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleMaintenance}
+              disabled={savingMaintenance}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50 ${
+                maintenanceEnabled
+                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : "bg-slate-900 hover:bg-slate-800 text-white"
+              }`}
+            >
+              {maintenanceEnabled ? (
+                <>
+                  <ToggleRight className="w-4 h-4" />
+                  <span>{savingMaintenance ? "Mematikan..." : "Nonaktifkan 503"}</span>
+                </>
+              ) : (
+                <>
+                  <ToggleLeft className="w-4 h-4" />
+                  <span>{savingMaintenance ? "Mengaktifkan..." : "Aktifkan 503"}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {maintenanceToast && (
+          <div className="mt-3 text-xs font-medium px-3.5 py-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200 animate-in fade-in duration-150 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{maintenanceToast}</span>
+          </div>
+        )}
+      </div>
 
       {/* 3. Stat Cards Peran */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">

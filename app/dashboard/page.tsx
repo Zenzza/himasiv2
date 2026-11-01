@@ -917,13 +917,12 @@ export default function DashboardPage() {
     }
   }, [authLoading, user, router]);
 
-  // View Guard: Jika tab yang dipilih tidak diizinkan untuk role saat ini, redirect ke overview
+  // View Guard: Jika tab yang dipilih tidak diizinkan untuk role saat ini, arahkan ke /error/403
   useEffect(() => {
     if (!authLoading && user && !canAccessTab(currentUserRole, activeTab)) {
-      setActiveTab("overview");
-      showToast("Akses dibatasi sesuai peran wewenang Anda. Dialihkan ke Ringkasan.");
+      router.push("/error/403");
     }
-  }, [activeTab, currentUserRole, authLoading, user]);
+  }, [activeTab, currentUserRole, authLoading, user, router]);
 
   // 2. Fetch Aspirasi dari Supabase Table 'public.aspirasi'
   const fetchAspirasi = useCallback(async () => {

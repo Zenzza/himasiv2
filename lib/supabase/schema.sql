@@ -550,6 +550,36 @@ ADD COLUMN IF NOT EXISTS catatan_revisi TEXT;
 
 GRANT ALL ON TABLE public.profiles TO authenticated, service_role;
 
+-- ===================================================================
+-- 15. TABEL PENGATURAN SISTEM & MODE PEMELIHARAAN (503 GATE)
+-- ===================================================================
+CREATE TABLE IF NOT EXISTS public.system_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Pengaturan sistem dapat dibaca publik" ON public.system_settings;
+CREATE POLICY "Pengaturan sistem dapat dibaca publik"
+  ON public.system_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Super admin dapat mengelola pengaturan sistem" ON public.system_settings;
+CREATE POLICY "Super admin dapat mengelola pengaturan sistem"
+  ON public.system_settings FOR ALL TO authenticated USING (true);
+
+GRANT ALL ON TABLE public.system_settings TO authenticated, service_role;
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.system_settings;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+END $$;
+
 NOTIFY pgrst, 'reload schema';
 
 
