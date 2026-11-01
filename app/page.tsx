@@ -162,6 +162,16 @@ const MISI_KABINET_ITEMS = [
 ];
 
 export default function Home() {
+  // Deteksi redirect dari Supabase Auth Invite atau Password Recovery
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash) {
+      const hash = window.location.hash;
+      if (hash.includes("type=invite") || hash.includes("type=recovery")) {
+        window.location.replace(`/login${hash}`);
+      }
+    }
+  }, []);
+
   const [isPlayingInline, setIsPlayingInline] = useState(false);
   const videoId = getYouTubeVideoId(YOUTUBE_VIDEO_URL);
   const [thumbSrc, setThumbSrc] = useState(

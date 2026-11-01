@@ -27,8 +27,23 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Cek apakah pengurus sudah login sebelumnya
+  // State untuk aktivasi invite & reset password
+  const [isInviteOrRecovery, setIsInviteOrRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+
+  // Cek apakah ada token invite / recovery di hash URL, atau jika pengurus sudah login
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash.includes("type=invite") || hash.includes("type=recovery")) {
+        setIsInviteOrRecovery(true);
+        return;
+      }
+    }
+
     const checkSession = async () => {
       try {
         const {
@@ -44,7 +59,45 @@ export default function LoginPage() {
     checkSession();
   }, [router]);
 
-  // Handle Login Pengurus
+  // Handle Set Password untuk Akun Undangan / Reset Password
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      setErrorMessage("Kata sandi minimal 6 karakter.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMessage("Konfirmasi kata sandi tidak cocok. Silakan periksa kembali.");
+      return;
+    }
+
+    setIsSettingPassword(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        setIsSettingPassword(false);
+        return;
+      }
+
+      setSuccessMessage("Kata sandi berhasil disimpan! Mengarahkan ke Dashboard Pengurus...");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal menyimpan kata sandi.";
+      setErrorMessage(msg);
+      setIsSettingPassword(false);
+    }
+  };
+
+  // Handle Login Pengurus Biasa
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -123,10 +176,12 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-xl sm:text-2xl font-black text-[#00296E] tracking-tight">
-            Portal Pengurus HIMASI
+            {isInviteOrRecovery ? "Aktivasi Akun Pengurus" : "Portal Pengurus HIMASI"}
           </h1>
           <p className="text-xs sm:text-[13px] text-slate-500 mt-1 font-normal leading-relaxed">
-            Sistem Informasi Manajemen Terpadu Kabinet REKSABUDAYA
+            {isInviteOrRecovery
+              ? "Selamat datang di HIMASI! Buat kata sandi akun Anda untuk mulai mengakses Dashboard."
+              : "Sistem Informasi Manajemen Terpadu Kabinet REKSABUDAYA"}
           </p>
         </div>
 
@@ -146,8 +201,84 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Form Login Pengurus */}
-        <form onSubmit={handleLogin} className="space-y-4">
+        {/* Form Aktivasi Password Baru vs Form Login Biasa */}
+        {isInviteOrRecovery ? (
+          <form onSubmit={handleSetPassword} className="space-y-4">
+            {/* Input Password Baru */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Buat Kata Sandi Baru <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimal 6 karakter"
+                  className="w-full pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  aria-label={showPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Input Konfirmasi Password */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Ulangi Kata Sandi Baru <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Ketik ulang kata sandi baru"
+                  className="w-full pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                />
+                <ShieldCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  aria-label={showConfirmPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSettingPassword}
+              className="w-full mt-2 py-3 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSettingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Menyimpan Kata Sandi...</span>
+                </>
+              ) : (
+                <>
+                  <span>Simpan Kata Sandi &amp; Masuk Dashboard</span>
+                  <ArrowRight className="w-4 h-4 text-sky-300" />
+                </>
+              )}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleLogin} className="space-y-4">
           
           {/* Input Email */}
           <div>
@@ -230,6 +361,7 @@ export default function LoginPage() {
             )}
           </button>
         </form>
+      )}
 
       </div>
 
