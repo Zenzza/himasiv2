@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
+import { type ContentStatus } from "@/lib/types/auth";
 import { slugify } from "@/lib/utils/slug";
 
 const LOCAL_STORAGE_KEY = "himasi_berita_local_cache";
@@ -33,7 +34,7 @@ function saveLocalCache(list: BeritaItem[]) {
 }
 
 /**
- * Mengambil daftar berita yang berstatus Terbit (is_published = true) untuk halaman publik
+ * Mengambil daftar berita yang berstatus Terbit (is_published = true & status = 'published') untuk halaman publik
  */
 export async function getPublishedBerita(): Promise<BeritaItem[]> {
   try {
@@ -44,9 +45,13 @@ export async function getPublishedBerita(): Promise<BeritaItem[]> {
       .order("published_at", { ascending: false });
 
     if (!error && data) {
-      if (data.length > 0) {
-        // Normalisasi field jika ada perbedaan nama kolom
-        const mapped: BeritaItem[] = data.map((item: any) => ({
+      // Filter hanya yang berstatus published (atau jika kolom status belum ada di baris lama, izinkan fallback)
+      const publishedRows = data.filter(
+        (item: any) => !item.status || item.status === "published"
+      );
+
+      if (publishedRows.length > 0) {
+        const mapped: BeritaItem[] = publishedRows.map((item: any) => ({
           id: item.id,
           title: item.title,
           slug: item.slug || slugify(item.title),
@@ -57,24 +62,23 @@ export async function getPublishedBerita(): Promise<BeritaItem[]> {
           author: item.author || "HIMASI Media",
           read_time: item.read_time || "5 min read",
           image_url: item.image_url || "/DSC01203.png",
-          is_published: item.is_published ?? true,
+          is_published: true,
+          status: "published",
+          catatan_revisi: item.catatan_revisi || undefined,
           created_at: item.created_at,
           published_at: item.published_at || item.created_at || new Date().toISOString(),
         }));
-        // Selalu perbarui cache lokal dengan data terbaru
         saveLocalCache(mapped);
         return mapped;
       }
-      // Jika Supabase kosong (0 data terbit)
       return [];
     }
   } catch (err) {
     console.warn("[Berita] Menggunakan fallback lokal:", err);
   }
 
-  // Gunakan cache lokal / fallback HANYA jika koneksi Supabase gagal
   const local = getLocalCache();
-  return local.filter((b) => b.is_published);
+  return local.filter((b) => b.is_published && (!b.status || b.status === "published"));
 }
 
 /**
@@ -84,7 +88,6 @@ export async function getBeritaBySlug(slug: string): Promise<BeritaItem | null> 
   const cleanSlug = decodeURIComponent(slug).trim().toLowerCase();
 
   try {
-    // 1. Coba cari berdasarkan slug di Supabase
     const { data, error } = await supabase
       .from("berita")
       .select("*")
@@ -104,12 +107,13 @@ export async function getBeritaBySlug(slug: string): Promise<BeritaItem | null> 
         read_time: data.read_time || "5 min read",
         image_url: data.image_url || "/DSC01203.png",
         is_published: data.is_published ?? true,
+        status: (data.status as ContentStatus) || (data.is_published ? "published" : "draft"),
+        catatan_revisi: data.catatan_revisi || undefined,
         created_at: data.created_at,
         published_at: data.published_at || data.created_at || new Date().toISOString(),
       };
     }
 
-    // 2. Jika slug adalah angka, coba cari berdasarkan id
     if (!isNaN(Number(cleanSlug))) {
       const { data: idData } = await supabase
         .from("berita")
@@ -130,6 +134,8 @@ export async function getBeritaBySlug(slug: string): Promise<BeritaItem | null> 
           read_time: idData.read_time || "5 min read",
           image_url: idData.image_url || "/DSC01203.png",
           is_published: idData.is_published ?? true,
+          status: (idData.status as ContentStatus) || (idData.is_published ? "published" : "draft"),
+          catatan_revisi: idData.catatan_revisi || undefined,
           created_at: idData.created_at,
           published_at: idData.published_at || idData.created_at || new Date().toISOString(),
         };
@@ -139,7 +145,6 @@ export async function getBeritaBySlug(slug: string): Promise<BeritaItem | null> 
     console.warn("[Berita] Query Supabase slug gagal, beralih ke cache lokal:", err);
   }
 
-  // 3. Cari di cache lokal / FALLBACK_BERITA
   const local = getLocalCache();
   const found = local.find(
     (b) =>
@@ -152,7 +157,7 @@ export async function getBeritaBySlug(slug: string): Promise<BeritaItem | null> 
 }
 
 /**
- * Mengambil seluruh berita untuk Dashboard Admin (termasuk status Draft)
+ * Mengambil seluruh berita untuk Dashboard Admin (termasuk status Draft & Pending Review)
  */
 export async function getAllBeritaAdmin(): Promise<BeritaItem[]> {
   try {
@@ -174,10 +179,11 @@ export async function getAllBeritaAdmin(): Promise<BeritaItem[]> {
         read_time: item.read_time || "5 min read",
         image_url: item.image_url || "/DSC01203.png",
         is_published: item.is_published ?? true,
+        status: (item.status as ContentStatus) || (item.is_published ? "published" : "draft"),
+        catatan_revisi: item.catatan_revisi || undefined,
         created_at: item.created_at,
         published_at: item.published_at || item.created_at || new Date().toISOString(),
       }));
-      // Simpan juga ke cache lokal
       saveLocalCache(mapped);
       return mapped;
     }
@@ -196,11 +202,14 @@ export async function createBerita(
 ): Promise<BeritaItem> {
   const newSlug = payload.slug ? slugify(payload.slug) : slugify(payload.title);
   const newDate = payload.published_at || new Date().toISOString();
+  const defaultStatus: ContentStatus = payload.status || (payload.is_published ? "published" : "draft");
 
   let createdItem: BeritaItem = {
     id: Date.now(),
     ...payload,
     slug: newSlug,
+    status: defaultStatus,
+    is_published: defaultStatus === "published",
     published_at: newDate,
     created_at: newDate,
   };
@@ -218,7 +227,9 @@ export async function createBerita(
         author: payload.author,
         read_time: payload.read_time,
         image_url: payload.image_url,
-        is_published: payload.is_published,
+        is_published: defaultStatus === "published",
+        status: defaultStatus,
+        catatan_revisi: payload.catatan_revisi || null,
         published_at: newDate,
       })
       .select()
@@ -237,6 +248,8 @@ export async function createBerita(
         read_time: data.read_time,
         image_url: data.image_url,
         is_published: data.is_published,
+        status: (data.status as ContentStatus) || defaultStatus,
+        catatan_revisi: data.catatan_revisi || undefined,
         created_at: data.created_at,
         published_at: data.published_at,
       };
@@ -245,7 +258,6 @@ export async function createBerita(
     console.warn("[Berita] Gagal insert ke Supabase, menyimpan ke cache lokal:", err);
   }
 
-  // Perbarui cache lokal
   const current = getLocalCache();
   const updated = [createdItem, ...current];
   saveLocalCache(updated);
@@ -262,19 +274,24 @@ export async function updateBerita(
 ): Promise<BeritaItem> {
   const cleanSlug = payload.title ? slugify(payload.slug || payload.title) : payload.slug;
 
+  const dbUpdatePayload: any = {
+    ...payload,
+    ...(cleanSlug ? { slug: cleanSlug } : {}),
+  };
+
+  if (payload.status) {
+    dbUpdatePayload.is_published = payload.status === "published";
+  }
+
   try {
     const { data, error } = await supabase
       .from("berita")
-      .update({
-        ...payload,
-        ...(cleanSlug ? { slug: cleanSlug } : {}),
-      })
+      .update(dbUpdatePayload)
       .eq("id", id)
       .select()
       .single();
 
     if (!error && data) {
-      // Perbarui cache lokal
       const current = getLocalCache();
       const updated = current.map((b) => (String(b.id) === String(id) ? { ...b, ...data } : b));
       saveLocalCache(updated);
@@ -284,7 +301,6 @@ export async function updateBerita(
     console.warn("[Berita] Update Supabase gagal, memperbarui cache lokal:", err);
   }
 
-  // Fallback update di cache lokal
   const current = getLocalCache();
   let updatedItem: BeritaItem | null = null;
   const updated = current.map((b) => {
@@ -304,6 +320,21 @@ export async function updateBerita(
 }
 
 /**
+ * Memperbarui status persetujuan berita (Approve & Publish / Reject dengan Catatan)
+ */
+export async function updateBeritaStatus(
+  id: number | string,
+  status: ContentStatus,
+  catatanRevisi?: string
+): Promise<BeritaItem> {
+  return updateBerita(id, {
+    status,
+    is_published: status === "published",
+    catatan_revisi: catatanRevisi || undefined,
+  });
+}
+
+/**
  * Menghapus berita (Delete)
  */
 export async function deleteBerita(id: number | string): Promise<boolean> {
@@ -316,7 +347,6 @@ export async function deleteBerita(id: number | string): Promise<boolean> {
     console.warn("[Berita] Delete Supabase gagal:", err);
   }
 
-  // Hapus dari cache lokal
   const current = getLocalCache();
   const filtered = current.filter((b) => String(b.id) !== String(id));
   saveLocalCache(filtered);
@@ -332,7 +362,11 @@ export async function togglePublishedBerita(
   currentStatus: boolean
 ): Promise<boolean> {
   const newStatus = !currentStatus;
-  await updateBerita(id, { is_published: newStatus });
+  await updateBerita(id, {
+    is_published: newStatus,
+    status: newStatus ? "published" : "draft",
+  });
   return newStatus;
 }
+
 

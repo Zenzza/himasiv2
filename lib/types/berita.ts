@@ -1,3 +1,5 @@
+import { ContentStatus } from "./auth";
+
 export interface BeritaItem {
   id: number | string;
   title: string;
@@ -10,6 +12,8 @@ export interface BeritaItem {
   read_time: string;
   image_url: string;
   is_published: boolean;
+  status?: ContentStatus;
+  catatan_revisi?: string;
   created_at?: string;
   published_at: string;
   corner_shape?: string;

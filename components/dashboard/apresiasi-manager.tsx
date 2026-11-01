@@ -39,6 +39,11 @@ import {
   type ApresiasiCategory,
 } from "@/lib/types/apresiasi";
 import {
+  type UserRole,
+  canPublishContent,
+  canEditPublishedContent,
+} from "@/lib/types/auth";
+import {
   getAllApresiasiSubmisi,
   updateApresiasiSubmisiStatus,
   deleteApresiasiSubmisi,
@@ -49,7 +54,16 @@ import {
   approveAndPublishSubmisi,
 } from "@/lib/supabase/apresiasi";
 
-export default function ApresiasiManager() {
+interface ApresiasiManagerProps {
+  currentUserRole?: UserRole;
+}
+
+export default function ApresiasiManager({
+  currentUserRole = "humas_biskraf",
+}: ApresiasiManagerProps) {
+  const canPublish = canPublishContent(currentUserRole);
+  const canEdit = canEditPublishedContent(currentUserRole);
+
   const [activeSubTab, setActiveSubTab] = useState<"submisi" | "showcase">("submisi");
 
   // State Submisi
@@ -309,17 +323,19 @@ export default function ApresiasiManager() {
             <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
           </Link>
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSubTab("showcase");
-              setIsAddShowcaseOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f52] text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 text-[#0094E0]" />
-            <span>+ Tambah Prestasi Baru</span>
-          </button>
+          {canPublish && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubTab("showcase");
+                setIsAddShowcaseOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f52] text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 text-[#0094E0]" />
+              <span>+ Tambah Prestasi Baru</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -582,8 +598,8 @@ export default function ApresiasiManager() {
                               <Eye className="w-3.5 h-3.5" />
                             </button>
 
-                            {/* Tombol Setujui & Publikasikan */}
-                            {item.status !== "approved" && (
+                            {/* Tombol Setujui & Publikasikan (Khusus Medkominfo / Super Admin) */}
+                            {canPublish && item.status !== "approved" && (
                               <button
                                 type="button"
                                 onClick={() => openApproveModal(item)}
@@ -595,8 +611,8 @@ export default function ApresiasiManager() {
                               </button>
                             )}
 
-                            {/* Tombol Tolak */}
-                            {item.status === "pending" && (
+                            {/* Tombol Tolak (Khusus Medkominfo / Super Admin) */}
+                            {canPublish && item.status === "pending" && (
                               <button
                                 type="button"
                                 onClick={() => setSubmisiToReject(item)}
@@ -670,6 +686,15 @@ export default function ApresiasiManager() {
               />
             </div>
           </div>
+
+          {!canPublish && (
+            <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl flex items-center gap-2.5 text-xs text-blue-800">
+              <Sparkles className="w-4 h-4 text-[#0094E0] shrink-0" />
+              <span>
+                <strong>Mode Kontributor:</strong> Anda dapat meninjau galeri karya yang telah dipublikasikan. Untuk mengajukan karya baru, silakan ajukan melalui tab <em>Submisi Mahasiswa</em> untuk disetujui oleh tim Medkominfo.
+              </span>
+            </div>
+          )}
 
           {/* Grid Kartu Showcase */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -772,24 +797,30 @@ export default function ApresiasiManager() {
                         ❤️ {item.likes} apresiasi
                       </span>
 
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setEditingShowcase(item)}
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                          title="Edit Karya/Prestasi"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowcaseToDelete(item)}
-                          className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Hapus dari Showcase"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {canEdit ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingShowcase(item)}
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                            title="Edit Karya/Prestasi"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowcaseToDelete(item)}
+                            className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Hapus dari Showcase"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 rounded bg-slate-100">
+                          Terkurasi Medkominfo
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -915,7 +946,7 @@ export default function ApresiasiManager() {
               </button>
 
               <div className="flex items-center gap-2">
-                {selectedSubmisi.status === "pending" && (
+                {canPublish && selectedSubmisi.status === "pending" && (
                   <button
                     type="button"
                     onClick={() => {
@@ -929,7 +960,7 @@ export default function ApresiasiManager() {
                     <span>Tolak Pengajuan</span>
                   </button>
                 )}
-                {selectedSubmisi.status !== "approved" && (
+                {canPublish && selectedSubmisi.status !== "approved" && (
                   <button
                     type="button"
                     onClick={() => {
@@ -942,6 +973,11 @@ export default function ApresiasiManager() {
                     <Check className="w-4 h-4 stroke-[2.5]" />
                     <span>Setujui & Terbitkan</span>
                   </button>
+                )}
+                {!canPublish && (
+                  <span className="text-xs text-slate-400 italic">
+                    Kurasi & persetujuan dilakukan oleh Medkominfo.
+                  </span>
                 )}
               </div>
             </div>

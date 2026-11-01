@@ -28,6 +28,7 @@ import {
   Check,
   Menu,
   X,
+  XCircle,
   Plus,
   ShieldAlert,
   ShieldCheck,
@@ -89,6 +90,17 @@ import {
 import AdminQrScanner, { type AbsensiRecord } from "@/components/absensi/admin-qr-scanner";
 import PengurusQrCard from "@/components/absensi/pengurus-qr-card";
 import ApresiasiManager from "@/components/dashboard/apresiasi-manager";
+import UserManager from "@/components/dashboard/user-manager";
+import {
+  type UserRole,
+  type ContentStatus,
+  canAccessTab,
+  canPublishContent,
+  canEditPublishedContent,
+  ROLE_LABELS,
+  ROLE_BADGE_STYLES,
+} from "@/lib/types/auth";
+import { getCurrentUserProfile } from "@/lib/supabase/users";
 import RekapAbsensiView, {
   type KegiatanItem,
   formatTanggalIndo,
@@ -103,6 +115,7 @@ import {
   updateBerita,
   deleteBerita,
   togglePublishedBerita,
+  updateBeritaStatus,
 } from "@/lib/supabase/berita";
 import { slugify, estimateReadTime } from "@/lib/utils/slug";
 import {
@@ -128,6 +141,7 @@ import {
   createAgenda,
   updateAgenda,
   deleteAgenda,
+  updateAgendaStatus,
 } from "@/lib/supabase/kalender";
 
 // Tipe Data Aspirasi Supabase
@@ -175,9 +189,10 @@ export default function DashboardPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "aspirasi" | "berita" | "kalender" | "database" | "banner" | "apresiasi"
+    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "aspirasi" | "berita" | "kalender" | "database" | "banner" | "apresiasi" | "users"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>("humas_biskraf");
 
   // Hero Banner State (Pengaturan Background Mobile & Desktop)
   const [bannerConfig, setBannerConfig] = useState<HeroBannerConfig>(DEFAULT_HERO_BANNER);
@@ -308,6 +323,8 @@ export default function DashboardPage() {
   const [beritaToDelete, setBeritaToDelete] = useState<BeritaItem | null>(null);
   const [deletingBerita, setDeletingBerita] = useState(false);
   const [savingBerita, setSavingBerita] = useState(false);
+  const [rejectingBeritaItem, setRejectingBeritaItem] = useState<BeritaItem | null>(null);
+  const [catatanRevisiBerita, setCatatanRevisiBerita] = useState("");
 
   // Form Berita
   const [formBeritaTitle, setFormBeritaTitle] = useState("");
@@ -524,6 +541,11 @@ export default function DashboardPage() {
 
     setSavingBerita(true);
     try {
+      const isApprover = canPublishContent(currentUserRole);
+      const targetStatus: ContentStatus = isApprover
+        ? formBeritaIsPublished ? "published" : "draft"
+        : "pending_review";
+
       const payload = {
         title: formBeritaTitle.trim(),
         slug: formBeritaSlug.trim() || slugify(formBeritaTitle),
@@ -534,16 +556,26 @@ export default function DashboardPage() {
         image_url: formBeritaImage.trim() || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
         excerpt: formBeritaExcerpt.trim() || formBeritaTitle.trim(),
         content: formBeritaContent.trim() || formBeritaExcerpt.trim(),
-        is_published: formBeritaIsPublished,
+        is_published: isApprover ? formBeritaIsPublished : false,
+        status: targetStatus,
+        catatan_revisi: isApprover ? undefined : editingBerita?.catatan_revisi,
         published_at: editingBerita?.published_at || new Date().toISOString(),
       };
 
       if (editingBerita) {
         await updateBerita(editingBerita.id, payload);
-        showToast("Berhasil memperbarui artikel berita!");
+        showToast(
+          isApprover
+            ? "Berhasil memperbarui artikel berita!"
+            : "Warta diperbarui dan diajukan ulang untuk ditinjau Medkominfo."
+        );
       } else {
         await createBerita(payload);
-        showToast("Berhasil menerbitkan artikel berita baru!");
+        showToast(
+          isApprover
+            ? "Berhasil menerbitkan artikel berita baru!"
+            : "Warta berhasil disimpan & dikirim ke antrean review Medkominfo."
+        );
       }
 
       setIsBeritaModalOpen(false);
@@ -556,11 +588,52 @@ export default function DashboardPage() {
     }
   };
 
+  const handleApproveBerita = async (item: BeritaItem) => {
+    try {
+      await updateBeritaStatus(item.id, "published");
+      setBeritaList((prev) =>
+        prev.map((b) =>
+          String(b.id) === String(item.id)
+            ? { ...b, status: "published", is_published: true, catatan_revisi: undefined }
+            : b
+        )
+      );
+      showToast(`Warta "${item.title}" disetujui & langsung diterbitkan!`);
+    } catch (err: any) {
+      console.error("Approve berita error:", err);
+      showToast("Gagal menyetujui warta: " + (err.message || "Terjadi kesalahan"));
+    }
+  };
+
+  const handleConfirmRejectBerita = async () => {
+    if (!rejectingBeritaItem) return;
+    try {
+      await updateBeritaStatus(rejectingBeritaItem.id, "rejected", catatanRevisiBerita.trim());
+      setBeritaList((prev) =>
+        prev.map((b) =>
+          String(b.id) === String(rejectingBeritaItem.id)
+            ? { ...b, status: "rejected", is_published: false, catatan_revisi: catatanRevisiBerita.trim() }
+            : b
+        )
+      );
+      showToast("Warta dikembalikan dengan catatan revisi untuk kontributor.");
+      setRejectingBeritaItem(null);
+      setCatatanRevisiBerita("");
+    } catch (err: any) {
+      console.error("Reject berita error:", err);
+      showToast("Gagal menolak warta.");
+    }
+  };
+
   const handleQuickToggleBeritaStatus = async (item: BeritaItem) => {
+    if (!canPublishContent(currentUserRole)) {
+      showToast("Wewenang terbatas: Hanya Medkominfo atau Super Admin yang dapat mengubah status publikasi.");
+      return;
+    }
     try {
       const newStatus = await togglePublishedBerita(item.id, item.is_published);
       setBeritaList((prev) =>
-        prev.map((b) => (String(b.id) === String(item.id) ? { ...b, is_published: newStatus } : b))
+        prev.map((b) => (String(b.id) === String(item.id) ? { ...b, is_published: newStatus, status: newStatus ? "published" : "draft" } : b))
       );
       showToast(newStatus ? "Status diubah ke Terbit." : "Status diubah ke Draft.");
     } catch (err) {
@@ -571,6 +644,11 @@ export default function DashboardPage() {
 
   const handleConfirmDeleteBerita = async () => {
     if (!beritaToDelete) return;
+    if ((beritaToDelete.is_published || beritaToDelete.status === "published") && !canEditPublishedContent(currentUserRole)) {
+      showToast("Wewenang terbatas: Warta yang sudah terbit hanya dapat dihapus oleh Medkominfo / Super Admin.");
+      setBeritaToDelete(null);
+      return;
+    }
     setDeletingBerita(true);
     try {
       await deleteBerita(beritaToDelete.id);
@@ -776,16 +854,23 @@ export default function DashboardPage() {
         } = await supabase.auth.getSession();
 
         if (session?.user) {
-          setUser({
+          const basicUser = {
             email: session.user.email,
             id: session.user.id,
             full_name:
               session.user.user_metadata?.full_name ||
               session.user.email?.split("@")[0] ||
               "Pengurus HIMASI",
-          });
+          };
+          setUser(basicUser);
+
+          const profile = await getCurrentUserProfile(basicUser);
+          if (profile) {
+            setCurrentUserRole(profile.role);
+          }
         } else {
           setUser(null);
+          setCurrentUserRole("humas_biskraf");
         }
       } catch (err) {
         console.warn("Gagal mengambil sesi:", err);
@@ -798,18 +883,25 @@ export default function DashboardPage() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        setUser({
+        const basicUser = {
           email: session.user.email,
           id: session.user.id,
           full_name:
             session.user.user_metadata?.full_name ||
             session.user.email?.split("@")[0] ||
             "Pengurus HIMASI",
-        });
+        };
+        setUser(basicUser);
+
+        const profile = await getCurrentUserProfile(basicUser);
+        if (profile) {
+          setCurrentUserRole(profile.role);
+        }
       } else {
         setUser(null);
+        setCurrentUserRole("humas_biskraf");
       }
     });
 
@@ -817,6 +909,14 @@ export default function DashboardPage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // View Guard: Jika tab yang dipilih tidak diizinkan untuk role saat ini, redirect ke overview
+  useEffect(() => {
+    if (!authLoading && user && !canAccessTab(currentUserRole, activeTab)) {
+      setActiveTab("overview");
+      showToast("Akses dibatasi sesuai peran wewenang Anda. Dialihkan ke Ringkasan.");
+    }
+  }, [activeTab, currentUserRole, authLoading, user]);
 
   // 2. Fetch Aspirasi dari Supabase Table 'public.aspirasi'
   const fetchAspirasi = useCallback(async () => {
@@ -1044,7 +1144,7 @@ export default function DashboardPage() {
   const fetchAgendaList = useCallback(async () => {
     setLoadingAgenda(true);
     try {
-      const data = await getAgendaKalender();
+      const data = await getAgendaKalender(true);
       setAgendaList(data);
     } catch (err) {
       console.warn("fetchAgendaList error:", err);
@@ -1990,8 +2090,16 @@ export default function DashboardPage() {
 
     setSavingAgenda(true);
     const finalTanggalSelesai = formAgendaIsMultiDay && formAgendaTanggalSelesai ? formAgendaTanggalSelesai : null;
+    const isApprover = canPublishContent(currentUserRole);
+    const targetStatus: ContentStatus = isApprover ? "published" : "pending_review";
 
     if (editingAgenda) {
+      if (editingAgenda.status === "published" && !canEditPublishedContent(currentUserRole)) {
+        showToast("Wewenang terbatas: Agenda terbit hanya dapat diubah oleh Medkominfo.");
+        setSavingAgenda(false);
+        return;
+      }
+
       const updated = await updateAgenda(editingAgenda.id, {
         tanggal_mulai: formAgendaTanggalMulai,
         tanggal_selesai: finalTanggalSelesai,
@@ -2000,13 +2108,18 @@ export default function DashboardPage() {
         waktu: formAgendaWaktu,
         lokasi: formAgendaLokasi,
         deskripsi: formAgendaDeskripsi,
+        status: isApprover ? editingAgenda.status : "pending_review",
       });
 
       if (updated) {
         setAgendaList((prev) =>
           prev.map((a) => (a.id === editingAgenda.id ? updated : a))
         );
-        showToast(`Agenda "${formAgendaJudul}" berhasil diperbarui di Supabase!`);
+        showToast(
+          isApprover
+            ? `Agenda "${formAgendaJudul}" berhasil diperbarui di Supabase!`
+            : `Agenda "${formAgendaJudul}" diperbarui dan diajukan ulang ke Medkominfo!`
+        );
       } else {
         setAgendaList((prev) =>
           prev.map((a) =>
@@ -2035,11 +2148,16 @@ export default function DashboardPage() {
         waktu: formAgendaWaktu,
         lokasi: formAgendaLokasi,
         deskripsi: formAgendaDeskripsi,
+        status: targetStatus,
       });
 
       if (created) {
         setAgendaList((prev) => [...prev, created]);
-        showToast(`Agenda "${formAgendaJudul}" berhasil disimpan ke database Supabase!`);
+        showToast(
+          isApprover
+            ? `Agenda "${formAgendaJudul}" berhasil disimpan ke database Supabase!`
+            : `Agenda "${formAgendaJudul}" diajukan & menunggu kurasi Medkominfo!`
+        );
       } else {
         const localItem: AgendaKalender = {
           id: `evt-${Date.now()}`,
@@ -2050,6 +2168,7 @@ export default function DashboardPage() {
           waktu: formAgendaWaktu,
           lokasi: formAgendaLokasi,
           deskripsi: formAgendaDeskripsi,
+          status: targetStatus,
         };
         setAgendaList((prev) => [...prev, localItem]);
         showToast("Peringatan: Tersimpan lokal di browser. Tabel 'agenda_kalender' belum dibuat di Supabase!");
@@ -2060,8 +2179,28 @@ export default function DashboardPage() {
     setIsAgendaModalOpen(false);
   };
 
+  const handleApproveAgenda = async (agenda: AgendaKalender) => {
+    try {
+      const updated = await updateAgendaStatus(agenda.id, "published");
+      if (updated) {
+        setAgendaList((prev) =>
+          prev.map((a) => (a.id === agenda.id ? { ...a, status: "published" } : a))
+        );
+        showToast(`Agenda "${agenda.judul}" disetujui & dipublikasikan ke kalender publik!`);
+      }
+    } catch (err) {
+      console.error("Approve agenda error:", err);
+      showToast("Gagal menyetujui agenda.");
+    }
+  };
+
   const handleConfirmDeleteAgenda = async () => {
     if (!agendaToDelete) return;
+    if (agendaToDelete.status === "published" && !canEditPublishedContent(currentUserRole)) {
+      showToast("Wewenang terbatas: Agenda publik hanya dapat dihapus oleh Medkominfo.");
+      setAgendaToDelete(null);
+      return;
+    }
     setDeletingAgenda(true);
 
     const deleted = await deleteAgenda(agendaToDelete.id);
@@ -2528,209 +2667,256 @@ NOTIFY pgrst, 'reload schema';`;
                 </div>
 
                 {/* Home Page (Hero Banner Mobile & Desktop + Fitur Utama) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("banner");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "banner"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <ImageIcon className={`w-4 h-4 ${activeTab === "banner" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Home Page (Banner &amp; Fitur)</span>
-                  </div>
-                </button>
+                {canAccessTab(currentUserRole, "banner") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("banner");
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      activeTab === "banner"
+                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ImageIcon className={`w-4 h-4 ${activeTab === "banner" ? "text-[#00296E]" : "text-slate-400"}`} />
+                      <span>Home Page (Banner &amp; Fitur)</span>
+                    </div>
+                  </button>
+                )}
 
                 {/* Berita Page */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("berita");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "berita"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Newspaper className={`w-4 h-4 ${activeTab === "berita" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Berita Page (Warta)</span>
-                  </div>
-                </button>
+                {canAccessTab(currentUserRole, "berita") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("berita");
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      activeTab === "berita"
+                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Newspaper className={`w-4 h-4 ${activeTab === "berita" ? "text-[#00296E]" : "text-slate-400"}`} />
+                      <span>Berita Page (Warta)</span>
+                    </div>
+                  </button>
+                )}
 
                 {/* Kabinet & Profil */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("kartu-qr");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "kartu-qr"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Users className={`w-4 h-4 ${activeTab === "kartu-qr" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Kabinet &amp; Profil</span>
-                  </div>
-                </button>
+                {canAccessTab(currentUserRole, "kartu-qr") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("kartu-qr");
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      activeTab === "kartu-qr"
+                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Users className={`w-4 h-4 ${activeTab === "kartu-qr" ? "text-[#00296E]" : "text-slate-400"}`} />
+                      <span>Kabinet &amp; Profil</span>
+                    </div>
+                  </button>
+                )}
 
                 {/* Dokumen Organisasi */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("dokumen");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "dokumen"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <FileText className={`w-4 h-4 ${activeTab === "dokumen" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Dokumen Organisasi</span>
-                  </div>
-                </button>
+                {canAccessTab(currentUserRole, "dokumen") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("dokumen");
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      activeTab === "dokumen"
+                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <FileText className={`w-4 h-4 ${activeTab === "dokumen" ? "text-[#00296E]" : "text-slate-400"}`} />
+                      <span>Dokumen Organisasi</span>
+                    </div>
+                  </button>
+                )}
 
                 {/* Kalender Page */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("kalender");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "kalender"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Calendar className={`w-4 h-4 ${activeTab === "kalender" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Kalender Page</span>
-                  </div>
-                </button>
+                {canAccessTab(currentUserRole, "kalender") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("kalender");
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      activeTab === "kalender"
+                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Calendar className={`w-4 h-4 ${activeTab === "kalender" ? "text-[#00296E]" : "text-slate-400"}`} />
+                      <span>Kalender Page</span>
+                    </div>
+                  </button>
+                )}
 
                 {/* Aspirasi Masuk */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("aspirasi");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "aspirasi"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <MessageSquare className={`w-4 h-4 ${activeTab === "aspirasi" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Aspirasi Mahasiswa</span>
-                  </div>
-                </button>
+                {canAccessTab(currentUserRole, "aspirasi") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("aspirasi");
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      activeTab === "aspirasi"
+                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <MessageSquare className={`w-4 h-4 ${activeTab === "aspirasi" ? "text-[#00296E]" : "text-slate-400"}`} />
+                      <span>Aspirasi Mahasiswa</span>
+                    </div>
+                  </button>
+                )}
 
                 {/* Apresia-SI (Prestasi & Karya) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("apresiasi");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "apresiasi"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Trophy className={`w-4 h-4 ${activeTab === "apresiasi" ? "text-amber-500" : "text-slate-400"}`} />
-                    <span>Apresia-SI (Prestasi &amp; Karya)</span>
-                  </div>
-                </button>
+                {canAccessTab(currentUserRole, "apresiasi") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("apresiasi");
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      activeTab === "apresiasi"
+                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Trophy className={`w-4 h-4 ${activeTab === "apresiasi" ? "text-amber-500" : "text-slate-400"}`} />
+                      <span>Apresia-SI (Prestasi &amp; Karya)</span>
+                    </div>
+                  </button>
+                )}
               </div>
 
               {/* Seksi 3: Operasional Absensi */}
-              <div className="space-y-1">
-                <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Operasional Absensi
+              {(canAccessTab(currentUserRole, "absensi") || canAccessTab(currentUserRole, "rekap-absensi")) && (
+                <div className="space-y-1">
+                  <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Operasional Absensi
+                  </div>
+
+                  {/* Scan Absensi QR */}
+                  {canAccessTab(currentUserRole, "absensi") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("absensi");
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        activeTab === "absensi"
+                          ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <ScanLine className={`w-4 h-4 ${activeTab === "absensi" ? "text-[#00296E]" : "text-slate-400"}`} />
+                        <span>Scan Absensi QR</span>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Rekapitulasi PDF */}
+                  {canAccessTab(currentUserRole, "rekap-absensi") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("rekap-absensi");
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        activeTab === "rekap-absensi"
+                          ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FileSpreadsheet className={`w-4 h-4 ${activeTab === "rekap-absensi" ? "text-[#00296E]" : "text-slate-400"}`} />
+                        <span>Rekapitulasi PDF</span>
+                      </div>
+                    </button>
+                  )}
                 </div>
+              )}
 
-                {/* Scan Absensi QR */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("absensi");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "absensi"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <ScanLine className={`w-4 h-4 ${activeTab === "absensi" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Scan Absensi QR</span>
+              {/* Seksi 4: Sistem & Pengguna */}
+              {(canAccessTab(currentUserRole, "users") || canAccessTab(currentUserRole, "database")) && (
+                <div className="space-y-1">
+                  <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Sistem &amp; Pengguna
                   </div>
-                </button>
 
-                {/* Rekapitulasi PDF */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("rekap-absensi");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "rekap-absensi"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <FileSpreadsheet className={`w-4 h-4 ${activeTab === "rekap-absensi" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Rekapitulasi PDF</span>
-                  </div>
-                </button>
-              </div>
+                  {/* Manajemen Pengguna (Khusus Super Admin) */}
+                  {canAccessTab(currentUserRole, "users") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("users");
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        activeTab === "users"
+                          ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <ShieldCheck className={`w-4 h-4 ${activeTab === "users" ? "text-purple-600" : "text-slate-400"}`} />
+                        <span>Manajemen Pengguna</span>
+                      </div>
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    </button>
+                  )}
 
-              {/* Seksi 4: Sistem */}
-              <div className="space-y-1">
-                <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Sistem
+                  {/* Database Supabase (Khusus Super Admin) */}
+                  {canAccessTab(currentUserRole, "database") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("database");
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        activeTab === "database"
+                          ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Database className={`w-4 h-4 ${activeTab === "database" ? "text-[#00296E]" : "text-slate-400"}`} />
+                        <span>Database Supabase</span>
+                      </div>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    </button>
+                  )}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("database");
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "database"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Database className={`w-4 h-4 ${activeTab === "database" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Database Supabase</span>
-                  </div>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                </button>
-              </div>
+              )}
             </nav>
           </div>
 
@@ -2745,14 +2931,24 @@ NOTIFY pgrst, 'reload schema';`;
             </Link>
 
             {user ? (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5 text-rose-500" />
-                <span>Keluar ({user.full_name?.split(" ")[0] || "Admin"})</span>
-              </button>
+              <div className="space-y-1">
+                <div className="px-2.5 py-1 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-800 truncate">
+                    {user.full_name?.split(" ")[0] || "Admin"}
+                  </span>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${ROLE_BADGE_STYLES[currentUserRole] || "bg-slate-100 text-slate-700"}`}>
+                    {ROLE_LABELS[currentUserRole]?.split(" ")[0]}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Keluar Akun</span>
+                </button>
+              </div>
             ) : (
               <Link
                 href="/login"
@@ -2803,11 +2999,19 @@ NOTIFY pgrst, 'reload schema';`;
                   {activeTab === "absensi" && "Scan Absensi QR"}
                   {activeTab === "rekap-absensi" && "Rekapitulasi PDF"}
                   {activeTab === "database" && "Database Supabase"}
+                  {activeTab === "users" && "Manajemen Pengguna & Hak Akses"}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2.5">
+              {/* Badge Role Aktif di Header */}
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shadow-2xs ${ROLE_BADGE_STYLES[currentUserRole] || "bg-slate-100 text-slate-700"}`}>
+                {ROLE_LABELS[currentUserRole] || currentUserRole}
+              </span>
+
+              <div className="h-3.5 w-px bg-slate-200" />
+
               <button
                 type="button"
                 onClick={fetchAspirasi}
@@ -3916,7 +4120,7 @@ NOTIFY pgrst, 'reload schema';`;
 
             {/* TAB APRESIA-SI (KARYA, PRESTASI & SUBMISI MAHASISWA) */}
             {activeTab === "apresiasi" && (
-              <ApresiasiManager />
+              <ApresiasiManager currentUserRole={currentUserRole} />
             )}
 
             {/* TAB 6: BERITA CRUD MANAGEMENT */}
@@ -4140,6 +4344,11 @@ NOTIFY pgrst, 'reload schema';`;
                                       <p className="text-[10px] font-mono text-slate-400 mt-0.5 truncate">
                                         /berita/{item.slug}
                                       </p>
+                                      {item.status === "rejected" && item.catatan_revisi && (
+                                        <div className="mt-1 px-2 py-0.5 rounded bg-rose-50 border border-rose-200 text-[10px] text-rose-700 leading-tight">
+                                          <strong>Catatan Revisi:</strong> {item.catatan_revisi}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </td>
@@ -4152,18 +4361,33 @@ NOTIFY pgrst, 'reload schema';`;
                                   <span className="truncate block max-w-[120px]">{item.author}</span>
                                 </td>
                                 <td className="py-3 px-3 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickToggleBeritaStatus(item)}
-                                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer ${
-                                      item.is_published
-                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                                        : "bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200"
-                                    }`}
-                                    title="Klik untuk mengubah status Terbit / Draft"
-                                  >
-                                    {item.is_published ? "● Terbit" : "○ Draft"}
-                                  </button>
+                                  {item.status === "pending_review" ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                      <Clock className="w-3 h-3 text-amber-500" />
+                                      Menunggu ACC
+                                    </span>
+                                  ) : item.status === "rejected" ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                      <XCircle className="w-3 h-3 text-rose-500" />
+                                      Perlu Revisi
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={!canPublishContent(currentUserRole)}
+                                      onClick={() => handleQuickToggleBeritaStatus(item)}
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
+                                        canPublishContent(currentUserRole) ? "cursor-pointer" : "cursor-default opacity-90"
+                                      } ${
+                                        item.is_published
+                                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                          : "bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200"
+                                      }`}
+                                      title={canPublishContent(currentUserRole) ? "Klik untuk mengubah status Terbit / Draft" : "Status publikasi dikelola Medkominfo"}
+                                    >
+                                      {item.is_published ? "● Terbit" : "○ Draft"}
+                                    </button>
+                                  )}
                                 </td>
                                 <td className="py-3 px-3 text-slate-400 text-[11px] whitespace-nowrap">
                                   {new Date(item.published_at).toLocaleDateString("id-ID", {
@@ -4174,6 +4398,33 @@ NOTIFY pgrst, 'reload schema';`;
                                 </td>
                                 <td className="py-3 px-4 text-right">
                                   <div className="flex items-center justify-end gap-1">
+                                    {/* Tombol Approval Cepat Medkominfo & Super Admin */}
+                                    {canPublishContent(currentUserRole) && item.status === "pending_review" && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleApproveBerita(item)}
+                                          className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                                          title="Setujui dan Terbitkan Sekarang"
+                                        >
+                                          <Check className="w-3 h-3 stroke-[3]" />
+                                          <span>Setujui</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRejectingBeritaItem(item);
+                                            setCatatanRevisiBerita(item.catatan_revisi || "");
+                                          }}
+                                          className="px-2 py-1 rounded-md border border-rose-200 hover:bg-rose-50 text-rose-600 text-[10px] font-bold transition-colors cursor-pointer"
+                                          title="Tolak dengan Catatan Revisi"
+                                        >
+                                          <X className="w-3 h-3" />
+                                          <span>Tolak</span>
+                                        </button>
+                                      </>
+                                    )}
+
                                     <Link
                                       href={`/berita/${item.slug}`}
                                       target="_blank"
@@ -4182,22 +4433,30 @@ NOTIFY pgrst, 'reload schema';`;
                                     >
                                       <ExternalLink className="w-3.5 h-3.5" />
                                     </Link>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenEditBerita(item)}
-                                      className="p-1.5 rounded-md text-slate-600 hover:text-[#00296E] hover:bg-slate-100 transition-colors cursor-pointer"
-                                      title="Edit Berita"
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setBeritaToDelete(item)}
-                                      className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                      title="Hapus Berita"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenEditBerita(item)}
+                                        className="p-1.5 rounded-md text-slate-600 hover:text-[#00296E] hover:bg-slate-100 transition-colors cursor-pointer"
+                                        title="Edit Berita"
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                      </button>
+                                    ) : null}
+                                    {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setBeritaToDelete(item)}
+                                        className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                        title="Hapus Berita"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 rounded bg-slate-100">
+                                        Terkurasi
+                                      </span>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -4226,21 +4485,37 @@ NOTIFY pgrst, 'reload schema';`;
                                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
                                     {item.category_label}
                                   </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickToggleBeritaStatus(item)}
-                                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                                      item.is_published
-                                        ? "bg-emerald-50 text-emerald-700"
-                                        : "bg-slate-100 text-slate-500"
-                                    }`}
-                                  >
-                                    {item.is_published ? "Terbit" : "Draft"}
-                                  </button>
+                                  {item.status === "pending_review" ? (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                                      Menunggu ACC
+                                    </span>
+                                  ) : item.status === "rejected" ? (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700">
+                                      Perlu Revisi
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={!canPublishContent(currentUserRole)}
+                                      onClick={() => handleQuickToggleBeritaStatus(item)}
+                                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                                        item.is_published
+                                          ? "bg-emerald-50 text-emerald-700"
+                                          : "bg-slate-100 text-slate-500"
+                                      }`}
+                                    >
+                                      {item.is_published ? "Terbit" : "Draft"}
+                                    </button>
+                                  )}
                                 </div>
                                 <h4 className="text-xs font-bold text-slate-900 line-clamp-2">
                                   {item.title}
                                 </h4>
+                                {item.status === "rejected" && item.catatan_revisi && (
+                                  <p className="text-[10px] text-rose-600 mt-0.5 font-medium">
+                                    Revisi: {item.catatan_revisi}
+                                  </p>
+                                )}
                                 <p className="text-[10px] text-slate-400 mt-0.5">
                                   {item.author} &bull; {new Date(item.published_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                                 </p>
@@ -4248,6 +4523,28 @@ NOTIFY pgrst, 'reload schema';`;
                             </div>
 
                             <div className="mt-2.5 pt-2 border-t border-slate-50 flex items-center justify-end gap-1.5">
+                              {canPublishContent(currentUserRole) && item.status === "pending_review" && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApproveBerita(item)}
+                                    className="px-2 py-1 rounded bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1"
+                                  >
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                    <span>Setujui</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRejectingBeritaItem(item);
+                                      setCatatanRevisiBerita(item.catatan_revisi || "");
+                                    }}
+                                    className="px-2 py-1 rounded border border-rose-200 text-rose-600 text-[10px] font-bold"
+                                  >
+                                    Tolak
+                                  </button>
+                                </>
+                              )}
                               <Link
                                 href={`/berita/${item.slug}`}
                                 target="_blank"
@@ -4256,21 +4553,25 @@ NOTIFY pgrst, 'reload schema';`;
                                 <ExternalLink className="w-3 h-3" />
                                 <span>Lihat</span>
                               </Link>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditBerita(item)}
-                                className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center gap-1"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                                <span>Edit</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setBeritaToDelete(item)}
-                                className="p-1 rounded text-rose-500 hover:bg-rose-50"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditBerita(item)}
+                                    className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center gap-1"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setBeritaToDelete(item)}
+                                    className="p-1 rounded text-rose-500 hover:bg-rose-50"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -4527,11 +4828,23 @@ NOTIFY pgrst, 'reload schema';`;
                             >
                               <div>
                                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                                  <span
-                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${meta.bgBadge} ${meta.textBadge}`}
-                                  >
-                                    {meta.label}
-                                  </span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span
+                                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${meta.bgBadge} ${meta.textBadge}`}
+                                    >
+                                      {meta.label}
+                                    </span>
+                                    {event.status === "pending_review" && (
+                                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                        Menunggu ACC
+                                      </span>
+                                    )}
+                                    {event.status === "rejected" && (
+                                      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                                        Ditolak
+                                      </span>
+                                    )}
+                                  </div>
 
                                   {isMultiDay && (
                                     <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
@@ -4571,22 +4884,40 @@ NOTIFY pgrst, 'reload schema';`;
                               </div>
 
                               <div className="pt-2.5 border-t border-slate-100 flex items-center justify-end gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditAgenda(event)}
-                                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Edit3 className="w-3 h-3 text-[#0094E0]" />
-                                  <span>Edit</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setAgendaToDelete(event)}
-                                  className="px-2.5 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                  <span>Hapus</span>
-                                </button>
+                                {canPublishContent(currentUserRole) && event.status === "pending_review" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApproveAgenda(event)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                    <span>Setujui Agenda</span>
+                                  </button>
+                                )}
+                                {(canEditPublishedContent(currentUserRole) || event.status !== "published") ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditAgenda(event)}
+                                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Edit3 className="w-3 h-3 text-[#0094E0]" />
+                                      <span>Edit</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setAgendaToDelete(event)}
+                                      className="px-2.5 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      <span>Hapus</span>
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 font-medium px-2 py-1 bg-slate-50 rounded border border-slate-100">
+                                    Terkurasi Medkominfo
+                                  </span>
+                                )}
                               </div>
                             </div>
                           );
@@ -4665,6 +4996,13 @@ NOTIFY pgrst, 'reload schema';`;
                     <code>{sqlScriptContent}</code>
                   </pre>
                 </div>
+              </div>
+            )}
+
+            {/* TAB 10: MANAJEMEN PENGGUNA & HAK AKSES (KHUSUS SUPER ADMIN) */}
+            {activeTab === "users" && canAccessTab(currentUserRole, "users") && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                <UserManager currentUserEmail={user?.email} />
               </div>
             )}
 
@@ -7001,6 +7339,77 @@ NOTIFY pgrst, 'reload schema';`;
                     <span>Ya, Hapus Artikel</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: TOLAK WARTA DENGAN CATATAN REVISI */}
+      {rejectingBeritaItem && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setRejectingBeritaItem(null)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                  Kembalikan Warta untuk Revisi
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Berikan catatan perbaikan kepada kontributor warta.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3.5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+              <p className="text-slate-700 font-bold line-clamp-1">
+                &ldquo;{rejectingBeritaItem.title}&rdquo;
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Penulis: {rejectingBeritaItem.author} &bull; /berita/{rejectingBeritaItem.slug}
+              </p>
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Catatan Revisi / Alasan Penolakan: <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={catatanRevisiBerita}
+                onChange={(e) => setCatatanRevisiBerita(e.target.value)}
+                placeholder="Contoh: Tolong perbaiki resolusi foto sampul dan lengkapi rincian narasumber..."
+                className="w-full p-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] leading-relaxed resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectingBeritaItem(null);
+                  setCatatanRevisiBerita("");
+                }}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={!catatanRevisiBerita.trim()}
+                onClick={handleConfirmRejectBerita}
+                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+              >
+                <span>Kirim Catatan &amp; Tolak</span>
               </button>
             </div>
           </div>

@@ -1,3 +1,5 @@
+import { ContentStatus } from "./auth";
+
 // ===================================================================
 // TIPE & DEFINISI DATA AGENDA KALENDER HIMASI
 // ===================================================================
@@ -13,6 +15,8 @@ export interface AgendaKalender {
   waktu: string;
   lokasi: string;
   deskripsi: string;
+  status?: ContentStatus;
+  catatan_revisi?: string;
   created_at?: string;
   updated_at?: string;
 }

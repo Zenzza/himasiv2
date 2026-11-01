@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   nama_lengkap TEXT,
   jabatan TEXT DEFAULT 'Pengurus HIMASI',
   divisi TEXT DEFAULT 'Kabinet REKSABUDAYA',
+  role TEXT NOT NULL DEFAULT 'humas_biskraf',
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
@@ -71,17 +72,31 @@ CREATE POLICY "Pengurus dapat membaca profil"
 CREATE POLICY "Pengurus dapat mengupdate profil sendiri"
   ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
 
+CREATE POLICY "Super admin dapat mengelola semua profil"
+  ON public.profiles FOR ALL TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p 
+      WHERE p.id = auth.uid() AND (p.role = 'super_admin' OR p.email = 'himasi@atmaluhur.ac.id')
+    )
+  );
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, nama_lengkap, jabatan, divisi)
+  INSERT INTO public.profiles (id, email, nama_lengkap, jabatan, divisi, role)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
     COALESCE(NEW.raw_user_meta_data->>'role', 'Pengurus HIMASI'),
-    COALESCE(NEW.raw_user_meta_data->>'divisi', 'Kabinet REKSABUDAYA')
-  );
+    COALESCE(NEW.raw_user_meta_data->>'divisi', 'Kabinet REKSABUDAYA'),
+    CASE 
+      WHEN NEW.email = 'himasi@atmaluhur.ac.id' THEN 'super_admin'
+      ELSE 'humas_biskraf'
+    END
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    role = EXCLUDED.role;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -490,13 +505,39 @@ ON CONFLICT DO NOTHING;
 DO $$
 BEGIN
   BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.apresiasi_showcase, public.apresiasi_submisi;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.apresiasi_showcase, public.apresiasi_submisi, public.profiles;
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
 END $$;
 
+-- ===================================================================
+-- 14. SISTEM MANAJEMEN HAK USER & ALUR PERSETUJUAN KONTEN (RBAC)
+-- ===================================================================
+
+-- 1. Tambah kolom role ke tabel profiles jika belum ada
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'humas_biskraf';
+
+-- 2. Tetapkan akun resmi HIMASI sebagai Super Admin
+UPDATE public.profiles 
+SET role = 'super_admin' 
+WHERE email = 'himasi@atmaluhur.ac.id';
+
+-- 3. Tambahkan kolom status persetujuan & catatan revisi pada tabel berita jika belum ada
+ALTER TABLE public.berita 
+ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published',
+ADD COLUMN IF NOT EXISTS catatan_revisi TEXT;
+
+-- 4. Tambahkan kolom status persetujuan & catatan revisi pada tabel agenda_kalender jika belum ada
+ALTER TABLE public.agenda_kalender 
+ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published',
+ADD COLUMN IF NOT EXISTS catatan_revisi TEXT;
+
+GRANT ALL ON TABLE public.profiles TO authenticated, service_role;
+
 NOTIFY pgrst, 'reload schema';
+
 
 
 
