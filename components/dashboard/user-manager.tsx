@@ -144,16 +144,80 @@ export default function UserManager({ currentUserEmail }: UserManagerProps) {
     }
   };
 
-  const SQL_MIGRATION_TEXT = `-- SQL Script Migrasi Role Supabase HIMASI
--- Jalankan di Supabase SQL Editor jika kolom belum dibuat
+  const SQL_MIGRATION_TEXT = `-- SQL Script Migrasi & Sinkronisasi User Profiles Supabase HIMASI
+-- Jalankan skrip ini di Supabase SQL Editor:
 
-ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'humas_biskraf';
+-- 1. Buat Tabel public.profiles jika belum ada
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
+  nama_lengkap TEXT,
+  jabatan TEXT DEFAULT 'Pengurus HIMASI',
+  divisi TEXT DEFAULT 'Kabinet REKSABUDAYA',
+  role TEXT NOT NULL DEFAULT 'humas_biskraf',
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
 
-UPDATE public.profiles 
-SET role = 'super_admin' 
-WHERE email = 'himasi@atmaluhur.ac.id';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'humas_biskraf';
 
+-- 2. Aktifkan Row Level Security (RLS)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Pengurus dapat membaca profil" ON public.profiles;
+CREATE POLICY "Pengurus dapat membaca profil"
+  ON public.profiles FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Pengurus dapat mengupdate profil sendiri" ON public.profiles;
+CREATE POLICY "Pengurus dapat mengupdate profil sendiri"
+  ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Super admin dapat mengelola semua profil" ON public.profiles;
+CREATE POLICY "Super admin dapat mengelola semua profil"
+  ON public.profiles FOR ALL TO authenticated USING (true);
+
+-- 3. Trigger otomatis saat user baru terdaftar di auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, nama_lengkap, jabatan, divisi, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'Pengurus HIMASI'),
+    COALESCE(NEW.raw_user_meta_data->>'divisi', 'Kabinet REKSABUDAYA'),
+    CASE 
+      WHEN NEW.email = 'himasi@atmaluhur.ac.id' THEN 'super_admin'
+      ELSE 'humas_biskraf'
+    END
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 4. SINKRONISASI SEMUA USER DARI auth.users KE public.profiles
+INSERT INTO public.profiles (id, email, nama_lengkap, role)
+SELECT 
+  id, 
+  email, 
+  COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1)),
+  CASE 
+    WHEN email = 'himasi@atmaluhur.ac.id' THEN 'super_admin'
+    ELSE 'humas_biskraf'
+  END
+FROM auth.users
+ON CONFLICT (id) DO UPDATE SET
+  email = EXCLUDED.email;
+
+-- 5. Kolom status persetujuan pada berita & kalender
 ALTER TABLE public.berita 
 ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published',
 ADD COLUMN IF NOT EXISTS catatan_revisi TEXT;

@@ -106,6 +106,20 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Sinkronisasi (backfill) akun yang sudah terdaftar di auth.users ke public.profiles
+INSERT INTO public.profiles (id, email, nama_lengkap, role)
+SELECT 
+  id, 
+  email, 
+  COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1)),
+  CASE 
+    WHEN email = 'himasi@atmaluhur.ac.id' THEN 'super_admin'
+    ELSE 'humas_biskraf'
+  END
+FROM auth.users
+ON CONFLICT (id) DO UPDATE SET
+  email = EXCLUDED.email;
+
 
 -- ===================================================================
 -- 4. SISTEM ABSENSI QR CODE PENGURUS HIMASI

@@ -910,6 +910,13 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Auth Guard: Jika sesi selesai diperiksa dan pengguna belum login, alihkan langsung ke /login
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login");
+    }
+  }, [authLoading, user, router]);
+
   // View Guard: Jika tab yang dipilih tidak diizinkan untuk role saat ini, redirect ke overview
   useEffect(() => {
     if (!authLoading && user && !canAccessTab(currentUserRole, activeTab)) {
@@ -2577,27 +2584,28 @@ NOTIFY pgrst, 'reload schema';`;
   const totalHadir = currentLogs.filter((l) => l.status === "Hadir").length;
   const totalTerlambat = currentLogs.filter((l) => l.status === "Terlambat").length;
 
+  // Guard: Tampilkan layar pemuatan dan cegah tampilan dashboard jika pengguna belum login
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#00173d] via-[#00296E] to-[#00173d] flex flex-col items-center justify-center p-4 text-white">
+        <div className="w-16 h-16 rounded-2xl bg-white/10 p-2.5 flex items-center justify-center mb-4 shadow-2xl border border-white/20 backdrop-blur-md animate-pulse">
+          <img
+            src="/logo-himasi.png"
+            alt="Logo HIMASI"
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <div className="flex items-center gap-2.5 text-sky-200 text-xs font-semibold">
+          <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
+          <span>Memeriksa hak akses pengurus...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
       
-      {/* Top Banner jika belum login (Mode Tamu / Demo) */}
-      {!authLoading && !user && (
-        <div className="no-print bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs px-4 py-2 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 shrink-0" />
-            <span className="font-medium">
-              Anda sedang melihat <strong>Dashboard Mode Tamu (Pratinjau)</strong>. Masuk dengan akun pengurus Supabase untuk mengelola data nyata.
-            </span>
-          </div>
-          <Link
-            href="/login"
-            className="px-3 py-1 rounded-md bg-white text-amber-800 font-bold hover:bg-amber-50 transition-colors shrink-0 text-xs shadow-xs"
-          >
-            Masuk Pengurus
-          </Link>
-        </div>
-      )}
-
       {/* Main App Layout */}
       <div className="flex flex-1 relative overflow-hidden">
         
@@ -3980,13 +3988,6 @@ NOTIFY pgrst, 'reload schema';`;
                       Pesan dan masukan mahasiswa melalui form aspirasi beranda.
                     </p>
                   </div>
-
-                  {isUsingFallback && (
-                    <div className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>Mode Pratinjau Demo Aktif</span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Filter & Pencarian Bar */}
