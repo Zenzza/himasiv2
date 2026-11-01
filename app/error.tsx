@@ -6,14 +6,17 @@ import ErrorLayout from "@/components/ui/error-layout";
 export default function RootError({
   error,
   reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  reset?: () => void;
+  retry?: () => void;
 }) {
   useEffect(() => {
     console.error("Unhandled runtime error captured by error.tsx:", error);
   }, [error]);
 
-  return <ErrorLayout code="500" error={error} reset={reset} />;
+  const handleReset = reset || retry;
+  return <ErrorLayout code="500" error={error} reset={handleReset} />;
 }
 

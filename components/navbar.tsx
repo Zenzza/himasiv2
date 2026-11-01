@@ -69,42 +69,64 @@ export default function Navbar() {
       return;
     }
 
+    let isMounted = true;
+
     const checkMaintenance = () => {
-      getMaintenanceMode().then(async (m) => {
-        if (m.enabled) {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-              window.location.replace("/error/503");
+      try {
+        getMaintenanceMode()
+          .then(async (m) => {
+            if (!isMounted) return;
+            if (m && m.enabled) {
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session && isMounted) {
+                  window.location.replace("/error/503");
+                }
+              } catch {
+                if (isMounted) window.location.replace("/error/503");
+              }
             }
-          } catch {
-            window.location.replace("/error/503");
-          }
-        }
-      });
+          })
+          .catch((err) => {
+            console.warn("[Navbar] Gagal memeriksa status maintenance:", err);
+          });
+      } catch (err) {
+        console.warn("[Navbar] Exception checkMaintenance:", err);
+      }
     };
 
     checkMaintenance();
 
-    // Langganan perubahan status real-time dari database Supabase
-    const channel = supabase
-      .channel("system_settings_realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "system_settings",
-          filter: "key=eq.maintenance_mode",
-        },
-        () => {
-          checkMaintenance();
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel("system_settings_realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "system_settings",
+            filter: "key=eq.maintenance_mode",
+          },
+          () => {
+            checkMaintenance();
+          }
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn("[Navbar] Realtime subscription failed:", e);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
     };
   }, [pathname]);
 
