@@ -792,7 +792,7 @@ export default function TentangPage() {
           {/* Header Section: Hubungi Kami */}
           <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">            
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#00296E] tracking-tight leading-[1.15]">
-              Kontak &amp; Media Sosial
+              Kontak &amp; Media Sosial HIMASI
             </h2>
             
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed mt-3.5 font-normal">
