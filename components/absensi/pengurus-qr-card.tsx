@@ -67,7 +67,7 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
       {/* KARTU IDENTITAS DIGITAL PENGURUS (ID CARD) */}
       <div
         ref={cardRef}
-        className="w-full rounded-[24px] bg-gradient-to-b from-[#00173d] via-[#00296E] to-[#00173d] text-white p-6 shadow-2xl border border-sky-400/30 relative overflow-hidden"
+        className="w-full rounded-none bg-gradient-to-b from-[#00173d] via-[#00296E] to-[#00173d] text-white p-6 shadow-none border border-white/20 relative overflow-hidden"
       >
         {/* Glow ambient */}
         <div className="absolute top-0 right-0 w-48 h-48 bg-[#0094E0]/25 rounded-full blur-3xl pointer-events-none -mr-12 -mt-12" />
@@ -76,7 +76,7 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
         {/* Card Header: Brand Logo & Title */}
         <div className="relative z-10 flex items-center justify-between pb-4 border-b border-white/15">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-white p-1 shadow-sm flex items-center justify-center">
+            <div className="w-10 h-10 rounded-none bg-white p-1 shadow-sm flex items-center justify-center">
               <img
                 src="/logo-himasi.png"
                 alt="Logo HIMASI"
@@ -93,14 +93,14 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
             </div>
           </div>
 
-          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-400/20 text-sky-200 border border-sky-300/30">
+          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-none bg-sky-400/20 text-sky-200 border border-sky-300/30">
             ID PENGURUS
           </span>
         </div>
 
         {/* Profil Singkat: Foto & Biodata */}
         <div className="relative z-10 my-5 flex items-center gap-3.5">
-          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden border-2 border-white/40 shadow-md shrink-0 bg-slate-800">
+          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-none overflow-hidden border border-white/40 shadow-none shrink-0 bg-slate-800">
             <img
               src={member.image}
               alt={member.nama}
@@ -115,7 +115,7 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
               {member.jabatan}
             </p>
             <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-300">
-              <span className="font-mono bg-white/10 px-1.5 py-0.5 rounded border border-white/10">
+              <span className="font-mono bg-white/10 px-1.5 py-0.5 rounded-none border border-white/10">
                 {member.nim}
               </span>
               <span>•</span>
@@ -125,12 +125,12 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
         </div>
 
         {/* Kotak QR Code Pemindai Absensi */}
-        <div className="relative z-10 bg-white p-3.5 rounded-2xl shadow-inner flex flex-col items-center justify-center text-slate-800">
+        <div className="relative z-10 bg-white p-3.5 rounded-none shadow-none flex flex-col items-center justify-center text-slate-800">
           {qrDataUrl ? (
             <img
               src={qrDataUrl}
               alt={`QR Code ${member.nama}`}
-              className="w-48 h-48 object-contain rounded-xl"
+              className="w-48 h-48 object-contain rounded-none"
             />
           ) : (
             <div className="w-48 h-48 flex items-center justify-center">
@@ -165,7 +165,7 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
           <button
             type="button"
             onClick={handleDownloadQr}
-            className="flex-1 py-2.5 px-3 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            className="flex-1 py-2.5 px-3 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-2 cursor-pointer"
           >
             <Download className="w-4 h-4 text-sky-300" />
             <span>Unduh QR Code</span>
@@ -174,12 +174,12 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
           <button
             type="button"
             onClick={handleCopyToken}
-            className="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            className="py-2.5 px-3.5 rounded-none bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all border border-slate-200 dark:border-white/10 flex items-center justify-center gap-1.5 cursor-pointer"
             title="Salin Token QR"
           >
             {copied ? (
               <>
-                <Check className="w-4 h-4 text-emerald-600" />
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Tersalin!</span>
               </>
             ) : (
@@ -192,14 +192,14 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
         </div>
 
         {(onEdit || onDelete) && (
-          <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-white/10">
             {onEdit && (
               <button
                 type="button"
                 onClick={() => onEdit(member)}
-                className="flex-1 py-2 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#00296E] text-xs font-bold transition-all border border-sky-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                className="flex-1 py-2 px-3 rounded-none bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-[#00296E] dark:text-[#38BDF8] text-xs font-bold transition-all border border-sky-200 dark:border-sky-800/60 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Edit3 className="w-3.5 h-3.5 text-[#0094E0]" />
+                <Edit3 className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
                 <span>Edit Data</span>
               </button>
             )}
@@ -207,7 +207,7 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
               <button
                 type="button"
                 onClick={() => onDelete(member)}
-                className="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all border border-rose-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                className="py-2 px-3 rounded-none bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all border border-rose-200 dark:border-rose-900/50 flex items-center justify-center gap-1.5 cursor-pointer"
                 title="Hapus Peserta"
               >
                 <Trash2 className="w-3.5 h-3.5" />

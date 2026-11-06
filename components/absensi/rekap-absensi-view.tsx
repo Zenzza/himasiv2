@@ -143,18 +143,18 @@ export default function RekapAbsensiView({
 
   if (!activeKegiatan || kegiatanList.length === 0) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs">
-        <div className="w-16 h-16 rounded-2xl bg-sky-50 text-[#00296E] flex items-center justify-center mx-auto mb-4 border border-sky-100 shadow-2xs">
-          <Calendar className="w-8 h-8 text-[#0094E0]" />
+      <div className="bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-none">
+        <div className="w-16 h-16 rounded-none bg-sky-50 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center mx-auto mb-4 border border-[#00296E]/15 dark:border-white/10">
+          <Calendar className="w-8 h-8 text-[#0094E0] dark:text-[#38BDF8]" />
         </div>
-        <h3 className="text-xl font-black text-[#00296E]">Belum Ada Kegiatan Absensi</h3>
-        <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+        <h3 className="text-xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">Belum Ada Kegiatan Absensi</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
           Semua data kegiatan bersifat dinamis dan tersimpan di database. Silakan klik tombol di bawah untuk menambahkan agenda kegiatan baru dan melihat rekapitulasi presensi pengurus.
         </p>
         <button
           type="button"
           onClick={onOpenTambahModal}
-          className="mt-6 px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md inline-flex items-center gap-2 cursor-pointer active:scale-95"
+          className="mt-6 px-5 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none inline-flex items-center gap-2 cursor-pointer active:scale-95 uppercase tracking-wider"
         >
           <Plus className="w-4 h-4 text-sky-300" />
           <span>Tambah Kegiatan Baru</span>
@@ -167,46 +167,46 @@ export default function RekapAbsensiView({
     <div className="space-y-6">
       
       {/* HEADER KONTROL (HANYA DITAMPILKAN DI LAYAR, DISEMBUNYIKAN SAAT PRINT PDF) */}
-      <div className="no-print bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+      <div className="no-print bg-white dark:bg-[#001438] p-5 sm:p-6 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none space-y-4">
         
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#00296E]/15 dark:border-white/10">
           <div>
-            <h2 className="text-lg sm:text-2xl font-black text-[#00296E] mt-1">
+            <h2 className="text-lg sm:text-2xl font-black text-[#00296E] dark:text-white mt-1 uppercase tracking-tight">
               Rekapitulasi Absensi Kegiatan Pengurus
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Lihat riwayat kehadiran setiap kegiatan dan cetak dokumen resmi ber-kop surat HIMASI ke format PDF.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Segmented Control Mode: Presensi Pengurus | Lembar Kop Surat PDF */}
-            <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs">
+            <div className="flex items-center p-1 bg-slate-100 dark:bg-white/10 rounded-none border border-[#00296E]/15 dark:border-white/10 text-xs">
               <button
                 type="button"
                 onClick={() => setPreviewMode("table")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-none font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   previewMode === "table"
-                    ? "bg-white text-[#00296E] shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white dark:bg-[#001740] text-[#00296E] dark:text-white shadow-none"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="Tampilkan tabel kehadiran pengurus untuk kegiatan terpilih"
               >
-                <Users className="w-3.5 h-3.5 text-[#0094E0]" />
+                <Users className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
                 <span>Presensi Pengurus</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPreviewMode("pdf")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-none font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   previewMode === "pdf"
-                    ? "bg-white text-[#00296E] shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white dark:bg-[#001740] text-[#00296E] dark:text-white shadow-none"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="Tampilkan lembar dokumen resmi ber-kop surat HIMASI"
               >
-                <FileText className="w-3.5 h-3.5 text-[#0094E0]" />
+                <FileText className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
                 <span>Format Kop Surat</span>
               </button>
             </div>
@@ -215,7 +215,7 @@ export default function RekapAbsensiView({
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+              className="px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer active:scale-95 uppercase tracking-wider"
             >
               <Printer className="w-4 h-4 text-sky-300" />
               <span>Cetak / Unduh PDF</span>
@@ -228,14 +228,14 @@ export default function RekapAbsensiView({
           {/* Pemilihan Kegiatan & Tombol Tambah/Hapus/Reset Kegiatan */}
           <div className="md:col-span-5">
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Pilih Kegiatan:
               </label>
               <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={onOpenTambahModal}
-                  className="text-[11px] font-bold text-[#0094E0] hover:text-[#00296E] flex items-center gap-1 transition-colors cursor-pointer"
+                  className="text-[11px] font-bold text-[#0094E0] dark:text-[#38BDF8] hover:text-[#00296E] dark:hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Tambah</span>
@@ -244,7 +244,7 @@ export default function RekapAbsensiView({
                   <button
                     type="button"
                     onClick={() => onDeleteKegiatan(activeKegiatan.id)}
-                    className="text-[11px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1 transition-colors cursor-pointer"
+                    className="text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 flex items-center gap-1 transition-colors cursor-pointer"
                     title={`Hapus kegiatan "${activeKegiatan.nama}"`}
                   >
                     <Trash2 className="w-3 h-3" />
@@ -255,7 +255,7 @@ export default function RekapAbsensiView({
                   <button
                     type="button"
                     onClick={() => onResetAllAbsensiLogs(activeKegiatan.nama)}
-                    className="text-[11px] font-bold text-amber-600 hover:text-amber-800 flex items-center gap-1 transition-colors cursor-pointer"
+                    className="text-[11px] font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 flex items-center gap-1 transition-colors cursor-pointer"
                     title={`Kosongkan presensi untuk "${activeKegiatan.nama}"`}
                   >
                     <RotateCcw className="w-3 h-3" />
@@ -271,10 +271,10 @@ export default function RekapAbsensiView({
                   const found = kegiatanList.find((k) => k.id === e.target.value);
                   if (found) onSelectKegiatan(found);
                 }}
-                className="w-full px-3 py-2 text-xs font-bold text-[#00296E] bg-slate-50 hover:bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] cursor-pointer"
+                className="w-full px-3 py-2 text-xs font-bold text-[#00296E] dark:text-white bg-slate-50 dark:bg-[#001740] hover:bg-white dark:hover:bg-[#001f54] rounded-none border border-[#00296E]/20 dark:border-white/20 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] cursor-pointer"
               >
                 {kegiatanList.map((k) => (
-                  <option key={k.id} value={k.id}>
+                  <option key={k.id} value={k.id} className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">
                     {k.nama} • {formatTanggalIndo(k.tanggal)} ({k.jam})
                   </option>
                 ))}
@@ -284,7 +284,7 @@ export default function RekapAbsensiView({
 
           {/* Search Nama / NIM */}
           <div className="md:col-span-4">
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               Cari Nama / NIM:
             </label>
             <div className="relative">
@@ -293,7 +293,7 @@ export default function RekapAbsensiView({
                 placeholder="Cari pengurus..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                className="w-full pl-8 pr-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-50 dark:bg-[#001740] hover:bg-white dark:hover:bg-[#001a4d] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
               />
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -301,41 +301,41 @@ export default function RekapAbsensiView({
 
           {/* Filter Divisi */}
           <div className="md:col-span-3">
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               Divisi:
             </label>
             <select
               value={selectedDivisi}
               onChange={(e) => setSelectedDivisi(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] cursor-pointer"
+              className="w-full px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-[#001740] hover:bg-white dark:hover:bg-[#001f54] rounded-none border border-[#00296E]/20 dark:border-white/20 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] cursor-pointer"
             >
-              <option value="SEMUA">Semua Divisi</option>
-              <option value="BPH">BPH</option>
-              <option value="MEDKOMINFO">Medkominfo</option>
-              <option value="HUMAS">Humas</option>
-              <option value="BISNIS KREATIF">Bisnis Kreatif</option>
-              <option value="PENASIHAT">Penasihat</option>
+              <option value="SEMUA" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Semua Divisi</option>
+              <option value="BPH" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">BPH</option>
+              <option value="MEDKOMINFO" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Medkominfo</option>
+              <option value="HUMAS" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Humas</option>
+              <option value="BISNIS KREATIF" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Bisnis Kreatif</option>
+              <option value="PENASIHAT" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Penasihat</option>
             </select>
           </div>
         </div>
 
         {/* Kartu Ringkasan Metrik Presensi Kegiatan Terpilih */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[11px] font-semibold text-slate-500">Total Pengurus</span>
-            <p className="text-xl font-black text-slate-900 mt-0.5">{totalPengurus} Orang</p>
+          <div className="p-3.5 rounded-none bg-slate-50/70 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Pengurus</span>
+            <p className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{totalPengurus} Orang</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
-            <span className="text-[11px] font-bold text-emerald-700">Hadir Tepat Waktu</span>
-            <p className="text-xl font-black text-emerald-800 mt-0.5">{countHadir} Orang</p>
+          <div className="p-3.5 rounded-none bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/30">
+            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Hadir Tepat Waktu</span>
+            <p className="text-xl font-black text-emerald-800 dark:text-emerald-300 mt-0.5">{countHadir} Orang</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200">
-            <span className="text-[11px] font-bold text-amber-700">Terlambat</span>
-            <p className="text-xl font-black text-amber-800 mt-0.5">{countTerlambat} Orang</p>
+          <div className="p-3.5 rounded-none bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/30">
+            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest">Terlambat</span>
+            <p className="text-xl font-black text-amber-800 dark:text-amber-300 mt-0.5">{countTerlambat} Orang</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200">
-            <span className="text-[11px] font-bold text-blue-700">Persentase Hadir</span>
-            <p className="text-xl font-black text-[#00296E] mt-0.5">{persentase}%</p>
+          <div className="p-3.5 rounded-none bg-blue-50/70 dark:bg-sky-950/30 border border-blue-200 dark:border-sky-500/30">
+            <span className="text-[10px] font-bold text-blue-700 dark:text-sky-400 uppercase tracking-widest">Persentase Hadir</span>
+            <p className="text-xl font-black text-[#00296E] dark:text-[#38BDF8] mt-0.5">{persentase}%</p>
           </div>
         </div>
 
@@ -345,63 +345,63 @@ export default function RekapAbsensiView({
 
       {/* VIEW 1: TABEL INTERAKTIF DI DASHBOARD (MODE TABEL BIASA) */}
       {previewMode === "table" && (
-        <div className="no-print bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
-          <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-extrabold text-sm text-[#00296E]">
+        <div className="no-print bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 overflow-hidden shadow-none">
+          <div className="p-4 sm:p-5 border-b border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233] flex items-center justify-between">
+            <h3 className="font-extrabold text-sm text-[#00296E] dark:text-white uppercase tracking-wider">
               Daftar Kehadiran: {activeKegiatan.nama}
             </h3>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-400 font-mono">
               Menampilkan {filteredList.length} pengurus
             </span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <tr className="bg-[#FAFBFC] dark:bg-[#001233] border-b border-[#00296E]/20 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider text-[#00296E] dark:text-slate-200">
                   <th className="py-3 px-4 w-12 text-center">No</th>
                   <th className="py-3 px-4">Pengurus</th>
                   <th className="py-3 px-4">NIM</th>
-                  <th className="py-3 px-4">Divisi & Jabatan</th>
+                  <th className="py-3 px-4">Divisi &amp; Jabatan</th>
                   <th className="py-3 px-4">Waktu Presensi</th>
                   <th className="py-3 px-4 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/5 text-xs">
                 {filteredList.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={item.id} className="hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.03] transition-colors">
                     <td className="py-3 px-4 text-center font-mono text-slate-400">
                       {index + 1}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                        <div className="w-8 h-8 rounded-none overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-[#00296E]/15 dark:border-white/10">
                           <img
                             src={item.image}
                             alt={item.nama}
                             className="w-full h-full object-cover object-top"
                           />
                         </div>
-                        <span className="font-bold text-slate-900">{item.nama}</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{item.nama}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-mono font-medium text-slate-600">{item.nim}</td>
+                    <td className="py-3 px-4 font-mono font-medium text-slate-600 dark:text-slate-400">{item.nim}</td>
                     <td className="py-3 px-4">
-                      <span className="font-semibold text-[#00296E]">{item.jabatan}</span>
-                      <span className="text-slate-400 text-[11px] block">{item.divisi}</span>
+                      <span className="font-semibold text-[#00296E] dark:text-[#38BDF8]">{item.jabatan}</span>
+                      <span className="text-slate-400 dark:text-slate-500 text-[11px] block">{item.divisi}</span>
                     </td>
-                    <td className="py-3 px-4 font-mono text-slate-700">
+                    <td className="py-3 px-4 font-mono text-slate-700 dark:text-slate-300">
                       {item.waktu !== "-" ? `${item.waktu} WIB` : "-"}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                          className={`inline-block px-2.5 py-0.5 rounded-none font-bold text-[10px] uppercase font-mono ${
                             item.status === "Hadir"
-                              ? "bg-emerald-100 text-emerald-800"
+                              ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600/40"
                               : item.status === "Terlambat"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-slate-100 text-slate-500"
+                              ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-600/40"
+                              : "bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10"
                           }`}
                         >
                           {item.status}
@@ -410,7 +410,7 @@ export default function RekapAbsensiView({
                           <button
                             type="button"
                             onClick={() => onDeleteAbsensiLog(item.nim, activeKegiatan.nama)}
-                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="p-1 rounded-none text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                             title={`Reset / Hapus kehadiran ${item.nama}`}
                           >
                             <Trash2 className="w-3 h-3" />

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, Playfair_Display } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import BackToTop from "@/components/back-to-top";
@@ -10,13 +10,6 @@ const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
-  display: "swap",
-});
-
-const playfair = Playfair_Display({
-  variable: "--font-serif",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -32,19 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${poppins.variable} ${playfair.variable} h-full antialiased`}>
-      <head>
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-              body {
-                background-color: #ffffff;
-              }
-            `,
-          }}
-        />
-      </head>
-      <body className="min-h-full flex flex-col font-sans bg-white text-[#091e42] selection:bg-[#0094E0]/20 selection:text-[#00296E]">
+    <html lang="id" suppressHydrationWarning className={`${poppins.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col font-sans bg-white dark:bg-[#001740] text-[#091e42] dark:text-slate-100 selection:bg-[#0094E0]/20 selection:text-[#00296E]">
         <ScrollToTopOnNav />
         <LoadingScreen>
           <Navbar />

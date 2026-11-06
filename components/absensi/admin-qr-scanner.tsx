@@ -439,34 +439,34 @@ export default function AdminQrScanner({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-6 max-w-3xl mx-auto">
+    <div className="bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 p-5 sm:p-7 shadow-none space-y-6 max-w-3xl mx-auto">
       {/* Header Scanner & Kontrol Kegiatan */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#00296E]/15 dark:border-white/10">
         <div>
           <div className="flex items-center gap-2">
             <span
               className={`w-2.5 h-2.5 rounded-full ${
-                isCameraActive ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
+                isCameraActive ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600"
               }`}
             />
-            <h3 className="text-base sm:text-lg font-black text-[#00296E]">
+            <h3 className="text-base sm:text-lg font-extrabold text-[#00296E] dark:text-white uppercase tracking-tight">
               Pemindai Kamera QR Code Absensi
             </h3>
           </div>
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 mt-0.5">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
             <span className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-sky-600" />
+              <Calendar className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
               <span>
                 Kegiatan Aktif:{" "}
-                <strong className="text-slate-800">{kegiatanAktif}</strong>
+                <strong className="text-slate-800 dark:text-slate-200">{kegiatanAktif}</strong>
               </span>
             </span>
             {kegiatanTanggal && (
-              <span className="text-slate-400">• {kegiatanTanggal}</span>
+              <span className="text-slate-400 dark:text-slate-500">• {kegiatanTanggal}</span>
             )}
             {kegiatanJam && (
-              <span className="flex items-center gap-1 text-[#00296E] font-bold bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
-                <Clock className="w-3 h-3 text-sky-600" />
+              <span className="flex items-center gap-1 text-[#00296E] dark:text-sky-300 font-bold bg-sky-50 dark:bg-white/10 px-2 py-0.5 rounded-none border border-sky-200 dark:border-white/10">
+                <Clock className="w-3 h-3 text-sky-600 dark:text-sky-400" />
                 <span>{kegiatanJam}</span>
               </span>
             )}
@@ -475,14 +475,14 @@ export default function AdminQrScanner({
 
         {/* Status Mode (Hadir / Terlambat) + Sound Toggle */}
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-white/10 rounded-none border border-slate-200 dark:border-white/10">
             <button
               type="button"
               onClick={() => setStatusMode("Hadir")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-none text-xs font-bold transition-all cursor-pointer ${
                 statusMode === "Hadir"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-emerald-600 text-white shadow-none"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               Hadir Tepat Waktu
@@ -490,10 +490,10 @@ export default function AdminQrScanner({
             <button
               type="button"
               onClick={() => setStatusMode("Terlambat")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-none text-xs font-bold transition-all cursor-pointer ${
                 statusMode === "Terlambat"
-                  ? "bg-amber-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-amber-600 text-white shadow-none"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               Terlambat
@@ -503,11 +503,11 @@ export default function AdminQrScanner({
           <button
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+            className="p-2 rounded-none border border-slate-200 dark:border-white/15 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer"
             title={soundEnabled ? "Nonaktifkan Suara Beep" : "Aktifkan Suara Beep"}
           >
             {soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-emerald-600" />
+              <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             ) : (
               <VolumeX className="w-4 h-4 text-slate-400" />
             )}
@@ -517,7 +517,7 @@ export default function AdminQrScanner({
 
       {/* Area Kamera Viewfinder */}
       <div className="flex flex-col items-center">
-        <div className="w-full relative aspect-video min-h-[300px] max-h-[400px] rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-800 flex items-center justify-center text-white shadow-md">
+        <div className="w-full relative aspect-video min-h-[300px] max-h-[400px] rounded-none overflow-hidden bg-slate-950 border border-slate-800 dark:border-white/10 flex items-center justify-center text-white shadow-none">
           {/* Target element untuk html5-qrcode (WAJIB selalu ter-render dengan dimensi nyata) */}
           <div
             id="qr-camera-element"
@@ -527,11 +527,11 @@ export default function AdminQrScanner({
           {/* Placeholder saat kamera belum aktif */}
           {!isCameraActive && (
             <div className="absolute inset-0 z-10 bg-slate-950/95 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-white/10 mx-auto flex items-center justify-center text-sky-400">
+              <div className="w-16 h-16 rounded-none bg-white/10 mx-auto flex items-center justify-center text-sky-400 border border-white/15">
                 <Camera className="w-8 h-8" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Kamera Belum Aktif</h4>
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider">Kamera Belum Aktif</h4>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
                   Klik tombol di bawah untuk mengaktifkan kamera laptop / HP admin guna memindai QR code pengurus secara langsung.
                 </p>
@@ -542,17 +542,17 @@ export default function AdminQrScanner({
           {/* Viewfinder Reticle Overlay saat kamera aktif */}
           {isCameraActive && (
             <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-              <div className="w-56 h-56 sm:w-64 sm:h-64 border-2 border-[#0094E0] rounded-2xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.52)]">
+              <div className="w-56 h-56 sm:w-64 sm:h-64 border-2 border-[#0094E0] rounded-none relative shadow-[0_0_0_9999px_rgba(0,0,0,0.52)]">
                 {/* Laser scan line animation */}
                 <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-[#0094E0] to-transparent animate-bounce shadow-[0_0_12px_#0094E0]" />
 
                 {/* Corner highlights */}
-                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-3 border-l-3 border-sky-300 rounded-tl-sm" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 border-t-3 border-r-3 border-sky-300 rounded-tr-sm" />
-                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-3 border-l-3 border-sky-300 rounded-bl-sm" />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-3 border-r-3 border-sky-300 rounded-br-sm" />
+                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-3 border-l-3 border-sky-300" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 border-t-3 border-r-3 border-sky-300" />
+                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-3 border-l-3 border-sky-300" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-3 border-r-3 border-sky-300" />
 
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-sky-300 uppercase tracking-widest bg-black/75 px-2.5 py-1 rounded-md border border-sky-500/30 whitespace-nowrap">
+                <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-sky-300 uppercase tracking-widest bg-black/75 px-2.5 py-1 rounded-none border border-sky-500/30 whitespace-nowrap">
                   Arahkan QR Code ke Sini
                 </div>
               </div>
@@ -568,7 +568,7 @@ export default function AdminQrScanner({
                 type="button"
                 onClick={() => startCamera()}
                 disabled={isStartingCamera}
-                className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 uppercase tracking-wider"
               >
                 {isStartingCamera ? (
                   <>
@@ -586,7 +586,7 @@ export default function AdminQrScanner({
               <button
                 type="button"
                 onClick={stopCamera}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+                className="px-5 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer active:scale-95 uppercase tracking-wider"
               >
                 <CameraOff className="w-4 h-4" />
                 <span>Matikan Kamera</span>
@@ -598,17 +598,17 @@ export default function AdminQrScanner({
               <button
                 type="button"
                 onClick={handleSwitchCamera}
-                className="px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/20 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Ganti Kamera (Depan / Belakang)"
               >
-                <SwitchCamera className="w-4 h-4 text-sky-600" />
+                <SwitchCamera className="w-4 h-4 text-sky-600 dark:text-sky-400" />
                 <span>Ganti Kamera</span>
               </button>
             )}
 
             {/* Upload Foto QR Code */}
-            <label className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer">
-              <Upload className="w-4 h-4 text-[#0094E0]" />
+            <label className="px-4 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/20 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer">
+              <Upload className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
               <span>Pindai dari File Gambar</span>
               <input
                 type="file"
@@ -619,16 +619,16 @@ export default function AdminQrScanner({
             </label>
           </div>
 
-          <span className="text-[11px] text-slate-400">
+          <span className="text-[11px] text-slate-400 dark:text-slate-500">
             Arahkan kamera ke layar HP / ID card pengurus
           </span>
         </div>
 
         {/* Notifikasi Popover Berhasil Absen */}
         {lastScannedResult && (
-          <div className="w-full mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 flex items-center justify-between gap-3">
+          <div className="w-full mt-4 p-4 rounded-none bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 shadow-none animate-in fade-in slide-in-from-top-2 duration-200 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-emerald-300 shrink-0">
+              <div className="w-12 h-12 rounded-none overflow-hidden bg-slate-100 dark:bg-slate-800 border border-emerald-300 dark:border-emerald-500/40 shrink-0">
                 <img
                   src={lastScannedResult.image}
                   alt={lastScannedResult.nama}
@@ -637,20 +637,20 @@ export default function AdminQrScanner({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-none">
                     <CheckCircle2 className="w-3 h-3" />
                     <span>Presensi Berhasil</span>
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                     {lastScannedResult.waktu} WIB
                   </span>
                 </div>
-                <h4 className="text-sm font-extrabold text-[#00296E] mt-0.5">
+                <h4 className="text-sm font-extrabold text-[#00296E] dark:text-white mt-0.5">
                   {lastScannedResult.nama} ({lastScannedResult.nim})
                 </h4>
-                <p className="text-xs text-slate-600 font-medium">
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                   {lastScannedResult.jabatan} •{" "}
-                  <span className="font-bold text-[#0094E0]">
+                  <span className="font-bold text-[#0094E0] dark:text-[#38BDF8]">
                     {lastScannedResult.divisi}
                   </span>
                 </p>
@@ -660,7 +660,7 @@ export default function AdminQrScanner({
             <button
               type="button"
               onClick={() => setLastScannedResult(null)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-emerald-100 cursor-pointer"
+              className="p-1.5 rounded-none text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer"
               aria-label="Tutup"
             >
               <X className="w-4 h-4" />
@@ -670,15 +670,15 @@ export default function AdminQrScanner({
 
         {/* Feedback Peringatan Error / Ganda */}
         {cameraError && (
-          <div className="w-full mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <div className="w-full mt-3 p-3 rounded-none bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
             <span>{cameraError}</span>
           </div>
         )}
 
         {duplicateWarning && (
-          <div className="w-full mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+          <div className="w-full mt-3 p-3 rounded-none bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>{duplicateWarning}</span>
           </div>
         )}

@@ -311,16 +311,16 @@ NOTIFY pgrst, 'reload schema';`;
   return (
     <div className="space-y-6">
       {/* 1. Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#001438] p-5 sm:p-6 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-[#00296E] uppercase tracking-wider mb-1">
-            <ShieldCheck className="w-4 h-4 text-purple-600" />
+          <div className="flex items-center gap-2 text-xs font-bold text-[#00296E] dark:text-[#38BDF8] uppercase tracking-wider mb-1">
+            <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             <span>Hak Akses Terpusat</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-[#00296E]">
+          <h2 className="text-xl sm:text-2xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">
             Manajemen Pengguna &amp; Hak Akses
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Atur wewenang pengurus kabinet sesuai peran: Super Admin, BPH, Medkominfo, dan HUMAS/BISKRAF.
           </p>
         </div>
@@ -329,9 +329,9 @@ NOTIFY pgrst, 'reload schema';`;
           <button
             type="button"
             onClick={() => setShowSqlMigration(!showSqlMigration)}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-none text-xs font-semibold bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 border border-[#00296E]/15 dark:border-white/10 transition-colors cursor-pointer"
           >
-            <Code2 className="w-3.5 h-3.5 text-slate-500" />
+            <Code2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>Skrip SQL Supabase</span>
           </button>
 
@@ -339,7 +339,7 @@ NOTIFY pgrst, 'reload schema';`;
             type="button"
             onClick={fetchUsers}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#00296E] text-white hover:bg-[#001f54] transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-none text-xs font-semibold bg-[#00296E] text-white hover:bg-[#001f54] transition-colors cursor-pointer shadow-none disabled:opacity-50 uppercase tracking-wider"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             <span>Refresh</span>
@@ -349,7 +349,7 @@ NOTIFY pgrst, 'reload schema';`;
 
       {/* 2. SQL Migration Helper Banner (Expandable) */}
       {showSqlMigration && (
-        <div className="bg-slate-900 text-slate-200 p-5 rounded-2xl border border-slate-800 shadow-md animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="bg-slate-900 text-slate-200 p-5 rounded-none border border-slate-800 shadow-none animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Code2 className="w-4 h-4 text-purple-400" />
@@ -360,13 +360,13 @@ NOTIFY pgrst, 'reload schema';`;
             <button
               type="button"
               onClick={handleCopySql}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 transition-colors cursor-pointer"
             >
               {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copiedSql ? "Tersalin!" : "Salin Skrip SQL"}</span>
             </button>
           </div>
-          <pre className="text-[11px] font-mono bg-slate-950 p-4 rounded-xl overflow-x-auto text-emerald-400 border border-slate-800/80">
+          <pre className="text-[11px] font-mono bg-slate-950 p-4 rounded-none overflow-x-auto text-emerald-400 border border-slate-800/80">
             {SQL_MIGRATION_TEXT}
           </pre>
           <p className="text-[11px] text-slate-400 mt-2">
@@ -377,39 +377,39 @@ NOTIFY pgrst, 'reload schema';`;
 
       {/* 2.1 Mode Pemeliharaan Sistem (503) Super Admin Gate */}
       <div
-        className={`p-5 rounded-2xl border transition-all duration-200 shadow-2xs ${
+        className={`p-5 rounded-none border transition-all duration-200 shadow-none ${
           maintenanceEnabled
-            ? "bg-amber-50/80 border-amber-300 text-amber-950"
-            : "bg-white border-slate-200/80 text-slate-900"
+            ? "bg-amber-500/10 border-amber-500/40 text-amber-900 dark:text-amber-200"
+            : "bg-white dark:bg-[#001438] border-[#00296E]/20 dark:border-white/10 text-slate-900 dark:text-white"
         }`}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              className={`w-10 h-10 rounded-none flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10 ${
                 maintenanceEnabled
-                  ? "bg-amber-500 text-white shadow-md shadow-amber-500/25"
-                  : "bg-slate-100 text-slate-600"
+                  ? "bg-amber-500 text-white shadow-none"
+                  : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300"
               }`}
             >
               <Wrench className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold tracking-tight text-[#00296E]">
+                <h3 className="text-sm font-bold tracking-tight text-[#00296E] dark:text-white">
                   Mode Pemeliharaan Sistem (Error 503 Gate)
                 </h3>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-none text-[10px] font-bold tracking-wide uppercase font-mono ${
                     maintenanceEnabled
-                      ? "bg-amber-200 text-amber-900 border border-amber-300"
-                      : "bg-slate-100 text-slate-600 border border-slate-200"
+                      ? "bg-amber-200 dark:bg-amber-900/50 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/50"
+                      : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10"
                   }`}
                 >
                   {maintenanceEnabled ? "Aktif (Terkunci)" : "Nonaktif (Normal)"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl leading-relaxed">
                 Ketika aktif, pengunjung publik dialihkan otomatis ke halaman <strong>/error/503</strong> penuh.
                 Halaman <strong>/login</strong> dan dashboard pengurus tetap terbuka agar Super Admin dapat mengelola sistem.
               </p>
@@ -417,15 +417,15 @@ NOTIFY pgrst, 'reload schema';`;
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            <div className="flex items-center gap-1.5 bg-white sm:bg-transparent px-3 py-1.5 rounded-xl border border-slate-200 sm:border-0 text-xs">
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#001740] px-3 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 text-xs">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-[11px] text-slate-500">Estimasi:</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">Estimasi:</span>
               <input
                 type="text"
                 value={maintenanceEstimated}
                 onChange={(e) => handleUpdateEstimatedTime(e.target.value)}
                 placeholder="misal ~15-30 Menit"
-                className="w-28 text-xs font-semibold text-[#00296E] bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-lg px-2 py-1 outline-hidden"
+                className="w-28 text-xs font-semibold text-[#00296E] dark:text-white bg-transparent border-0 rounded-none px-1 py-0.5 outline-hidden"
               />
             </div>
 
@@ -433,10 +433,10 @@ NOTIFY pgrst, 'reload schema';`;
               type="button"
               onClick={handleToggleMaintenance}
               disabled={savingMaintenance}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50 ${
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-none text-xs font-bold transition-all shadow-none cursor-pointer disabled:opacity-50 uppercase tracking-wider ${
                 maintenanceEnabled
                   ? "bg-amber-600 hover:bg-amber-700 text-white"
-                  : "bg-slate-900 hover:bg-slate-800 text-white"
+                  : "bg-[#00296E] hover:bg-[#001f54] text-white"
               }`}
             >
               {maintenanceEnabled ? (
@@ -455,8 +455,8 @@ NOTIFY pgrst, 'reload schema';`;
         </div>
 
         {maintenanceToast && (
-          <div className="mt-3 text-xs font-medium px-3.5 py-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200 animate-in fade-in duration-150 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="mt-3 text-xs font-medium px-3.5 py-2 rounded-none bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 animate-in fade-in duration-150 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{maintenanceToast}</span>
           </div>
         )}
@@ -464,53 +464,53 @@ NOTIFY pgrst, 'reload schema';`;
 
       {/* 3. Stat Cards Peran */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-bold text-purple-700 mb-2">
+        <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
+          <div className="flex items-center justify-between text-xs font-bold text-purple-700 dark:text-purple-400 mb-2">
             <span>SUPER ADMIN</span>
             <span className="w-2 h-2 rounded-full bg-purple-500" />
           </div>
-          <span className="text-2xl sm:text-3xl font-black text-[#00296E]">
+          <span className="text-2xl sm:text-3xl font-black text-[#00296E] dark:text-white">
             {stats.super_admin}
           </span>
-          <p className="text-[11px] text-slate-500 mt-1">Akses penuh teknis &amp; database</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Akses penuh teknis &amp; database</p>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-bold text-emerald-700 mb-2">
+        <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
+          <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2">
             <span>BPH (PIMPINAN)</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
-          <span className="text-2xl sm:text-3xl font-black text-[#00296E]">
+          <span className="text-2xl sm:text-3xl font-black text-[#00296E] dark:text-white">
             {stats.bph}
           </span>
-          <p className="text-[11px] text-slate-500 mt-1">Pengawas absensi &amp; organisasi</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Pengawas absensi &amp; organisasi</p>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-bold text-sky-700 mb-2">
+        <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
+          <div className="flex items-center justify-between text-xs font-bold text-sky-700 dark:text-sky-400 mb-2">
             <span>MEDKOMINFO</span>
             <span className="w-2 h-2 rounded-full bg-sky-500" />
           </div>
-          <span className="text-2xl sm:text-3xl font-black text-[#00296E]">
+          <span className="text-2xl sm:text-3xl font-black text-[#00296E] dark:text-white">
             {stats.medkominfo}
           </span>
-          <p className="text-[11px] text-slate-500 mt-1">Editor &amp; gatekeeper konten</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Editor &amp; gatekeeper konten</p>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-bold text-amber-700 mb-2">
+        <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
+          <div className="flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">
             <span>HUMAS &amp; BISKRAF</span>
             <span className="w-2 h-2 rounded-full bg-amber-500" />
           </div>
-          <span className="text-2xl sm:text-3xl font-black text-[#00296E]">
+          <span className="text-2xl sm:text-3xl font-black text-[#00296E] dark:text-white">
             {stats.humas_biskraf}
           </span>
-          <p className="text-[11px] text-slate-500 mt-1">Kontributor draf konten</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Kontributor draf konten</p>
         </div>
       </div>
 
       {/* 4. Controls: Pencarian & Filter Peran */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
         <div className="relative flex-1">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" />
@@ -520,13 +520,13 @@ NOTIFY pgrst, 'reload schema';`;
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari berdasarkan nama, email, divisi, jabatan..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00296E]/20 focus:border-[#00296E]"
+            className="w-full pl-10 pr-4 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-50/70 dark:bg-[#001740] text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-white"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -538,23 +538,23 @@ NOTIFY pgrst, 'reload schema';`;
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as any)}
-            className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00296E]/20"
+            className="px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] cursor-pointer"
           >
-            <option value="all">Semua Peran ({profiles.length})</option>
-            <option value="super_admin">Super Admin ({stats.super_admin})</option>
-            <option value="bph">BPH ({stats.bph})</option>
-            <option value="medkominfo">Medkominfo ({stats.medkominfo})</option>
-            <option value="humas_biskraf">HUMAS &amp; BISKRAF ({stats.humas_biskraf})</option>
+            <option value="all" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Semua Peran ({profiles.length})</option>
+            <option value="super_admin" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Super Admin ({stats.super_admin})</option>
+            <option value="bph" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">BPH ({stats.bph})</option>
+            <option value="medkominfo" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Medkominfo ({stats.medkominfo})</option>
+            <option value="humas_biskraf" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">HUMAS &amp; BISKRAF ({stats.humas_biskraf})</option>
           </select>
         </div>
       </div>
 
       {/* 5. Tabel Daftar Pengguna & Hak Akses */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+      <div className="bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <tr className="bg-[#FAFBFC] dark:bg-[#001233] border-b border-[#00296E]/20 dark:border-white/10 text-[10px] font-bold text-[#00296E] dark:text-slate-200 uppercase tracking-wider">
                 <th className="py-3.5 px-4 sm:px-6">Pengurus</th>
                 <th className="py-3.5 px-4">Divisi &amp; Jabatan</th>
                 <th className="py-3.5 px-4">Hak Akses (Role)</th>
@@ -562,19 +562,19 @@ NOTIFY pgrst, 'reload schema';`;
                 <th className="py-3.5 px-4 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
+            <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/5 text-xs">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-slate-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-slate-300" />
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-slate-300 dark:text-slate-600" />
                     <span>Memuat data pengguna &amp; hak akses...</span>
                   </td>
                 </tr>
               ) : filteredProfiles.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-slate-400">
-                    <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="font-semibold text-slate-600">Tidak ada pengurus yang cocok</p>
+                    <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="font-semibold text-slate-600 dark:text-slate-300">Tidak ada pengurus yang cocok</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
                       Coba ubah kata kunci pencarian atau reset filter peran.
                     </p>
@@ -586,23 +586,23 @@ NOTIFY pgrst, 'reload schema';`;
                   const isPrimarySuperAdmin = user.email === "himasi@atmaluhur.ac.id";
 
                   return (
-                    <tr key={user.id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr key={user.id} className="hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.03] transition-colors">
                       {/* Kolom 1: Profil / Nama & Email */}
                       <td className="py-3.5 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-[#00296E] shrink-0">
+                          <div className="w-9 h-9 rounded-none bg-slate-100 dark:bg-white/10 border border-[#00296E]/15 dark:border-white/10 flex items-center justify-center font-bold text-xs text-[#00296E] dark:text-[#38BDF8] shrink-0">
                             {user.nama_lengkap.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-slate-900">{user.nama_lengkap}</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{user.nama_lengkap}</span>
                               {isCurrentLoggedIn && (
-                                <span className="text-[9px] font-bold bg-sky-50 text-sky-700 border border-sky-200 px-1.5 py-0.2 rounded-full">
+                                <span className="text-[9px] font-bold bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30 px-1.5 py-0.2 rounded-none font-mono">
                                   Anda
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-500 font-mono block mt-0.5">
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">
                               {user.email}
                             </span>
                           </div>
@@ -611,15 +611,15 @@ NOTIFY pgrst, 'reload schema';`;
 
                       {/* Kolom 2: Divisi & Jabatan */}
                       <td className="py-3.5 px-4">
-                        <span className="font-semibold text-slate-800 block">{user.jabatan}</span>
-                        <span className="text-[11px] text-slate-500 block mt-0.5">{user.divisi}</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 block">{user.jabatan}</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">{user.divisi}</span>
                       </td>
 
                       {/* Kolom 3: Badge Role */}
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                            ROLE_BADGE_STYLES[user.role] || "bg-slate-100 text-slate-700"
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[10px] font-bold border font-mono uppercase ${
+                            ROLE_BADGE_STYLES[user.role] || "bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300"
                           }`}
                         >
                           <ShieldCheck className="w-3 h-3" />
@@ -630,12 +630,12 @@ NOTIFY pgrst, 'reload schema';`;
                       {/* Kolom 4: Status Akun */}
                       <td className="py-3.5 px-4 text-center">
                         {isPrimarySuperAdmin ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-500/30 px-2 py-0.5 rounded-none font-mono">
                             <Lock className="w-3 h-3" />
                             <span>Kunci Sistem</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 px-2 py-0.5 rounded-none font-mono">
                             <CheckCircle2 className="w-3 h-3" />
                             <span>Aktif</span>
                           </span>
@@ -648,7 +648,7 @@ NOTIFY pgrst, 'reload schema';`;
                           type="button"
                           onClick={() => handleOpenRoleModal(user)}
                           disabled={isPrimarySuperAdmin && isCurrentLoggedIn}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:border-[#00296E] hover:text-[#00296E] text-slate-700 transition-colors cursor-pointer shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 hover:border-[#00296E] dark:hover:border-[#38BDF8] hover:text-[#00296E] dark:hover:text-[#38BDF8] text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-none disabled:opacity-40 disabled:cursor-not-allowed uppercase tracking-wider"
                         >
                           <UserCheck className="w-3.5 h-3.5" />
                           <span>Ubah Peran</span>
@@ -665,23 +665,23 @@ NOTIFY pgrst, 'reload schema';`;
 
       {/* 6. Modal Ubah Hak Akses Pengguna */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#001438] rounded-none max-w-lg w-full border border-[#00296E]/20 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Header Modal */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between p-5 border-b border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-700 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-none bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 flex items-center justify-center">
                   <ShieldAlert className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#00296E]">Ubah Hak Akses Pengguna</h3>
-                  <p className="text-xs text-slate-500 font-mono">{selectedUser.email}</p>
+                  <h3 className="text-base font-bold text-[#00296E] dark:text-white uppercase tracking-wider">Ubah Hak Akses Pengguna</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{selectedUser.email}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedUser(null)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="w-8 h-8 rounded-none flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -689,10 +689,10 @@ NOTIFY pgrst, 'reload schema';`;
 
             {/* Konten Modal */}
             <div className="p-5 sm:p-6 space-y-4">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs">
-                <span className="text-slate-500 block">Nama Pengurus:</span>
-                <span className="font-bold text-slate-900 text-sm">{selectedUser.nama_lengkap}</span>
-                <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+              <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-none border border-[#00296E]/15 dark:border-white/10 text-xs">
+                <span className="text-slate-500 dark:text-slate-400 block uppercase tracking-wider text-[10px]">Nama Pengurus:</span>
+                <span className="font-bold text-slate-900 dark:text-white text-sm">{selectedUser.nama_lengkap}</span>
+                <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-300">
                   <span>{selectedUser.jabatan}</span>
                   <span>•</span>
                   <span>{selectedUser.divisi}</span>
@@ -701,7 +701,7 @@ NOTIFY pgrst, 'reload schema';`;
 
               {/* Pilihan Role */}
               <div className="space-y-2.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-[#00296E] dark:text-white uppercase tracking-wider">
                   Pilih Tingkat Wewenang:
                 </label>
 
@@ -710,10 +710,10 @@ NOTIFY pgrst, 'reload schema';`;
                   return (
                     <label
                       key={r}
-                      className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+                      className={`flex items-start gap-3 p-3.5 rounded-none border transition-all cursor-pointer select-none ${
                         isChecked
-                          ? "bg-purple-50/60 border-purple-300 ring-2 ring-purple-500/20"
-                          : "bg-white border-slate-200 hover:bg-slate-50"
+                          ? "bg-purple-500/10 border-purple-400 ring-1 ring-purple-500/30"
+                          : "bg-white dark:bg-[#001740] border-[#00296E]/15 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                       }`}
                     >
                       <input
@@ -726,16 +726,16 @@ NOTIFY pgrst, 'reload schema';`;
                       />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs text-slate-900">
+                          <span className="font-bold text-xs text-slate-900 dark:text-white">
                             {ROLE_LABELS[r]}
                           </span>
                           <span
-                            className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${ROLE_BADGE_STYLES[r]}`}
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded-none border font-mono uppercase ${ROLE_BADGE_STYLES[r]}`}
                           >
                             {r.toUpperCase()}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
                           {ROLE_DESCRIPTIONS[r]}
                         </p>
                       </div>
@@ -746,14 +746,14 @@ NOTIFY pgrst, 'reload schema';`;
 
               {/* Peringatan / Feedback */}
               {actionError && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                <div className="flex items-center gap-2 p-3 rounded-none bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-200 text-xs">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>{actionError}</span>
                 </div>
               )}
 
               {actionSuccess && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+                <div className="flex items-center gap-2 p-3 rounded-none bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>{actionSuccess}</span>
                 </div>
@@ -761,12 +761,12 @@ NOTIFY pgrst, 'reload schema';`;
             </div>
 
             {/* Footer Modal */}
-            <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-2.5">
+            <div className="p-4 sm:p-5 border-t border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233] flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setSelectedUser(null)}
                 disabled={savingRole}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer uppercase tracking-wider"
               >
                 Batal
               </button>
@@ -775,7 +775,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 onClick={handleSaveRole}
                 disabled={savingRole || selectedUser.role === targetRole}
-                className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#00296E] hover:bg-[#001f54] text-white transition-all shadow-xs disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                className="px-5 py-2 rounded-none text-xs font-semibold bg-[#00296E] hover:bg-[#001f54] text-white transition-all shadow-none disabled:opacity-50 cursor-pointer flex items-center gap-2 uppercase tracking-wider"
               >
                 {savingRole ? (
                   <>

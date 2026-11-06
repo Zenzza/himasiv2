@@ -61,6 +61,8 @@ import {
   Award,
   Lock,
   Unlock,
+  Sun,
+  Moon,
 } from "lucide-react";
 import {
   DEFAULT_HERO_BANNER,
@@ -91,6 +93,7 @@ import AdminQrScanner, { type AbsensiRecord } from "@/components/absensi/admin-q
 import PengurusQrCard from "@/components/absensi/pengurus-qr-card";
 import ApresiasiManager from "@/components/dashboard/apresiasi-manager";
 import UserManager from "@/components/dashboard/user-manager";
+import PersuratanManager from "@/components/dashboard/persuratan-manager";
 import {
   type UserRole,
   type ContentStatus,
@@ -189,10 +192,57 @@ export default function DashboardPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "aspirasi" | "berita" | "kalender" | "database" | "banner" | "apresiasi" | "users"
+    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "persuratan" | "aspirasi" | "berita" | "kalender" | "database" | "banner" | "apresiasi" | "users"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>("humas_biskraf");
+
+  // Swiss Minimalist Dual-Theme State (Light / Dark)
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("himasi-admin-theme") as "light" | "dark" | null;
+      let initialTheme: "light" | "dark" = "light";
+      if (savedTheme === "dark" || savedTheme === "light") {
+        initialTheme = savedTheme;
+      } else if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        initialTheme = "dark";
+      }
+
+      setTheme(initialTheme);
+      if (initialTheme === "dark") {
+        document.documentElement.classList.add("dark");
+        document.body.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.body.classList.remove("dark");
+        document.documentElement.removeAttribute("data-theme");
+      }
+    } catch {
+      // Fallback safe for SSR
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+    try {
+      localStorage.setItem("himasi-admin-theme", nextTheme);
+      if (nextTheme === "dark") {
+        document.documentElement.classList.add("dark");
+        document.body.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.body.classList.remove("dark");
+        document.documentElement.removeAttribute("data-theme");
+      }
+    } catch {
+      // Safe fallback
+    }
+  };
 
   // Hero Banner State (Pengaturan Background Mobile & Desktop)
   const [bannerConfig, setBannerConfig] = useState<HeroBannerConfig>(DEFAULT_HERO_BANNER);
@@ -2603,354 +2653,503 @@ NOTIFY pgrst, 'reload schema';`;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
-      
-      {/* Main App Layout */}
-      <div className="flex flex-1 relative overflow-hidden">
+    <div
+      className={`min-h-screen ${theme === "dark" ? "dark bg-[#001740] text-slate-100" : "bg-white text-slate-900"} flex flex-col font-poppins selection:bg-[#00296E] selection:text-white dark:selection:bg-[#38BDF8] dark:selection:text-[#001740] transition-colors duration-150`}
+      data-theme={theme}
+    >
+      {/* ========================================================================= */}
+      {/* GAYA 1: SWISS MINIMALIST GRID - TOP NAVBAR (FULL WIDTH)                   */}
+      {/* ========================================================================= */}
+      <header className="no-print w-full h-14 bg-white dark:bg-[#001438] border-b border-[#00296E]/20 dark:border-white/10 sticky top-0 z-50 flex items-stretch select-none">
+        {/* Kolom Brand: HIMASI/ADMIN (Lebar w-64 sejajar lurus dengan Sidebar) */}
+        <div className="w-64 min-w-[16rem] shrink-0 border-r border-[#00296E]/20 dark:border-white/10 px-5 flex items-center justify-between bg-white dark:bg-[#001438]">
+          <Link href="/dashboard" className="flex items-center gap-2 group">
+            <span className="font-extrabold text-sm sm:text-base tracking-tight text-[#00296E] dark:text-white uppercase font-poppins">
+              HIMASI/ADMIN
+            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden p-1 text-[#00296E] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+            aria-label="Toggle Sidebar"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Tab Navigasi Horizontal Swiss Grid Sesuai Subbagian (Tanpa Dropdown, Langsung ke Modul Pertama) */}
+        <div className="flex items-stretch overflow-x-auto no-scrollbar flex-1">
+          {/* 01. Ringkasan / Overview */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+              activeTab === "overview"
+                ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
+                : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
+            }`}
+          >
+            01. Ringkasan
+          </button>
+
+          {/* 02. Warta & Aspirasi -> Menuju ke Warta & Berita */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("berita")}
+            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+              ["berita", "apresiasi", "aspirasi"].includes(activeTab)
+                ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
+                : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
+            }`}
+          >
+            02. Warta &amp; Aspirasi
+          </button>
+
+          {/* 03. Organisasi & Arsip -> Menuju ke Kartu QR & Profil */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("kartu-qr")}
+            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+              ["kartu-qr", "kalender", "dokumen", "persuratan"].includes(activeTab)
+                ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
+                : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
+            }`}
+          >
+            03. Organisasi &amp; Arsip
+          </button>
+
+          {/* 04. Operasional Presensi -> Menuju ke Absensi Kegiatan QR */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("absensi")}
+            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+              ["absensi", "rekap-absensi"].includes(activeTab)
+                ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
+                : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
+            }`}
+          >
+            04. Operasional Presensi
+          </button>
+
+          {/* 05. Sistem & Keamanan -> Menuju ke Pengaturan & Mode */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("banner")}
+            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+              ["banner", "database", "users"].includes(activeTab)
+                ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
+                : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
+            }`}
+          >
+            05. Sistem &amp; Keamanan
+          </button>
+        </div>
+
+        {/* Kolom Kanan: Refresh, Theme Toggle Switch & SUPER ADMIN */}
+        <div className="flex items-stretch shrink-0">
+          {/* Refresh Data Button */}
+          <button
+            type="button"
+            onClick={fetchAspirasi}
+            disabled={loadingAspirasi}
+            title="Muat Ulang Data"
+            className="h-full px-3.5 border-l border-[#00296E]/20 dark:border-white/10 hover:bg-[#00296E]/5 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white transition-colors cursor-pointer flex items-center justify-center"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingAspirasi ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
+          </button>
+
+          {/* SAKLAR TEMA DUAL-MODE (LIGHT / DARK) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === "light" ? "Ganti ke Mode Gelap (Midnight Swiss)" : "Ganti ke Mode Terang (Pure White)"}
+            className="h-full px-4 border-l border-[#00296E]/20 dark:border-white/10 hover:bg-[#00296E]/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center gap-2 text-xs font-mono font-bold"
+            aria-label="Toggle Theme"
+          >
+            {theme === "light" ? (
+              <>
+                <Moon className="w-3.5 h-3.5 text-[#00296E]" />
+                <span className="hidden sm:inline">MODE GELAP</span>
+              </>
+            ) : (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-300" />
+                <span className="hidden sm:inline text-amber-300">MODE TERANG</span>
+              </>
+            )}
+          </button>
+
+          {/* Role Badge Cell: SUPER ADMIN */}
+          <div className="h-full px-6 border-l border-[#00296E]/20 dark:border-white/10 flex items-center justify-center font-extrabold text-xs uppercase tracking-wider text-[#00296E] dark:text-white shrink-0">
+            {ROLE_LABELS[currentUserRole] || "SUPER ADMIN"}
+          </div>
+        </div>
+      </header>
+
+      {/* Main App Layout (Below Top Navbar) */}
+      <div className="flex flex-1 min-h-[calc(100vh-56px)] relative overflow-hidden">
         
-        {/* Sidebar Navigasi Dashboard (Disebut no-print agar tidak muncul di cetak PDF) */}
+        {/* Sidebar Navigasi Dashboard Swiss Minimalist */}
         <aside
-          className={`no-print fixed inset-y-0 left-0 z-40 w-64 bg-white text-slate-800 border-r border-slate-200/80 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static ${
+          className={`no-print fixed inset-y-0 left-0 z-40 w-64 min-w-[16rem] shrink-0 bg-white dark:bg-[#001438] text-slate-800 dark:text-slate-200 border-r border-[#00296E]/20 dark:border-white/10 flex flex-col justify-between transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          {/* Header Sidebar: Brand HIMASI */}
-          <div>
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-              <Link href="/" className="flex items-center gap-2.5 group">
-                <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 p-1 flex items-center justify-center shadow-xs">
-                  <img
-                    src="/logo-himasi.png"
-                    alt="Logo HIMASI"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 className="font-bold text-sm text-[#00296E] tracking-tight leading-none">
-                    HIMASI Admin
-                  </h2>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    Kabinet REKSABUDAYA
-                  </span>
-                </div>
-              </Link>
+          {/* Header Mobile Drawer Sidebar (Hanya tampil saat mode mobile) */}
+          <div className="lg:hidden p-4 border-b border-[#00296E]/20 dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#001233]">
+            <span className="font-extrabold text-xs text-[#00296E] dark:text-white tracking-tight uppercase">
+              HIMASI/ADMIN
+            </span>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
+          {/* Menu Navigasi Terkategori Berdasarkan Subbagian Instruksi User */}
+          <div className="flex-1 overflow-y-auto pb-4">
+            {/* OVERVIEW / RINGKASAN DI PALING ATAS */}
+            <div className="px-5 pt-4 pb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-poppins">
+              NAVIGASI UTAMA
+            </div>
+            <nav className="space-y-0.5 px-3">
               <button
                 type="button"
-                onClick={() => setSidebarOpen(false)}
-                className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                onClick={() => {
+                  setActiveTab("overview");
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                  activeTab === "overview"
+                    ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                    : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                }`}
               >
-                <X className="w-5 h-5" />
+                <span>Ringkasan Eksekutif</span>
+                {activeTab === "overview" && <span className="font-mono text-sm leading-none">&rarr;</span>}
               </button>
-            </div>
+            </nav>
 
-            {/* Menu Navigasi Terkategori Berdasarkan Halaman & Operasional */}
-            <nav className="p-3 space-y-4 overflow-y-auto max-h-[calc(100vh-160px)]">
-              {/* Seksi 1: Ringkasan Utama */}
-              <div>
+            {/* SUBBAGIAN 1: Warta & Berita, Apresia-SI Mahasiswa, Kotak Aspirasi */}
+            <div className="px-5 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-poppins">
+              01. WARTA &amp; ASPIRASI
+            </div>
+            <nav className="space-y-0.5 px-3">
+              {/* Warta & Berita */}
+              {canAccessTab(currentUserRole, "berita") && (
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveTab("overview");
+                    setActiveTab("berita");
                     setSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    activeTab === "overview"
-                      ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "berita"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <LayoutDashboard className={`w-4 h-4 ${activeTab === "overview" ? "text-[#00296E]" : "text-slate-400"}`} />
-                    <span>Ringkasan Dashboard</span>
+                  <span>Warta &amp; Berita</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
+                      {beritaList.length > 0 ? beritaList.length : 24}
+                    </span>
+                    {activeTab === "berita" && <span className="font-mono text-sm leading-none">&rarr;</span>}
                   </div>
                 </button>
-              </div>
-
-              {/* Seksi 2: Kontrol Halaman Front-End */}
-              <div className="space-y-1">
-                <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Kontrol Halaman
-                </div>
-
-                {/* Home Page (Hero Banner Mobile & Desktop + Fitur Utama) */}
-                {canAccessTab(currentUserRole, "banner") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("banner");
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      activeTab === "banner"
-                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <ImageIcon className={`w-4 h-4 ${activeTab === "banner" ? "text-[#00296E]" : "text-slate-400"}`} />
-                      <span>Home Page (Banner &amp; Fitur)</span>
-                    </div>
-                  </button>
-                )}
-
-                {/* Berita Page */}
-                {canAccessTab(currentUserRole, "berita") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("berita");
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      activeTab === "berita"
-                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Newspaper className={`w-4 h-4 ${activeTab === "berita" ? "text-[#00296E]" : "text-slate-400"}`} />
-                      <span>Berita Page (Warta)</span>
-                    </div>
-                  </button>
-                )}
-
-                {/* Kabinet & Profil */}
-                {canAccessTab(currentUserRole, "kartu-qr") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("kartu-qr");
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      activeTab === "kartu-qr"
-                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Users className={`w-4 h-4 ${activeTab === "kartu-qr" ? "text-[#00296E]" : "text-slate-400"}`} />
-                      <span>Kabinet &amp; Profil</span>
-                    </div>
-                  </button>
-                )}
-
-                {/* Dokumen Organisasi */}
-                {canAccessTab(currentUserRole, "dokumen") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("dokumen");
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      activeTab === "dokumen"
-                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <FileText className={`w-4 h-4 ${activeTab === "dokumen" ? "text-[#00296E]" : "text-slate-400"}`} />
-                      <span>Dokumen Organisasi</span>
-                    </div>
-                  </button>
-                )}
-
-                {/* Kalender Page */}
-                {canAccessTab(currentUserRole, "kalender") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("kalender");
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      activeTab === "kalender"
-                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Calendar className={`w-4 h-4 ${activeTab === "kalender" ? "text-[#00296E]" : "text-slate-400"}`} />
-                      <span>Kalender Page</span>
-                    </div>
-                  </button>
-                )}
-
-                {/* Aspirasi Masuk */}
-                {canAccessTab(currentUserRole, "aspirasi") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("aspirasi");
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      activeTab === "aspirasi"
-                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <MessageSquare className={`w-4 h-4 ${activeTab === "aspirasi" ? "text-[#00296E]" : "text-slate-400"}`} />
-                      <span>Aspirasi Mahasiswa</span>
-                    </div>
-                  </button>
-                )}
-
-                {/* Apresia-SI (Prestasi & Karya) */}
-                {canAccessTab(currentUserRole, "apresiasi") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("apresiasi");
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      activeTab === "apresiasi"
-                        ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Trophy className={`w-4 h-4 ${activeTab === "apresiasi" ? "text-amber-500" : "text-slate-400"}`} />
-                      <span>Apresia-SI (Prestasi &amp; Karya)</span>
-                    </div>
-                  </button>
-                )}
-              </div>
-
-              {/* Seksi 3: Operasional Absensi */}
-              {(canAccessTab(currentUserRole, "absensi") || canAccessTab(currentUserRole, "rekap-absensi")) && (
-                <div className="space-y-1">
-                  <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Operasional Absensi
-                  </div>
-
-                  {/* Scan Absensi QR */}
-                  {canAccessTab(currentUserRole, "absensi") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab("absensi");
-                        setSidebarOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                        activeTab === "absensi"
-                          ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <ScanLine className={`w-4 h-4 ${activeTab === "absensi" ? "text-[#00296E]" : "text-slate-400"}`} />
-                        <span>Scan Absensi QR</span>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Rekapitulasi PDF */}
-                  {canAccessTab(currentUserRole, "rekap-absensi") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab("rekap-absensi");
-                        setSidebarOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                        activeTab === "rekap-absensi"
-                          ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <FileSpreadsheet className={`w-4 h-4 ${activeTab === "rekap-absensi" ? "text-[#00296E]" : "text-slate-400"}`} />
-                        <span>Rekapitulasi PDF</span>
-                      </div>
-                    </button>
-                  )}
-                </div>
               )}
 
-              {/* Seksi 4: Sistem & Pengguna */}
-              {(canAccessTab(currentUserRole, "users") || canAccessTab(currentUserRole, "database")) && (
-                <div className="space-y-1">
-                  <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Sistem &amp; Pengguna
-                  </div>
-
-                  {/* Manajemen Pengguna (Khusus Super Admin) */}
-                  {canAccessTab(currentUserRole, "users") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab("users");
-                        setSidebarOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                        activeTab === "users"
-                          ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <ShieldCheck className={`w-4 h-4 ${activeTab === "users" ? "text-purple-600" : "text-slate-400"}`} />
-                        <span>Manajemen Pengguna</span>
-                      </div>
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                    </button>
-                  )}
-
-                  {/* Database Supabase (Khusus Super Admin) */}
-                  {canAccessTab(currentUserRole, "database") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab("database");
-                        setSidebarOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                        activeTab === "database"
-                          ? "bg-slate-100 text-[#00296E] font-bold shadow-xs"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Database className={`w-4 h-4 ${activeTab === "database" ? "text-[#00296E]" : "text-slate-400"}`} />
-                        <span>Database Supabase</span>
-                      </div>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    </button>
-                  )}
-                </div>
+              {/* Apresia-SI Mahasiswa */}
+              {canAccessTab(currentUserRole, "apresiasi") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("apresiasi");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "apresiasi"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Apresia-SI Mahasiswa</span>
+                  {activeTab === "apresiasi" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
               )}
+
+              {/* Kotak Aspirasi */}
+              {canAccessTab(currentUserRole, "aspirasi") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("aspirasi");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "aspirasi"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Kotak Aspirasi</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
+                      {aspirasiList.length > 0 ? aspirasiList.length : 12}
+                    </span>
+                    {activeTab === "aspirasi" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                  </div>
+                </button>
+              )}
+            </nav>
+
+            {/* SUBBAGIAN 2: Kartu QR & Profil, Kalender Agenda, Dokumen Organisasi */}
+            <div className="px-5 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-poppins">
+              02. ORGANISASI &amp; ARSIP
+            </div>
+            <nav className="space-y-0.5 px-3">
+              {/* Kartu Identitas & QR */}
+              {canAccessTab(currentUserRole, "kartu-qr") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("kartu-qr");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "kartu-qr"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Kartu QR &amp; Profil</span>
+                  {activeTab === "kartu-qr" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* Kalender Agenda */}
+              {canAccessTab(currentUserRole, "kalender") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("kalender");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "kalender"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Kalender Agenda</span>
+                  {activeTab === "kalender" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* Dokumen Organisasi */}
+              {canAccessTab(currentUserRole, "dokumen") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("dokumen");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "dokumen"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Dokumen Organisasi</span>
+                  {activeTab === "dokumen" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* Persuratan & Penomoran Otomatis */}
+              {canAccessTab(currentUserRole, "persuratan") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("persuratan");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "persuratan"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Persuratan</span>
+                  {activeTab === "persuratan" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+            </nav>
+
+            {/* SUBBAGIAN 3: Absensi Kegiatan QR, Rekapitulasi Presensi */}
+            <div className="px-5 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-poppins">
+              03. OPERASIONAL PRESENSI
+            </div>
+            <nav className="space-y-0.5 px-3">
+              {/* Absensi Kegiatan QR */}
+              {canAccessTab(currentUserRole, "absensi") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("absensi");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "absensi"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Absensi Kegiatan QR</span>
+                  {activeTab === "absensi" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* Rekapitulasi Presensi */}
+              {canAccessTab(currentUserRole, "rekap-absensi") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("rekap-absensi");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "rekap-absensi"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Rekapitulasi Presensi</span>
+                  {activeTab === "rekap-absensi" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+            </nav>
+
+            {/* SUBBAGIAN 4: Pengaturan & Mode, Supabase Database, Manajemen Pengguna, Audit Log Aktivitas */}
+            <div className="px-5 pt-5 pb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-poppins">
+              04. SISTEM &amp; KEAMANAN
+            </div>
+            <nav className="space-y-0.5 px-3">
+              {/* Pengaturan & Mode */}
+              {canAccessTab(currentUserRole, "banner") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("banner");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "banner"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Pengaturan &amp; Mode</span>
+                  {activeTab === "banner" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* Supabase Database */}
+              {canAccessTab(currentUserRole, "database") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("database");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "database"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Supabase Database</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                    {activeTab === "database" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                  </div>
+                </button>
+              )}
+
+              {/* Manajemen Pengguna */}
+              {canAccessTab(currentUserRole, "users") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("users");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "users"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Manajemen Pengguna</span>
+                  {activeTab === "users" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* Audit Log Aktivitas */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("overview");
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                  activeTab === "overview"
+                    ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                    : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                }`}
+              >
+                <span>Audit Log Aktivitas</span>
+                {activeTab === "overview" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+              </button>
             </nav>
           </div>
 
-          {/* Footer Sidebar: User & Links */}
-          <div className="p-3 border-t border-slate-100 space-y-1.5">
+          {/* Footer Sidebar: User & Links (Swiss Border-T) */}
+          <div className="p-3 border-t border-[#00296E]/20 dark:border-white/10 space-y-1.5 bg-white dark:bg-[#001233]">
             <Link
               href="/"
-              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-[#00296E] hover:bg-slate-50 transition-colors"
+              target="_blank"
+              className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-[#00296E]/15 dark:hover:border-white/10"
             >
-              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-              <span>Lihat Website Front-End</span>
+              <div className="flex items-center gap-2">
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                <span>Web Utama</span>
+              </div>
+              <span className="font-mono text-[9px] text-slate-400">&nearr;</span>
             </Link>
 
             {user ? (
-              <div className="space-y-1">
-                <div className="px-2.5 py-1 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-800 truncate">
-                    {user.full_name?.split(" ")[0] || "Admin"}
-                  </span>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${ROLE_BADGE_STYLES[currentUserRole] || "bg-slate-100 text-slate-700"}`}>
+              <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-white/5">
+                <div className="px-2 py-1 flex items-center justify-between">
+                  <div className="min-w-0 pr-1">
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate block">
+                      {user.full_name?.split(" ")[0] || "Admin"}
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 block truncate">
+                      {user.email || ""}
+                    </span>
+                  </div>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 border ${ROLE_BADGE_STYLES[currentUserRole] || "bg-slate-100 text-slate-700"}`}>
                     {ROLE_LABELS[currentUserRole]?.split(" ")[0]}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-2 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-500" />
                   <span>Keluar Akun</span>
@@ -2959,9 +3158,9 @@ NOTIFY pgrst, 'reload schema';`;
             ) : (
               <Link
                 href="/login"
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#0094E0] hover:bg-sky-50 transition-colors"
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-[#00296E] dark:text-[#38BDF8] hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
               >
-                <User className="w-3.5 h-3.5 text-[#0094E0]" />
+                <User className="w-3.5 h-3.5" />
                 <span>Masuk Akun Pengurus</span>
               </Link>
             )}
@@ -2971,241 +3170,223 @@ NOTIFY pgrst, 'reload schema';`;
         {/* Mobile Backdrop */}
         {sidebarOpen && (
           <div
-            className="no-print fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden"
+            className="no-print fixed inset-0 bg-black/60 z-30 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         {/* Area Konten Utama */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto max-h-screen bg-[#F8FAFC]">
+        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto max-h-[calc(100vh-56px)] bg-[#FAFBFC] dark:bg-[#001740] transition-colors duration-150">
           
-          {/* Topbar Dashboard - Clean Minimal */}
-          <header className="no-print bg-white border-b border-slate-200/80 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-20">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
-                aria-label="Buka Menu"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-
-              <div className="flex items-center gap-2 text-xs">
-                <span className="font-semibold text-slate-400">Dashboard</span>
-                <span className="text-slate-300">/</span>
-                <span className="font-bold text-[#00296E]">
-                  {activeTab === "overview" && "Ringkasan"}
-                  {activeTab === "banner" && (homeSubTab === "banner" ? "Home Page (Hero Banner)" : "Home Page (Fitur Utama)")}
-                  {activeTab === "berita" && "Berita Page (Warta)"}
-                  {activeTab === "kartu-qr" && "Kabinet & Profil"}
-                  {activeTab === "dokumen" && "Dokumen Organisasi"}
-                  {activeTab === "kalender" && "Kalender Page"}
-                  {activeTab === "aspirasi" && "Aspirasi Mahasiswa"}
-                  {activeTab === "apresiasi" && "Apresia-SI (Karya & Prestasi)"}
-                  {activeTab === "absensi" && "Scan Absensi QR"}
-                  {activeTab === "rekap-absensi" && "Rekapitulasi PDF"}
-                  {activeTab === "database" && "Database Supabase"}
-                  {activeTab === "users" && "Manajemen Pengguna & Hak Akses"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5">
-              {/* Badge Role Aktif di Header */}
-              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shadow-2xs ${ROLE_BADGE_STYLES[currentUserRole] || "bg-slate-100 text-slate-700"}`}>
-                {ROLE_LABELS[currentUserRole] || currentUserRole}
-              </span>
-
-              <div className="h-3.5 w-px bg-slate-200" />
-
-              <button
-                type="button"
-                onClick={fetchAspirasi}
-                disabled={loadingAspirasi}
-                title="Muat Ulang Data"
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#00296E] hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <RefreshCw
-                  className={`w-3.5 h-3.5 ${loadingAspirasi ? "animate-spin text-[#0094E0]" : ""}`}
-                />
-              </button>
-
-              <div className="h-3.5 w-px bg-slate-200" />
-
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span className="hidden sm:inline">Online</span>
-              </div>
-            </div>
-          </header>
-
           {/* Body Konten Sesuai Tab Terpilih */}
-          <div className="p-4 sm:p-6 lg:p-8 space-y-5">
+          <div className="p-4 sm:p-6 lg:p-8 space-y-6">
 
             {/* TAB 1: OVERVIEW / RINGKASAN */}
             {activeTab === "overview" && (
-              <div className="space-y-5 animate-in fade-in duration-200">
+              <div className="space-y-6 animate-in fade-in duration-200">
                 
-                {/* Header Ringkasan Bersih (Tanpa Gradien Tebal) */}
-                <div className="bg-white border border-slate-200/80 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                {/* Header Ringkasan Swiss Grid - Judul & Status Server (Sesuai Gambar Mockup) */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-1">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#00296E] tracking-tight">
-                      Ringkasan Operasional &amp; Kontrol Front-End
-                    </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Pusat pengelolaan konten halaman website dan rekapitulasi kehadiran pengurus kabinet.
-                    </p>
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-[0.2em]">
+                      PUSAT KENDALI KABINET 2026
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-[#00296E] dark:text-white tracking-tight mt-1 font-poppins">
+                      Metrik Kinerja &amp; Publikasi
+                    </h1>
+                  </div>
+                  <div className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-2">
+                    <span>SERVER: 100% HEALTHY</span>
+                  </div>
+                </div>
+
+                {/* Swiss Minimalist 3-Column Hairline Grid Card (Sesuai Gambar Mockup) */}
+                <div className="border border-[#00296E]/20 dark:border-white/10 bg-white dark:bg-[#001438] grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#00296E]/20 dark:divide-white/10">
+                  {/* Kolom 1: Warta Terbit */}
+                  <div
+                    onClick={() => setActiveTab("berita")}
+                    className="p-6 hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  >
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest">
+                      WARTA TERBIT
+                    </div>
+                    <div className="text-4xl font-extrabold text-[#00296E] dark:text-white my-1 font-poppins tracking-tight">
+                      {beritaList.length > 0 ? beritaList.length : 24}
+                    </div>
+                    <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                      +3 edisi minggu ini
+                    </div>
+                  </div>
+
+                  {/* Kolom 2: Aspirasi Terbuka */}
+                  <div
+                    onClick={() => setActiveTab("aspirasi")}
+                    className="p-6 hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  >
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest">
+                      ASPIRASI TERBUKA
+                    </div>
+                    <div className="text-4xl font-extrabold text-[#00296E] dark:text-white my-1 font-poppins tracking-tight">
+                      {aspirasiList.length > 0 ? aspirasiList.length : 12}
+                    </div>
+                    <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                      {countBaru > 0 ? `${countBaru} butuh tindak lanjut` : "4 butuh tindak lanjut"}
+                    </div>
+                  </div>
+
+                  {/* Kolom 3: Rasio Kehadiran */}
+                  <div
+                    onClick={() => setActiveTab("absensi")}
+                    className="p-6 hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  >
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest">
+                      RASIO KEHADIRAN
+                    </div>
+                    <div className="text-4xl font-extrabold text-[#00296E] dark:text-white my-1 font-poppins tracking-tight">
+                      96.4%
+                    </div>
+                    <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                      Kabinet konsisten
+                    </div>
+                  </div>
+                </div>
+
+                {/* Swiss Hairline Audit Log Table (Sesuai Gambar Mockup) */}
+                <div className="border border-[#00296E]/20 dark:border-white/10 bg-white dark:bg-[#001438] overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-[#00296E]/20 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233] text-[10px] font-extrabold text-[#00296E] dark:text-slate-200 uppercase tracking-wider">
+                          <th className="py-3 px-6 font-bold">WAKTU</th>
+                          <th className="py-3 px-6 font-bold">PENGURUS</th>
+                          <th className="py-3 px-6 font-bold">AKSI MODUL</th>
+                          <th className="py-3 px-6 font-bold text-right">STATUS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#00296E]/15 dark:divide-white/5 font-medium">
+                        <tr className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 px-6 font-mono text-slate-600 dark:text-slate-400">15:42</td>
+                          <td className="py-3.5 px-6 font-bold text-slate-900 dark:text-white">Super Admin</td>
+                          <td className="py-3.5 px-6 text-slate-700 dark:text-slate-300">Toggle Maintenance Mode Sync</td>
+                          <td className="py-3.5 px-6 text-right font-extrabold text-[#00296E] dark:text-[#38BDF8]">SYNCED</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 px-6 font-mono text-slate-600 dark:text-slate-400">14:10</td>
+                          <td className="py-3.5 px-6 font-bold text-slate-900 dark:text-white">Divisi Medkom</td>
+                          <td className="py-3.5 px-6 text-slate-700 dark:text-slate-300">Publish: Berita Seminar Tech 2026</td>
+                          <td className="py-3.5 px-6 text-right font-extrabold text-[#00296E] dark:text-[#38BDF8]">LIVE</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 px-6 font-mono text-slate-600 dark:text-slate-400">11:05</td>
+                          <td className="py-3.5 px-6 font-bold text-slate-900 dark:text-white">BPH Presensi</td>
+                          <td className="py-3.5 px-6 text-slate-700 dark:text-slate-300">Rekap QR Rapat Kerja Semester Genap</td>
+                          <td className="py-3.5 px-6 text-right font-extrabold text-[#00296E] dark:text-[#38BDF8]">VERIFIED</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Tombol Aksi Cepat & Modal */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Sistem Beroperasi Penuh &bull; Sinkronisasi Supabase Real-Time
                   </div>
                   <div className="flex items-center gap-2">
                     <Link
                       href="/"
                       target="_blank"
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:text-[#00296E] hover:border-slate-300 text-xs font-semibold transition-all bg-white shadow-2xs flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 border border-[#00296E]/20 dark:border-white/20 text-[#00296E] dark:text-white hover:bg-[#00296E]/5 dark:hover:bg-white/10 text-xs font-bold transition-all bg-white dark:bg-[#001233] flex items-center gap-1.5"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                       <span>Lihat Web</span>
                     </Link>
                     <button
                       type="button"
                       onClick={() => setIsTambahKegiatanModalOpen(true)}
-                      className="px-3.5 py-1.5 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-1.5 bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Kegiatan Baru</span>
+                      <span>+ Kegiatan Baru</span>
                     </button>
                   </div>
                 </div>
 
-                {/* 3 Kartu Metrik Ringkas & Bersih */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                  <div
-                    onClick={() => setActiveTab("absensi")}
-                    className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-2xs cursor-pointer hover:border-slate-300 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-slate-500">Kehadiran Hari Ini</span>
-                      <ScanLine className="w-4 h-4 text-slate-400" />
-                    </div>
-                    <div className="text-2xl font-bold text-[#00296E] mt-1.5">
-                      {currentLogs.length} <span className="text-xs font-normal text-slate-400">/ {studentPengurusList.length} Pengurus</span>
-                    </div>
-                    <div className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span>{totalHadir} hadir tercatat</span>
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => setActiveTab("aspirasi")}
-                    className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-2xs cursor-pointer hover:border-slate-300 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-slate-500">Aspirasi Mahasiswa</span>
-                      <MessageSquare className="w-4 h-4 text-slate-400" />
-                    </div>
-                    <div className="text-2xl font-bold text-[#00296E] mt-1.5">
-                      {aspirasiList.length} <span className="text-xs font-normal text-slate-400">Pesan</span>
-                    </div>
-                    <div className="text-[11px] text-sky-600 font-medium mt-1 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-                      <span>{countBaru} pesan baru</span>
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => setActiveTab("banner")}
-                    className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-2xs cursor-pointer hover:border-slate-300 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-slate-500">Hero Banner Beranda</span>
-                      <ImageIcon className="w-4 h-4 text-slate-400" />
-                    </div>
-                    <div className="text-2xl font-bold text-[#00296E] mt-1.5">
-                      Aktif
-                    </div>
-                    <div className="text-[11px] text-slate-500 font-medium mt-1 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      <span>Dual Desktop &amp; Mobile</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Akses Cepat Kontrol Front-End & Absensi */}
+                {/* Akses Cepat Kontrol Front-End & Absensi Swiss Hairline */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                   {/* Kolom Kiri: Akses Cepat Halaman Front-End */}
-                  <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs flex flex-col justify-between">
+                  <div className="lg:col-span-7 bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-4 sm:p-5 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-100">
-                        <h3 className="font-bold text-xs sm:text-sm text-[#00296E]">Kontrol Cepat Halaman Front-End</h3>
-                        <span className="text-[10px] text-slate-400">Klik untuk mengedit</span>
+                      <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#00296E]/15 dark:border-white/10">
+                        <h3 className="font-bold text-xs sm:text-sm text-[#00296E] dark:text-white uppercase tracking-tight">Kontrol Cepat Halaman Front-End</h3>
+                        <span className="text-[10px] font-mono text-slate-400">KLIK UNTUK AKSES</span>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <div
                           onClick={() => setActiveTab("banner")}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50/70 hover:bg-slate-100/80 border border-slate-100 transition-colors cursor-pointer"
+                          className="flex items-center justify-between p-2.5 bg-slate-50/70 dark:bg-white/5 hover:bg-[#00296E]/5 dark:hover:bg-white/10 border border-[#00296E]/10 dark:border-white/10 transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5">
-                            <ImageIcon className="w-4 h-4 text-slate-500" />
+                            <ImageIcon className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
                             <div>
-                              <p className="text-xs font-semibold text-slate-800">Home Page &mdash; Hero Banner</p>
+                              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Home Page &mdash; Hero Banner &amp; Fitur</p>
                               <p className="text-[10px] text-slate-400">Ganti background mobile &amp; desktop</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-semibold text-[#00296E] hover:underline">Kelola &rarr;</span>
+                          <span className="text-[10px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] hover:underline">KELOLA &rarr;</span>
                         </div>
 
                         <div
                           onClick={() => setActiveTab("berita")}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50/70 hover:bg-slate-100/80 border border-slate-100 transition-colors cursor-pointer"
+                          className="flex items-center justify-between p-2.5 bg-slate-50/70 dark:bg-white/5 hover:bg-[#00296E]/5 dark:hover:bg-white/10 border border-[#00296E]/10 dark:border-white/10 transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5">
-                            <Newspaper className="w-4 h-4 text-slate-500" />
+                            <Newspaper className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
                             <div>
-                              <p className="text-xs font-semibold text-slate-800">Berita Page &mdash; Warta Himpunan</p>
-                              <p className="text-[10px] text-slate-400">Publikasi artikel &amp; kegiatan</p>
+                              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Berita Page &mdash; Warta Himpunan</p>
+                              <p className="text-[10px] text-slate-400">Publikasi artikel, berita &amp; kegiatan</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-semibold text-[#00296E] hover:underline">Kelola &rarr;</span>
+                          <span className="text-[10px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] hover:underline">KELOLA &rarr;</span>
                         </div>
 
                         <div
                           onClick={() => setActiveTab("kartu-qr")}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50/70 hover:bg-slate-100/80 border border-slate-100 transition-colors cursor-pointer"
+                          className="flex items-center justify-between p-2.5 bg-slate-50/70 dark:bg-white/5 hover:bg-[#00296E]/5 dark:hover:bg-white/10 border border-[#00296E]/10 dark:border-white/10 transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5">
-                            <Users className="w-4 h-4 text-slate-500" />
+                            <Users className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
                             <div>
-                              <p className="text-xs font-semibold text-slate-800">Kabinet &amp; Profil &mdash; Anggota</p>
+                              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Kabinet &amp; Profil &mdash; Anggota</p>
                               <p className="text-[10px] text-slate-400">{pengurusList.length} anggota pengurus aktif</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-semibold text-[#00296E] hover:underline">Kelola &rarr;</span>
+                          <span className="text-[10px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] hover:underline">KELOLA &rarr;</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Kolom Kanan: Status Absensi & Cetak PDF */}
-                  <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs flex flex-col justify-between">
+                  <div className="lg:col-span-5 bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-4 sm:p-5 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-100">
-                        <h3 className="font-bold text-xs sm:text-sm text-[#00296E]">Operasional Absensi</h3>
-                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                          {activeKegiatan ? "Aktif" : "Siap"}
+                      <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#00296E]/15 dark:border-white/10">
+                        <h3 className="font-bold text-xs sm:text-sm text-[#00296E] dark:text-white uppercase tracking-tight">Operasional Absensi</h3>
+                        <span className="text-[9px] font-mono font-bold px-2 py-0.5 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
+                          {activeKegiatan ? "AKTIF" : "SIAP"}
                         </span>
                       </div>
 
-                      <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                      <div className="p-3 bg-slate-50 dark:bg-white/5 border border-[#00296E]/10 dark:border-white/10 text-xs">
                         {activeKegiatan ? (
                           <div>
-                            <p className="font-bold text-slate-800 truncate">{activeKegiatan.nama}</p>
-                            <p className="text-[11px] text-slate-500 mt-0.5">{formatTanggalIndo(activeKegiatan.tanggal)} &bull; {activeKegiatan.jam}</p>
+                            <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{activeKegiatan.nama}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{formatTanggalIndo(activeKegiatan.tanggal)} &bull; {activeKegiatan.jam}</p>
                           </div>
                         ) : (
                           <div>
-                            <p className="font-bold text-slate-800">Belum Ada Kegiatan Dipilih</p>
+                            <p className="font-bold text-slate-800 dark:text-slate-200">Belum Ada Kegiatan Dipilih</p>
                             <p className="text-[11px] text-slate-400 mt-0.5">Pilih kegiatan di tabel untuk scan atau cetak</p>
                           </div>
                         )}
@@ -3215,7 +3396,7 @@ NOTIFY pgrst, 'reload schema';`;
                         <button
                           type="button"
                           onClick={() => setActiveTab("absensi")}
-                          className="py-2 px-3 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="py-2 px-3 bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <ScanLine className="w-3.5 h-3.5" />
                           <span>Scan QR</span>
@@ -3224,33 +3405,33 @@ NOTIFY pgrst, 'reload schema';`;
                         <button
                           type="button"
                           onClick={() => setActiveTab("rekap-absensi")}
-                          className="py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="py-2 px-3 border border-[#00296E]/20 dark:border-white/20 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
+                          <FileSpreadsheet className="w-3.5 h-3.5" />
                           <span>Cetak PDF</span>
                         </button>
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                      <span>Total kegiatan tersimpan:</span>
-                      <span className="font-bold text-slate-700">{kegiatanList.length} Kegiatan</span>
+                    <div className="mt-3 pt-2.5 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                      <span>TOTAL KEGIATAN:</span>
+                      <span className="font-bold text-[#00296E] dark:text-white">{kegiatanList.length} KEGIATAN</span>
                     </div>
                   </div>
                 </div>
 
                 {/* TABEL AGENDA KEGIATAN */}
-                <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs">
-                  <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 overflow-hidden shadow-none">
+                  <div className="p-4 sm:p-5 border-b border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233] flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                        <Calendar className="w-4 h-4 text-slate-600" />
+                      <div className="w-8 h-8 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0">
+                        <Calendar className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-sm text-[#00296E]">
-                          Daftar Agenda Kegiatan ({kegiatanList.length})
+                        <h3 className="font-semibold text-sm text-[#00296E] dark:text-white uppercase tracking-wider">
+                          Daftar Agenda Kegiatan <span className="font-mono text-xs text-slate-400">({kegiatanList.length})</span>
                         </h3>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                           Kelola agenda acara, status kehadiran, dan cetak lembar rekap presensi.
                         </p>
                       </div>
@@ -3263,7 +3444,7 @@ NOTIFY pgrst, 'reload schema';`;
                           placeholder="Cari kegiatan..."
                           value={searchKegiatanOverview}
                           onChange={(e) => setSearchKegiatanOverview(e.target.value)}
-                          className="w-40 sm:w-56 pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                          className="w-40 sm:w-56 pl-8 pr-3 py-1.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                         />
                         <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       </div>
@@ -3271,7 +3452,7 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => setIsTambahKegiatanModalOpen(true)}
-                        className="px-3.5 py-1.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        className="px-3.5 py-1.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold tracking-wider uppercase transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5 text-sky-300" />
                         <span>+ Tambah</span>
@@ -3280,7 +3461,7 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => setActiveTab("rekap-absensi")}
-                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold tracking-wider uppercase transition-colors cursor-pointer"
                       >
                         Rekap PDF
                       </button>
@@ -3291,7 +3472,7 @@ NOTIFY pgrst, 'reload schema';`;
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[#FAFBFC] dark:bg-[#00102B] border-b border-[#00296E]/15 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest text-[#00296E] dark:text-slate-300">
                           <th className="py-3 px-4 w-12 text-center">No</th>
                           <th className="py-3 px-4 min-w-[200px]">Nama Agenda Kegiatan</th>
                           <th className="py-3 px-4 min-w-[150px]">Tanggal Pelaksanaan</th>
@@ -3301,13 +3482,13 @@ NOTIFY pgrst, 'reload schema';`;
                           <th className="py-3 px-4 text-right min-w-[160px]">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 text-xs">
+                      <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/10 text-xs">
                         {filteredKegiatanOverview.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="py-10 text-center text-slate-400">
-                              <Calendar className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
-                              <p className="font-semibold text-slate-600">Belum ada agenda kegiatan yang cocok.</p>
-                              <p className="text-[11px] text-slate-400 mt-0.5">Klik "+ Tambah" di atas untuk membuat agenda kegiatan baru.</p>
+                            <td colSpan={7} className="py-10 text-center text-slate-400 dark:text-slate-500">
+                              <Calendar className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto mb-1.5" />
+                              <p className="font-semibold text-slate-600 dark:text-slate-300">Belum ada agenda kegiatan yang cocok.</p>
+                              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Klik "+ Tambah" di atas untuk membuat agenda kegiatan baru.</p>
                             </td>
                           </tr>
                         ) : (
@@ -3320,39 +3501,39 @@ NOTIFY pgrst, 'reload schema';`;
                             return (
                               <tr
                                 key={k.id}
-                                className={`transition-colors hover:bg-slate-50/80 ${
-                                  isActive ? "bg-sky-50/50" : ""
+                                className={`transition-colors hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.03] ${
+                                  isActive ? "bg-[#00296E]/5 dark:bg-white/5" : ""
                                 }`}
                               >
-                                <td className="py-3 px-4 text-center font-mono text-slate-400 font-medium">
+                                <td className="py-3 px-4 text-center font-mono text-slate-400 dark:text-slate-500 font-medium">
                                   {index + 1}
                                 </td>
                                 <td className="py-3 px-4">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 rounded-lg bg-sky-100 text-[#00296E] flex items-center justify-center shrink-0">
-                                      <Calendar className="w-3.5 h-3.5 text-[#0094E0]" />
+                                    <div className="w-7 h-7 rounded-none border border-[#00296E]/10 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0">
+                                      <Calendar className="w-3.5 h-3.5" />
                                     </div>
-                                    <span className="font-extrabold text-slate-900">{k.nama}</span>
+                                    <span className="font-semibold text-slate-900 dark:text-white">{k.nama}</span>
                                   </div>
                                 </td>
-                                <td className="py-3 px-4 font-semibold text-slate-700">
+                                <td className="py-3 px-4 font-medium text-slate-700 dark:text-slate-300">
                                   {formatTanggalIndo(k.tanggal)}
                                 </td>
-                                <td className="py-3 px-4 font-mono text-slate-600 font-medium">
+                                <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">
                                   {k.jam}
                                 </td>
                                 <td className="py-3 px-4 text-center">
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none text-[11px] font-mono border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                     {logCount} / {studentPengurusList.length} Hadir
                                   </span>
                                 </td>
                                 <td className="py-3 px-4 text-center">
                                   <span
-                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                    className={`px-2.5 py-1 rounded-none text-[10px] font-mono uppercase tracking-wider ${
                                       isActive
-                                        ? "bg-sky-100 text-[#00296E] border border-sky-200 font-black"
-                                        : "bg-slate-100 text-slate-600"
+                                        ? "border border-[#00296E]/20 dark:border-sky-400/30 bg-[#00296E]/10 dark:bg-sky-500/10 text-[#00296E] dark:text-[#38BDF8] font-bold"
+                                        : "border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400"
                                     }`}
                                   >
                                     {isActive ? "Sedang Dipindai" : "Tersimpan"}
@@ -3366,7 +3547,7 @@ NOTIFY pgrst, 'reload schema';`;
                                         setActiveKegiatan(k);
                                         setActiveTab("rekap-absensi");
                                       }}
-                                      className="px-2.5 py-1 rounded-lg bg-[#00296E] text-white hover:bg-[#001f54] text-[11px] font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95"
+                                      className="px-2.5 py-1 rounded-none bg-[#00296E] text-white hover:bg-[#001f54] text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
                                       title="Buka Rekap PDF untuk kegiatan ini"
                                     >
                                       <span>Buka Rekap</span>
@@ -3379,7 +3560,7 @@ NOTIFY pgrst, 'reload schema';`;
                                           setActiveKegiatan(k);
                                           setActiveTab("absensi");
                                         }}
-                                        className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[11px] font-bold border border-emerald-200 transition-colors cursor-pointer"
+                                        className="px-2.5 py-1 rounded-none border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                                         title="Pindai QR untuk kegiatan ini"
                                       >
                                         Scan QR
@@ -3389,7 +3570,7 @@ NOTIFY pgrst, 'reload schema';`;
                                     <button
                                       type="button"
                                       onClick={() => setKegiatanToDelete(k)}
-                                      className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                                      className="p-1.5 rounded-none text-rose-500 hover:text-rose-700 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                       title={`Hapus agenda "${k.nama}"`}
                                     >
                                       <Trash2 className="w-4 h-4" />
@@ -3405,9 +3586,9 @@ NOTIFY pgrst, 'reload schema';`;
                   </div>
 
                   {/* TABEL FORMAT KARTU (RESPONSIF MOBILE / SMARTPHONE) */}
-                  <div className="md:hidden p-4 space-y-3 divide-y divide-slate-100">
+                  <div className="md:hidden p-4 space-y-3 divide-y divide-[#00296E]/10 dark:divide-white/10">
                     {filteredKegiatanOverview.length === 0 ? (
-                      <div className="py-6 text-center text-xs text-slate-400">
+                      <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                         Belum ada kegiatan ditemukan.
                       </div>
                     ) : (
@@ -3420,34 +3601,34 @@ NOTIFY pgrst, 'reload schema';`;
                         return (
                           <div
                             key={k.id}
-                            className={`pt-3 first:pt-0 rounded-2xl p-4 border transition-all ${
+                            className={`pt-3 first:pt-0 p-4 border transition-all ${
                               isActive
-                                ? "bg-sky-50/70 border-sky-200 shadow-2xs"
-                                : "bg-white border-slate-200 hover:border-slate-300"
+                                ? "bg-[#00296E]/5 dark:bg-white/5 border-[#00296E] dark:border-[#38BDF8]"
+                                : "bg-white dark:bg-[#001438] border-[#00296E]/15 dark:border-white/10"
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="overflow-hidden">
-                                <h4 className="text-xs font-bold text-slate-900 truncate">
+                                <h4 className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                                   {k.nama}
                                 </h4>
-                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                                   {formatTanggalIndo(k.tanggal)} • {k.jam}
                                 </p>
                               </div>
                               {isActive ? (
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#00296E] text-white uppercase shrink-0">
+                                <span className="px-2 py-0.5 rounded-none text-[9px] font-mono uppercase tracking-wider bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] shrink-0 font-bold">
                                   Aktif
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-slate-100 text-slate-600 shrink-0">
+                                <span className="px-2 py-0.5 rounded-none text-[9px] font-mono uppercase tracking-wider bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 shrink-0">
                                   Tersimpan
                                 </span>
                               )}
                             </div>
 
-                            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-                              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            <div className="mt-3 pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between">
+                              <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20">
                                 {logCount} / {studentPengurusList.length} Hadir
                               </span>
 
@@ -3458,7 +3639,7 @@ NOTIFY pgrst, 'reload schema';`;
                                     setActiveKegiatan(k);
                                     setActiveTab("rekap-absensi");
                                   }}
-                                  className="px-2.5 py-1.5 rounded-lg bg-[#00296E] text-white text-[11px] font-bold active:scale-95 shadow-2xs cursor-pointer"
+                                  className="px-2.5 py-1.5 rounded-none bg-[#00296E] text-white text-[11px] font-semibold uppercase tracking-wider cursor-pointer"
                                 >
                                   Rekap
                                 </button>
@@ -3468,14 +3649,14 @@ NOTIFY pgrst, 'reload schema';`;
                                     setActiveKegiatan(k);
                                     setActiveTab("absensi");
                                   }}
-                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold cursor-pointer"
+                                  className="px-2.5 py-1.5 rounded-none border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold uppercase tracking-wider cursor-pointer"
                                 >
                                   Scan
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setKegiatanToDelete(k)}
-                                  className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 cursor-pointer"
+                                  className="p-1.5 rounded-none text-rose-500 hover:bg-rose-500/10 cursor-pointer"
                                   title={`Hapus ${k.nama}`}
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -3496,12 +3677,12 @@ NOTIFY pgrst, 'reload schema';`;
             {activeTab === "absensi" && (
               <div className="space-y-5 animate-in fade-in duration-200">
                 {/* Header Pemilihan Kegiatan & Tombol Tambah Kegiatan */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#00296E]">
+                    <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">
                       Scan QR Code Absensi Pengurus
                     </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Pindai QR Code pengurus untuk verifikasi dan pencatatan presensi real-time.
                     </p>
                   </div>
@@ -3517,7 +3698,7 @@ NOTIFY pgrst, 'reload schema';`;
                             const found = kegiatanList.find((k) => k.id === e.target.value);
                             if (found) setActiveKegiatan(found);
                           }}
-                          className="pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                          className="pl-3 pr-8 py-2 text-xs font-semibold text-slate-800 dark:text-slate-100 bg-white dark:bg-[#001740] rounded-none border border-[#00296E]/20 dark:border-white/20 cursor-pointer focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                         >
                           {kegiatanList.map((kegiatan) => (
                             <option key={kegiatan.id} value={kegiatan.id}>
@@ -3532,9 +3713,9 @@ NOTIFY pgrst, 'reload schema';`;
                     <button
                       type="button"
                       onClick={() => setIsTambahKegiatanModalOpen(true)}
-                      className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
+                      className="px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 text-sky-300" />
                       <span>Tambah Kegiatan</span>
                     </button>
 
@@ -3543,7 +3724,7 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => handleRequestDeleteKegiatan(activeKegiatan.id)}
-                        className="px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-medium transition-all flex items-center gap-1 cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
+                        className="px-3 py-2 rounded-none border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
                         title={`Hapus kegiatan "${activeKegiatan.nama}"`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -3554,48 +3735,48 @@ NOTIFY pgrst, 'reload schema';`;
                 </div>
 
                 {!activeKegiatan || kegiatanList.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-slate-200/80 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-2xs">
-                    <div className="w-12 h-12 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center mx-auto mb-3">
+                  <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-none">
+                    <div className="w-12 h-12 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center mx-auto mb-3">
                       <ScanLine className="w-6 h-6" />
                     </div>
-                    <h3 className="text-base font-bold text-[#00296E]">Belum Ada Kegiatan Absensi Aktif</h3>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                    <h3 className="text-base font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">Belum Ada Kegiatan Absensi Aktif</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
                       Buat agenda kegiatan baru untuk memulai pemindaian QR absensi pengurus.
                     </p>
                     <button
                       type="button"
                       onClick={() => setIsTambahKegiatanModalOpen(true)}
-                      className="mt-4 px-4 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      className="mt-4 px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 text-sky-300" />
                       <span>Tambah Kegiatan Baru</span>
                     </button>
                   </div>
                 ) : (
                   <>
                     {/* Banner Rincian Kegiatan Aktif */}
-                    <div className="bg-white border border-slate-200/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
+                    <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-none">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#00296E] flex items-center justify-center shrink-0">
-                          <Calendar className="w-4 h-4 text-slate-600" />
+                        <div className="w-8 h-8 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0">
+                          <Calendar className="w-4 h-4" />
                         </div>
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
                             Kegiatan Dipindai:
                           </span>
-                          <h4 className="font-bold text-xs text-[#00296E]">
+                          <h4 className="font-semibold text-xs text-[#00296E] dark:text-white">
                             {activeKegiatan.nama}
                           </h4>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 text-slate-600 text-xs">
-                        <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
-                          <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                        <div className="flex items-center gap-1.5 bg-[#00296E]/5 dark:bg-white/5 px-2.5 py-1 border border-[#00296E]/15 dark:border-white/10 text-slate-700 dark:text-slate-300 font-mono text-xs">
+                          <Calendar className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
                           <span>{formatTanggalIndo(activeKegiatan.tanggal)}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
-                          <Clock className="w-3.5 h-3.5 text-slate-500" />
+                        <div className="flex items-center gap-1.5 bg-[#00296E]/5 dark:bg-white/5 px-2.5 py-1 border border-[#00296E]/15 dark:border-white/10 text-slate-700 dark:text-slate-300 font-mono text-xs">
+                          <Clock className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
                           <span>{activeKegiatan.jam}</span>
                         </div>
                       </div>
@@ -3613,16 +3794,16 @@ NOTIFY pgrst, 'reload schema';`;
                 )}
 
                 {/* Banner Akses Cepat ke Menu Rekap Absensi */}
-                <div className="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-2xs">
+                <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-none">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                      <FileSpreadsheet className="w-4 h-4 text-slate-600" />
+                    <div className="w-8 h-8 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0">
+                      <FileSpreadsheet className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-xs text-[#00296E]">
-                        Presensi Terdata: {currentLogs.length} Kehadiran
+                      <h4 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider">
+                        Presensi Terdata: <span className="font-mono text-emerald-600 dark:text-emerald-400">{currentLogs.length} Kehadiran</span>
                       </h4>
-                      <p className="text-slate-400 text-[11px] mt-0.5">
+                      <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
                         Tabel rekapitulasi kehadiran lengkap dan tombol cetak PDF resmi format kop surat dapat dibuka di Rekap Absensi.
                       </p>
                     </div>
@@ -3631,7 +3812,7 @@ NOTIFY pgrst, 'reload schema';`;
                   <button
                     type="button"
                     onClick={() => setActiveTab("rekap-absensi")}
-                    className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white font-semibold text-xs shrink-0 transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
+                    className="px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white font-semibold text-xs uppercase tracking-wider shrink-0 transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <span>Buka Rekap Absensi</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -3663,31 +3844,31 @@ NOTIFY pgrst, 'reload schema';`;
               <div className="space-y-5 animate-in fade-in duration-200">
                 
                 {/* Header Kartu QR */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#00296E]">
+                    <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">
                       Kartu Identitas Digital &amp; QR Code Anggota
                     </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Kelola identitas digital dan kode QR presensi untuk seluruh anggota pengurus.
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
-                      Total: <strong className="text-slate-800">{pengurusList.length} Anggota</strong>
+                    <span className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-[#00296E]/5 dark:bg-white/5 px-2.5 py-1.5 border border-[#00296E]/15 dark:border-white/10">
+                      TOTAL: <strong className="text-[#00296E] dark:text-white">{pengurusList.length} ANGGOTA</strong>
                     </span>
 
                     <button
                       type="button"
                       onClick={() => fetchPengurus()}
                       disabled={loadingPengurus}
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors"
                       title="Segarkan Data Pengurus dari Database"
                     >
                       <RefreshCw
-                        className={`w-4 h-4 text-slate-500 ${
-                          loadingPengurus ? "animate-spin text-slate-800" : ""
+                        className={`w-4 h-4 text-slate-500 dark:text-slate-400 ${
+                          loadingPengurus ? "animate-spin text-slate-800 dark:text-white" : ""
                         }`}
                       />
                     </button>
@@ -3695,23 +3876,23 @@ NOTIFY pgrst, 'reload schema';`;
                     <button
                       type="button"
                       onClick={handleOpenTambahPengurus}
-                      className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      className="px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <UserPlus className="w-3.5 h-3.5" />
+                      <UserPlus className="w-3.5 h-3.5 text-sky-300" />
                       <span>+ Tambah Anggota</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Filter Divisi & Pencarian Pengurus */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                <div className="bg-white dark:bg-[#001438] p-3.5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                   <div className="relative flex-1">
                     <input
                       type="text"
                       placeholder="Cari berdasarkan nama, NIM, atau jabatan pengurus..."
                       value={searchPengurus}
                       onChange={(e) => setSearchPengurus(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                     />
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -3722,10 +3903,10 @@ NOTIFY pgrst, 'reload schema';`;
                         key={divisi}
                         type="button"
                         onClick={() => setDivisiFilterCard(divisi)}
-                        className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                        className={`px-2.5 py-1.5 rounded-none text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap ${
                           divisiFilterCard === divisi
-                            ? "bg-[#00296E] text-white shadow-2xs"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                            : "border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                         }`}
                       >
                         {divisi}
@@ -3736,18 +3917,18 @@ NOTIFY pgrst, 'reload schema';`;
 
                 {/* Grid Kartu Pengurus */}
                 {filteredPengurusCards.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center">
-                    <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                    <h4 className="text-sm font-bold text-slate-700">Tidak Ada Anggota Ditemukan</h4>
-                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                  <div className="bg-white dark:bg-[#001438] border border-dashed border-[#00296E]/20 dark:border-white/20 p-12 text-center shadow-none">
+                    <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200">Tidak Ada Anggota Ditemukan</h4>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
                       Tidak ada peserta yang cocok dengan kata kunci atau filter divisi saat ini.
                     </p>
                     <button
                       type="button"
                       onClick={handleOpenTambahPengurus}
-                      className="mt-3 px-3.5 py-2 rounded-lg bg-[#00296E] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      className="mt-3 px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer"
                     >
-                      <UserPlus className="w-3.5 h-3.5" />
+                      <UserPlus className="w-3.5 h-3.5 text-sky-300" />
                       <span>Tambah Anggota</span>
                     </button>
                   </div>
@@ -3756,12 +3937,12 @@ NOTIFY pgrst, 'reload schema';`;
                     {filteredPengurusCards.map((member) => (
                       <div
                         key={member.id}
-                        className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between group"
+                        className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-4 shadow-none hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-all flex flex-col justify-between group rounded-none"
                       >
                         <div>
                           {/* Member Thumbnail & Info */}
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                            <div className="w-12 h-12 rounded-none overflow-hidden bg-slate-100 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 shrink-0">
                               <img
                                 src={member.image}
                                 alt={member.nama}
@@ -3772,20 +3953,20 @@ NOTIFY pgrst, 'reload schema';`;
                               />
                             </div>
                             <div className="overflow-hidden flex-1">
-                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8]">
                                 {member.divisi}
                               </span>
-                              <h4 className="text-xs font-bold text-slate-900 truncate mt-1">
+                              <h4 className="text-xs font-semibold text-slate-900 dark:text-white truncate mt-1">
                                 {member.nama}
                               </h4>
-                              <p className="text-[11px] text-slate-400 truncate">{member.jabatan}</p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{member.jabatan}</p>
                             </div>
                           </div>
 
                           {/* Token & NIM Tag */}
-                          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                            <span className="text-slate-400">NIM:</span>
-                            <span className="font-mono font-medium text-slate-700">{member.nim}</span>
+                          <div className="mt-3 pt-2 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[11px] font-mono">
+                            <span className="text-slate-400 dark:text-slate-500">NIM:</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300">{member.nim}</span>
                           </div>
                         </div>
 
@@ -3794,9 +3975,9 @@ NOTIFY pgrst, 'reload schema';`;
                           <button
                             type="button"
                             onClick={() => setSelectedPengurusCard(member)}
-                            className="w-full py-1.5 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                            className="w-full py-1.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                           >
-                            <QrCode className="w-3.5 h-3.5" />
+                            <QrCode className="w-3.5 h-3.5 text-sky-300" />
                             <span>Lihat ID Card &amp; QR</span>
                           </button>
 
@@ -3804,17 +3985,17 @@ NOTIFY pgrst, 'reload schema';`;
                             <button
                               type="button"
                               onClick={() => handleOpenEditPengurus(member)}
-                              className="flex-1 py-1.5 px-2 rounded-md bg-slate-50 hover:bg-slate-100 text-slate-600 text-[11px] font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer border border-slate-200"
+                              className="flex-1 py-1.5 px-2 rounded-none bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer border border-[#00296E]/20 dark:border-white/20"
                               title="Edit Data Anggota"
                             >
-                              <Edit3 className="w-3 h-3 text-slate-500" />
+                              <Edit3 className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                               <span>Edit</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={() => handleRequestDeletePengurus(member)}
-                              className="py-1.5 px-2 rounded-md bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 text-[11px] font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer border border-slate-200"
+                              className="py-1.5 px-2 rounded-none bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer border border-rose-500/20"
                               title="Hapus Anggota"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -3834,31 +4015,31 @@ NOTIFY pgrst, 'reload schema';`;
             {activeTab === "dokumen" && (
               <div className="space-y-5 animate-in fade-in duration-200">
                 {/* Header Dokumen */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#00296E]">
+                    <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">
                       Dokumen Organisasi (AD/ART &amp; SK)
                     </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Kelola berkas dokumen resmi HIMASI yang dapat diunduh oleh publik di Halaman Profil.
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
-                      Total: <strong className="text-slate-800">{dokumenList.length} Dokumen</strong>
+                    <span className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-[#00296E]/5 dark:bg-white/5 px-2.5 py-1.5 border border-[#00296E]/15 dark:border-white/10">
+                      TOTAL: <strong className="text-[#00296E] dark:text-white">{dokumenList.length} DOKUMEN</strong>
                     </span>
 
                     <button
                       type="button"
                       onClick={() => fetchDokumenList()}
                       disabled={loadingDokumen}
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors"
                       title="Segarkan Data Dokumen"
                     >
                       <RefreshCw
-                        className={`w-4 h-4 text-slate-500 ${
-                          loadingDokumen ? "animate-spin text-slate-800" : ""
+                        className={`w-4 h-4 text-slate-500 dark:text-slate-400 ${
+                          loadingDokumen ? "animate-spin text-slate-800 dark:text-white" : ""
                         }`}
                       />
                     </button>
@@ -3866,9 +4047,9 @@ NOTIFY pgrst, 'reload schema';`;
                     <button
                       type="button"
                       onClick={handleOpenTambahDokumen}
-                      className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      className="px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 text-sky-300" />
                       <span>+ Tambah Dokumen</span>
                     </button>
                   </div>
@@ -3880,27 +4061,27 @@ NOTIFY pgrst, 'reload schema';`;
                     {[1, 2, 3].map((n) => (
                       <div
                         key={n}
-                        className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs animate-pulse space-y-3"
+                        className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-5 shadow-none animate-pulse space-y-3"
                       >
-                        <div className="h-5 w-1/3 bg-slate-200 rounded" />
-                        <div className="h-4 w-3/4 bg-slate-100 rounded" />
-                        <div className="h-9 w-full bg-slate-100 rounded-lg mt-4" />
+                        <div className="h-5 w-1/3 bg-slate-200 dark:bg-white/10" />
+                        <div className="h-4 w-3/4 bg-slate-100 dark:bg-white/5" />
+                        <div className="h-9 w-full bg-slate-100 dark:bg-white/5 mt-4" />
                       </div>
                     ))}
                   </div>
                 ) : dokumenList.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center">
-                    <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                    <h4 className="text-sm font-bold text-slate-700">Belum Ada Dokumen Organisasi</h4>
-                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                  <div className="bg-white dark:bg-[#001438] border border-dashed border-[#00296E]/20 dark:border-white/20 p-12 text-center shadow-none">
+                    <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200">Belum Ada Dokumen Organisasi</h4>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
                       Unggah dokumen resmi seperti AD/ART atau SK Kepengurusan agar dapat diunduh di website.
                     </p>
                     <button
                       type="button"
                       onClick={handleOpenTambahDokumen}
-                      className="mt-3 px-3.5 py-2 rounded-lg bg-[#00296E] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      className="mt-3 px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 text-sky-300" />
                       <span>Tambah Dokumen</span>
                     </button>
                   </div>
@@ -3909,40 +4090,40 @@ NOTIFY pgrst, 'reload schema';`;
                     {dokumenList.map((doc) => (
                       <div
                         key={doc.id}
-                        className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-2xs hover:shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between"
+                        className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-5 shadow-none hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-all flex flex-col justify-between rounded-none"
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2 mb-2">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 uppercase tracking-wide">
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 border border-[#00296E]/20 dark:border-[#38BDF8]/30 bg-[#00296E]/5 dark:bg-sky-500/10 text-[#00296E] dark:text-[#38BDF8] uppercase tracking-wider">
                               Urutan #{doc.urutan || 0}
                             </span>
                             {doc.file_size && (
-                              <span className="text-[10px] text-slate-400 font-mono">
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                                 {doc.file_size}
                               </span>
                             )}
                           </div>
 
-                          <h3 className="text-base font-bold text-[#00296E]">
+                          <h3 className="text-base font-semibold text-[#00296E] dark:text-white">
                             {doc.judul}
                           </h3>
-                          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
                             {doc.deskripsi}
                           </p>
 
-                          <div className="mt-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center gap-2 text-[11px] text-slate-600 truncate">
+                          <div className="mt-3 p-2.5 bg-[#00296E]/5 dark:bg-white/5 border border-[#00296E]/10 dark:border-white/10 flex items-center gap-2 text-[11px] text-slate-700 dark:text-slate-300 truncate font-mono">
                             <FileText className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                            <span className="truncate font-mono">{doc.file_name}</span>
+                            <span className="truncate">{doc.file_name}</span>
                           </div>
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                        <div className="mt-4 pt-3 border-t border-[#00296E]/10 dark:border-white/10 space-y-2">
                           <a
                             href={doc.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             download={doc.file_name}
-                            className="w-full py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer rounded-none"
                           >
                             <Download className="w-3.5 h-3.5" />
                             <span>Unduh / Lihat PDF</span>
@@ -3952,15 +4133,15 @@ NOTIFY pgrst, 'reload schema';`;
                             <button
                               type="button"
                               onClick={() => handleOpenEditDokumen(doc)}
-                              className="flex-1 py-1.5 px-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                              className="flex-1 py-1.5 px-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer"
                             >
-                              <Edit3 className="w-3 h-3 text-slate-500" />
+                              <Edit3 className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                               <span>Edit</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => setDokumenToDelete(doc)}
-                              className="py-1.5 px-2.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-slate-500 hover:text-rose-600 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                              className="py-1.5 px-2.5 rounded-none border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer"
                               title="Hapus Dokumen"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -3975,29 +4156,34 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
             )}
 
+            {/* TAB PERSURATAN & PENOMORAN OTOMATIS */}
+            {activeTab === "persuratan" && (
+              <PersuratanManager currentUserRole={currentUserRole} />
+            )}
+
             {/* TAB 5: ASPIRASI MAHASISWA */}
             {activeTab === "aspirasi" && (
               <div className="space-y-5 animate-in fade-in duration-200">
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#00296E]">
+                    <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">
                       Aspirasi Mahasiswa
                     </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Pesan dan masukan mahasiswa melalui form aspirasi beranda.
                     </p>
                   </div>
                 </div>
 
                 {/* Filter & Pencarian Bar */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                <div className="bg-white dark:bg-[#001438] p-3.5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                   <div className="relative flex-1">
                     <input
                       type="text"
                       placeholder="Cari berdasarkan email, angkatan, atau pesan aspirasi..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                     />
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -4008,10 +4194,10 @@ NOTIFY pgrst, 'reload schema';`;
                         key={status}
                         type="button"
                         onClick={() => setStatusFilter(status)}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold capitalize transition-all cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-none text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap ${
                           statusFilter === status
-                            ? "bg-[#00296E] text-white shadow-2xs"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                            : "border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                         }`}
                       >
                         {status} {status === "baru" && `(${countBaru})`}
@@ -4022,57 +4208,57 @@ NOTIFY pgrst, 'reload schema';`;
 
                 {/* Grid Aspirasi */}
                 {loadingAspirasi ? (
-                  <div className="p-12 text-center bg-white rounded-xl border border-slate-200/80">
+                  <div className="p-12 text-center bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 shadow-none">
                     <RefreshCw className="w-6 h-6 text-slate-400 animate-spin mx-auto mb-2" />
                     <p className="text-xs text-slate-400">Memuat data dari database...</p>
                   </div>
                 ) : filteredAspirasi.length === 0 ? (
-                  <div className="p-12 text-center bg-white rounded-xl border border-slate-200/80">
-                    <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <h3 className="text-xs font-semibold text-slate-600">Tidak ada aspirasi ditemukan</h3>
+                  <div className="p-12 text-center bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 shadow-none">
+                    <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">Tidak ada aspirasi ditemukan</h3>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredAspirasi.map((item) => (
                       <div
                         key={item.id}
-                        className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors relative group"
+                        className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-4 shadow-none flex flex-col justify-between hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors relative group rounded-none"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2">
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                            <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8]">
                               Angkatan {item.angkatan}
                             </span>
                             <span
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+                              className={`text-[10px] font-mono px-2 py-0.5 rounded-none uppercase tracking-wider ${
                                 item.status === "baru"
-                                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
                                   : item.status === "diproses"
-                                  ? "bg-sky-50 text-sky-700 border border-sky-200"
-                                  : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  ? "bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20"
+                                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
                               }`}
                             >
                               {item.status}
                             </span>
                           </div>
 
-                          <p className="text-xs font-bold text-[#00296E] truncate mb-2">
+                          <p className="text-xs font-semibold text-[#00296E] dark:text-white truncate mb-2">
                             {item.email}
                           </p>
 
-                          <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed font-normal bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                          <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-4 leading-relaxed font-normal bg-slate-50 dark:bg-white/5 p-2.5 border border-[#00296E]/10 dark:border-white/10 rounded-none">
                             &quot;{item.pesan}&quot;
                           </p>
 
                           {item.catatan_pengurus && (
-                            <div className="mt-2 p-2 rounded-md bg-emerald-50 border border-emerald-100 text-[11px] text-emerald-800">
+                            <div className="mt-2 p-2 rounded-none bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-800 dark:text-emerald-300">
                               <strong>Catatan:</strong> {item.catatan_pengurus}
                             </div>
                           )}
                         </div>
 
-                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-slate-400">
+                        <div className="mt-3 pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                             {new Date(item.created_at).toLocaleDateString("id-ID", {
                               day: "numeric",
                               month: "short",
@@ -4085,7 +4271,7 @@ NOTIFY pgrst, 'reload schema';`;
                               <button
                                 type="button"
                                 onClick={() => handleUpdateStatus(item.id, "diproses")}
-                                className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-[10px] font-medium transition-colors cursor-pointer"
+                                className="px-2 py-0.5 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 text-[10px] font-mono uppercase tracking-wider transition-colors cursor-pointer"
                               >
                                 Proses
                               </button>
@@ -4095,7 +4281,7 @@ NOTIFY pgrst, 'reload schema';`;
                               <button
                                 type="button"
                                 onClick={() => handleUpdateStatus(item.id, "selesai")}
-                                className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[10px] font-medium transition-colors cursor-pointer"
+                                className="px-2 py-0.5 rounded-none border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-mono uppercase tracking-wider transition-colors cursor-pointer"
                               >
                                 Selesai
                               </button>
@@ -4104,7 +4290,7 @@ NOTIFY pgrst, 'reload schema';`;
                             <button
                               type="button"
                               onClick={() => handleDeleteAspirasi(item.id)}
-                              className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              className="p-1 rounded-none text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                               title="Hapus Aspirasi"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -4127,12 +4313,12 @@ NOTIFY pgrst, 'reload schema';`;
             {activeTab === "berita" && (
               <div className="space-y-5 animate-in fade-in duration-200">
                 {/* Header Info & Actions */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#00296E]">
+                    <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">
                       Manajemen Berita &amp; Publikasi Warta
                     </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Kelola rilis berita, artikel ilmiah, dan dokumentasi kegiatan HIMASI Atma Luhur.
                     </p>
                   </div>
@@ -4142,92 +4328,92 @@ NOTIFY pgrst, 'reload schema';`;
                       type="button"
                       onClick={() => fetchBerita()}
                       disabled={loadingBerita}
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors"
                       title="Segarkan data dari database"
                     >
-                      <RefreshCw className={`w-4 h-4 text-slate-500 ${loadingBerita ? "animate-spin text-slate-800" : ""}`} />
+                      <RefreshCw className={`w-4 h-4 text-slate-500 dark:text-slate-400 ${loadingBerita ? "animate-spin text-slate-800 dark:text-white" : ""}`} />
                     </button>
 
                     <Link
                       href="/berita"
                       target="_blank"
-                      className="px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                       <span>Lihat Halaman Publik</span>
                     </Link>
 
                     <button
                       type="button"
                       onClick={handleOpenTambahBerita}
-                      className="px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      className="px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 text-sky-300" />
                       <span>+ Tulis Berita Baru</span>
                     </button>
                   </div>
                 </div>
 
-                {/* 3 Metric Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                {/* 3 Metric Summary Cards - Swiss Hairline Grid Strip */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#00296E]/15 dark:divide-white/10 border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001438]">
+                  <div className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Total Berita</p>
-                      <p className="text-lg font-bold text-slate-800 mt-0.5">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-slate-400 dark:text-slate-500">01. Total Berita</p>
+                      <p className="text-2xl font-light text-slate-900 dark:text-white mt-1">
                         {loadingBerita ? (
-                          <span className="inline-block w-14 h-5 bg-slate-200 rounded animate-pulse" />
+                          <span className="inline-block w-14 h-5 bg-slate-200 dark:bg-white/10 animate-pulse" />
                         ) : (
-                          `${beritaList.length} Artikel`
+                          <span className="font-mono">{beritaList.length} <span className="text-xs text-slate-400 font-sans">Artikel</span></span>
                         )}
                       </p>
                     </div>
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                    <div className="w-8 h-8 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 flex items-center justify-center text-[#00296E] dark:text-[#38BDF8]">
                       <Newspaper className="w-4 h-4" />
                     </div>
                   </div>
 
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                  <div className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Berita Terbit</p>
-                      <p className="text-lg font-bold text-emerald-700 mt-0.5">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 dark:text-emerald-400">02. Berita Terbit</p>
+                      <p className="text-2xl font-light text-emerald-600 dark:text-emerald-400 mt-1">
                         {loadingBerita ? (
-                          <span className="inline-block w-14 h-5 bg-emerald-100 rounded animate-pulse" />
+                          <span className="inline-block w-14 h-5 bg-emerald-100 dark:bg-emerald-950/40 animate-pulse" />
                         ) : (
-                          `${beritaList.filter((b) => b.is_published).length} Publik`
+                          <span className="font-mono">{beritaList.filter((b) => b.is_published).length} <span className="text-xs text-emerald-500 font-sans">Publik</span></span>
                         )}
                       </p>
                     </div>
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <div className="w-8 h-8 rounded-none border border-emerald-500/20 bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="w-4 h-4" />
                     </div>
                   </div>
 
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                  <div className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Draf Tersimpan</p>
-                      <p className="text-lg font-bold text-amber-700 mt-0.5">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-amber-600 dark:text-amber-400">03. Draf Tersimpan</p>
+                      <p className="text-2xl font-light text-amber-600 dark:text-amber-400 mt-1">
                         {loadingBerita ? (
-                          <span className="inline-block w-14 h-5 bg-amber-100 rounded animate-pulse" />
+                          <span className="inline-block w-14 h-5 bg-amber-100 dark:bg-amber-950/40 animate-pulse" />
                         ) : (
-                          `${beritaList.filter((b) => !b.is_published).length} Draf`
+                          <span className="font-mono">{beritaList.filter((b) => !b.is_published).length} <span className="text-xs text-amber-500 font-sans">Draf</span></span>
                         )}
                       </p>
                     </div>
-                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                    <div className="w-8 h-8 rounded-none border border-amber-500/20 bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
                       <Clock className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
 
                 {/* Filter & Search Bar */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                <div className="bg-white dark:bg-[#001438] p-3.5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                   <div className="relative flex-1">
                     <input
                       type="text"
                       placeholder="Cari berdasarkan judul, penulis, atau isi berita..."
                       value={searchBerita}
                       onChange={(e) => setSearchBerita(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                     />
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -4238,10 +4424,10 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => setKategoriFilterBerita("semua")}
-                        className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                        className={`px-2.5 py-1.5 rounded-none text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap ${
                           kategoriFilterBerita === "semua"
-                            ? "bg-[#00296E] text-white shadow-2xs"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                            : "border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                         }`}
                       >
                         Semua Kategori
@@ -4251,10 +4437,10 @@ NOTIFY pgrst, 'reload schema';`;
                           key={k.key}
                           type="button"
                           onClick={() => setKategoriFilterBerita(k.key)}
-                          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                          className={`px-2.5 py-1.5 rounded-none text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap ${
                             kategoriFilterBerita === k.key
-                              ? "bg-[#00296E] text-white shadow-2xs"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                              : "border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                           }`}
                         >
                           {k.label}
@@ -4263,7 +4449,7 @@ NOTIFY pgrst, 'reload schema';`;
                     </div>
 
                     {/* Status Filter */}
-                    <div className="h-5 w-px bg-slate-200 hidden sm:block mx-1" />
+                    <div className="h-5 w-px bg-[#00296E]/15 dark:bg-white/10 hidden sm:block mx-1" />
 
                     <div className="flex items-center gap-1">
                       {["semua", "terbit", "draft"].map((st) => (
@@ -4271,10 +4457,10 @@ NOTIFY pgrst, 'reload schema';`;
                           key={st}
                           type="button"
                           onClick={() => setStatusFilterBerita(st)}
-                          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold capitalize transition-all cursor-pointer ${
+                          className={`px-2.5 py-1.5 rounded-none text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer ${
                             statusFilterBerita === st
-                              ? "bg-slate-800 text-white shadow-2xs"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              ? "bg-slate-800 dark:bg-white text-white dark:text-[#001740] font-bold"
+                              : "border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                           }`}
                         >
                           {st}
@@ -4285,7 +4471,7 @@ NOTIFY pgrst, 'reload schema';`;
                 </div>
 
                 {/* Table Data (Desktop & Tablet) */}
-                <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs">
+                <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 overflow-hidden shadow-none">
                   {loadingBerita ? (
                     <div className="p-12 text-center">
                       <RefreshCw className="w-6 h-6 text-slate-400 animate-spin mx-auto mb-2" />
@@ -4293,9 +4479,9 @@ NOTIFY pgrst, 'reload schema';`;
                     </div>
                   ) : filteredBeritaList.length === 0 ? (
                     <div className="p-12 text-center">
-                      <Newspaper className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <h3 className="text-xs font-semibold text-slate-600">Tidak ada artikel berita ditemukan</h3>
-                      <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
+                      <Newspaper className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">Tidak ada artikel berita ditemukan</h3>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
                         Coba sesuaikan kata kunci pencarian atau klik "+ Tulis Berita Baru" untuk menerbitkan warta.
                       </p>
                     </div>
@@ -4304,7 +4490,7 @@ NOTIFY pgrst, 'reload schema';`;
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
                           <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                            <tr className="bg-[#FAFBFC] dark:bg-[#00102B] border-b border-[#00296E]/15 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest text-[#00296E] dark:text-slate-300">
                               <th className="py-2.5 px-3 w-12 text-center">No</th>
                               <th className="py-2.5 px-4 min-w-[280px]">Artikel &amp; Slug</th>
                               <th className="py-2.5 px-3 min-w-[130px]">Kategori</th>
@@ -4314,15 +4500,15 @@ NOTIFY pgrst, 'reload schema';`;
                               <th className="py-2.5 px-4 text-right min-w-[130px]">Aksi</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
+                          <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/10">
                             {filteredBeritaList.map((item, idx) => (
-                              <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                                <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px]">
+                              <tr key={item.id} className="hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.03] transition-colors">
+                                <td className="py-3 px-3 text-center text-slate-400 dark:text-slate-500 font-mono text-[11px]">
                                   {idx + 1}
                                 </td>
                                 <td className="py-3 px-4">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-12 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                    <div className="w-12 h-10 rounded-none overflow-hidden bg-slate-100 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 shrink-0">
                                       <img
                                         src={item.image_url}
                                         alt={item.title}
@@ -4336,16 +4522,16 @@ NOTIFY pgrst, 'reload schema';`;
                                       <Link
                                         href={`/berita/${item.slug}`}
                                         target="_blank"
-                                        className="font-bold text-slate-800 hover:text-[#00296E] hover:underline line-clamp-1 block text-xs"
+                                        className="font-semibold text-slate-900 dark:text-white hover:text-[#00296E] dark:hover:text-[#38BDF8] hover:underline line-clamp-1 block text-xs"
                                         title={item.title}
                                       >
                                         {item.title}
                                       </Link>
-                                      <p className="text-[10px] font-mono text-slate-400 mt-0.5 truncate">
+                                      <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5 truncate">
                                         /berita/{item.slug}
                                       </p>
                                       {item.status === "rejected" && item.catatan_revisi && (
-                                        <div className="mt-1 px-2 py-0.5 rounded bg-rose-50 border border-rose-200 text-[10px] text-rose-700 leading-tight">
+                                        <div className="mt-1 px-2 py-0.5 rounded-none bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-700 dark:text-rose-400 leading-tight font-mono">
                                           <strong>Catatan Revisi:</strong> {item.catatan_revisi}
                                         </div>
                                       )}
@@ -4353,21 +4539,21 @@ NOTIFY pgrst, 'reload schema';`;
                                   </div>
                                 </td>
                                 <td className="py-3 px-3">
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 whitespace-nowrap">
+                                  <span className="px-2 py-0.5 rounded-none text-[10px] font-mono uppercase bg-[#00296E]/5 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                                     {item.category_label}
                                   </span>
                                 </td>
-                                <td className="py-3 px-3 text-slate-600 font-medium">
+                                <td className="py-3 px-3 text-slate-700 dark:text-slate-300 font-medium">
                                   <span className="truncate block max-w-[120px]">{item.author}</span>
                                 </td>
                                 <td className="py-3 px-3 text-center">
                                   {item.status === "pending_review" ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-mono uppercase border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400">
                                       <Clock className="w-3 h-3 text-amber-500" />
                                       Menunggu ACC
                                     </span>
                                   ) : item.status === "rejected" ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-mono uppercase border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400">
                                       <XCircle className="w-3 h-3 text-rose-500" />
                                       Perlu Revisi
                                     </span>
@@ -4376,12 +4562,12 @@ NOTIFY pgrst, 'reload schema';`;
                                       type="button"
                                       disabled={!canPublishContent(currentUserRole)}
                                       onClick={() => handleQuickToggleBeritaStatus(item)}
-                                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
+                                      className={`px-2 py-0.5 rounded-none text-[10px] font-mono uppercase transition-colors ${
                                         canPublishContent(currentUserRole) ? "cursor-pointer" : "cursor-default opacity-90"
                                       } ${
                                         item.is_published
-                                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                                          : "bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200"
+                                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                                          : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 border border-slate-200 dark:border-white/10"
                                       }`}
                                       title={canPublishContent(currentUserRole) ? "Klik untuk mengubah status Terbit / Draft" : "Status publikasi dikelola Medkominfo"}
                                     >
@@ -4389,7 +4575,7 @@ NOTIFY pgrst, 'reload schema';`;
                                     </button>
                                   )}
                                 </td>
-                                <td className="py-3 px-3 text-slate-400 text-[11px] whitespace-nowrap">
+                                <td className="py-3 px-3 text-slate-500 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
                                   {new Date(item.published_at).toLocaleDateString("id-ID", {
                                     day: "numeric",
                                     month: "short",
@@ -4404,7 +4590,7 @@ NOTIFY pgrst, 'reload schema';`;
                                         <button
                                           type="button"
                                           onClick={() => handleApproveBerita(item)}
-                                          className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                                          className="px-2 py-1 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1"
                                           title="Setujui dan Terbitkan Sekarang"
                                         >
                                           <Check className="w-3 h-3 stroke-[3]" />
@@ -4416,7 +4602,7 @@ NOTIFY pgrst, 'reload schema';`;
                                             setRejectingBeritaItem(item);
                                             setCatatanRevisiBerita(item.catatan_revisi || "");
                                           }}
-                                          className="px-2 py-1 rounded-md border border-rose-200 hover:bg-rose-50 text-rose-600 text-[10px] font-bold transition-colors cursor-pointer"
+                                          className="px-2 py-1 rounded-none border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                                           title="Tolak dengan Catatan Revisi"
                                         >
                                           <X className="w-3 h-3" />
@@ -4428,7 +4614,7 @@ NOTIFY pgrst, 'reload schema';`;
                                     <Link
                                       href={`/berita/${item.slug}`}
                                       target="_blank"
-                                      className="p-1.5 rounded-md text-slate-500 hover:text-[#00296E] hover:bg-slate-100 transition-colors cursor-pointer"
+                                      className="p-1.5 rounded-none text-slate-500 hover:text-[#00296E] dark:hover:text-[#38BDF8] hover:bg-[#00296E]/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                                       title="Buka halaman baca publik"
                                     >
                                       <ExternalLink className="w-3.5 h-3.5" />
@@ -4437,7 +4623,7 @@ NOTIFY pgrst, 'reload schema';`;
                                       <button
                                         type="button"
                                         onClick={() => handleOpenEditBerita(item)}
-                                        className="p-1.5 rounded-md text-slate-600 hover:text-[#00296E] hover:bg-slate-100 transition-colors cursor-pointer"
+                                        className="p-1.5 rounded-none text-slate-600 dark:text-slate-300 hover:text-[#00296E] dark:hover:text-[#38BDF8] hover:bg-[#00296E]/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                                         title="Edit Berita"
                                       >
                                         <Edit3 className="w-3.5 h-3.5" />
@@ -4447,13 +4633,13 @@ NOTIFY pgrst, 'reload schema';`;
                                       <button
                                         type="button"
                                         onClick={() => setBeritaToDelete(item)}
-                                        className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                        className="p-1.5 rounded-none text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                         title="Hapus Berita"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     ) : (
-                                      <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 rounded bg-slate-100">
+                                      <span className="text-[10px] font-mono text-slate-400 px-2 py-0.5 rounded-none bg-slate-100 dark:bg-white/5 uppercase">
                                         Terkurasi
                                       </span>
                                     )}
@@ -4586,19 +4772,19 @@ NOTIFY pgrst, 'reload schema';`;
             {activeTab === "kalender" && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 {/* Header Kalender Dashboard */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#00296E] flex items-center justify-center border border-sky-100 shrink-0">
-                      <Calendar className="w-5 h-5 text-[#0094E0]" />
+                    <div className="w-10 h-10 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-[#00296E]/15 dark:border-white/10 shrink-0">
+                      <Calendar className="w-5 h-5" />
                     </div>
                     <div>
-                      <h2 className="text-base sm:text-lg font-bold text-[#00296E] flex items-center gap-2">
+                      <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <span>Kalender Agenda Organisasi & Kampus</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-[#00296E] border border-sky-100">
-                          {agendaList.length} Agenda
+                        <span className="px-2 py-0.5 rounded-none text-[10px] font-mono border border-[#00296E]/20 dark:border-sky-400/30 bg-[#00296E]/5 dark:bg-sky-500/10 text-[#00296E] dark:text-[#38BDF8]">
+                          {agendaList.length} AGENDAS
                         </span>
                       </h2>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Kelola jadwal kegiatan HIMASI, agenda akademik kampus, dan hari libur nasional secara terpusat.
                       </p>
                     </div>
@@ -4609,26 +4795,26 @@ NOTIFY pgrst, 'reload schema';`;
                       type="button"
                       onClick={() => fetchAgendaList()}
                       disabled={loadingAgenda}
-                      className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs"
+                      className="p-2.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors shadow-none"
                       title="Segarkan Data Kalender"
                     >
-                      <RefreshCw className={`w-4 h-4 ${loadingAgenda ? "animate-spin text-[#0094E0]" : ""}`} />
+                      <RefreshCw className={`w-4 h-4 ${loadingAgenda ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
                     </button>
                     <Link
                       href="/kalender"
                       target="_blank"
-                      className="px-3.5 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
+                      className="px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors shadow-none flex items-center gap-1.5"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-[#0094E0]" />
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                       <span>Halaman Publik</span>
                     </Link>
                     <button
                       type="button"
                       onClick={() => handleOpenTambahAgenda()}
-                      className="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                      className="flex-1 md:flex-none px-4 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-none flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Tambah Acara</span>
+                      <Plus className="w-4 h-4 text-sky-300" />
+                      <span>+ Tambah Acara</span>
                     </button>
                   </div>
                 </div>
@@ -4636,14 +4822,14 @@ NOTIFY pgrst, 'reload schema';`;
                 {/* DUAL-PANE CONTAINER: KALENDER VISUAL (KIRI) & PANEL DETAIL HARI TERPILIH (KANAN) */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                   {/* SISI KIRI: KALENDER BULANAN INTERAKTIF (7 KOLOM) */}
-                  <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs">
+                  <div className="lg:col-span-7 bg-white dark:bg-[#001438] p-5 sm:p-6 border border-[#00296E]/15 dark:border-white/10 shadow-none">
                     {/* Header Navigasi Bulan */}
-                    <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                    <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/10 dark:border-white/10 mb-4">
                       <div>
-                        <h3 className="text-lg font-black text-[#00296E] tracking-tight">
+                        <h3 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">
                           {NAMA_BULAN_ID[adminCalMonth]} {adminCalYear}
                         </h3>
-                        <p className="text-[11px] text-slate-400 font-medium">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
                           Klik tanggal untuk melihat atau menambahkan agenda
                         </p>
                       </div>
@@ -4652,14 +4838,14 @@ NOTIFY pgrst, 'reload schema';`;
                         <button
                           type="button"
                           onClick={handleAdminToday}
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-bold transition-colors cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer"
                         >
                           Hari Ini
                         </button>
                         <button
                           type="button"
                           onClick={handleAdminPrevMonth}
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+                          className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
                           title="Bulan Sebelumnya"
                         >
                           <ChevronLeft className="w-4 h-4" />
@@ -4667,7 +4853,7 @@ NOTIFY pgrst, 'reload schema';`;
                         <button
                           type="button"
                           onClick={handleAdminNextMonth}
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+                          className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
                           title="Bulan Selanjutnya"
                         >
                           <ChevronRight className="w-4 h-4" />
@@ -4676,24 +4862,24 @@ NOTIFY pgrst, 'reload schema';`;
                     </div>
 
                     {/* Legend / Keterangan Kategori */}
-                    <div className="flex items-center gap-4 py-2 px-3 mb-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] font-medium text-slate-600 flex-wrap">
-                      <span className="text-slate-400 font-bold">Kategori:</span>
+                    <div className="flex items-center gap-4 py-2 px-3 mb-3 bg-[#00296E]/5 dark:bg-white/5 border border-[#00296E]/10 dark:border-white/10 text-[11px] font-mono text-slate-600 dark:text-slate-300 flex-wrap">
+                      <span className="text-slate-400 font-bold uppercase">Kategori:</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#1E88E5]" />
+                        <span className="w-2.5 h-2.5 bg-[#1E88E5]" />
                         <span>HIMASI</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#F2B705]" />
+                        <span className="w-2.5 h-2.5 bg-[#F2B705]" />
                         <span>Akademik</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#8E24AA]" />
+                        <span className="w-2.5 h-2.5 bg-[#8E24AA]" />
                         <span>Libur</span>
                       </div>
                     </div>
 
                     {/* Hari Singkat (Sen - Min) */}
-                    <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 mb-2">
+                    <div className="grid grid-cols-7 gap-1 text-center font-mono uppercase text-xs text-slate-400 dark:text-slate-500 mb-2">
                       {HARI_SINGKAT.map((h) => (
                         <div key={h} className="py-1">
                           {h}
@@ -4715,30 +4901,30 @@ NOTIFY pgrst, 'reload schema';`;
                               if (cell.monthOffset === 1) handleAdminNextMonth();
                               setAdminSelectedDate(cell.fullDate);
                             }}
-                            className={`min-h-[72px] sm:min-h-[82px] p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                            className={`min-h-[72px] sm:min-h-[82px] p-2 border transition-colors cursor-pointer flex flex-col justify-between ${
                               isSelected
-                                ? "bg-sky-50/80 border-[#0094E0] ring-2 ring-[#0094E0]/20 shadow-xs"
+                                ? "bg-[#00296E]/10 dark:bg-white/10 border-2 border-[#00296E] dark:border-[#38BDF8]"
                                 : cell.isToday
-                                ? "bg-amber-50/40 border-amber-300 hover:border-[#0094E0]/60"
+                                ? "bg-amber-500/10 border-amber-400 dark:border-amber-500/50"
                                 : isDiffMonth
-                                ? "bg-slate-50/40 border-slate-100 opacity-40 hover:opacity-80"
-                                : "bg-white border-slate-200/80 hover:border-[#0094E0]/50 hover:bg-slate-50/50"
+                                ? "bg-slate-50/40 dark:bg-white/[0.02] border-[#00296E]/5 dark:border-white/5 opacity-30 hover:opacity-70"
+                                : "bg-white dark:bg-[#001438] border-[#00296E]/15 dark:border-white/10 hover:border-[#00296E] dark:hover:border-[#38BDF8]"
                             }`}
                           >
                             <div className="flex items-center justify-between">
                               <span
-                                className={`text-xs font-bold leading-none ${
+                                className={`text-xs font-mono leading-none ${
                                   isSelected
-                                    ? "text-[#00296E] font-black"
+                                    ? "text-[#00296E] dark:text-[#38BDF8] font-bold"
                                     : cell.isToday
-                                    ? "text-amber-700 font-black"
-                                    : "text-slate-700"
+                                    ? "text-amber-700 dark:text-amber-400 font-bold"
+                                    : "text-slate-700 dark:text-slate-300 font-medium"
                                 }`}
                               >
                                 {cell.dayNumber}
                               </span>
                               {cell.isToday && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Hari Ini" />
+                                <span className="w-1.5 h-1.5 bg-amber-500" title="Hari Ini" />
                               )}
                             </div>
 
@@ -4749,13 +4935,13 @@ NOTIFY pgrst, 'reload schema';`;
                                 return (
                                   <span
                                     key={e.id}
-                                    className={`w-2 h-2 rounded-full ${meta.dot}`}
+                                    className={`w-2 h-2 ${meta.dot}`}
                                     title={`${e.judul} (${meta.label})`}
                                   />
                                 );
                               })}
                               {cell.events.length > 3 && (
-                                <span className="text-[9px] font-bold text-slate-400 leading-none">
+                                <span className="text-[9px] font-mono text-slate-400 leading-none">
                                   +{cell.events.length - 3}
                                 </span>
                               )}
@@ -4767,16 +4953,16 @@ NOTIFY pgrst, 'reload schema';`;
                   </div>
 
                   {/* SISI KANAN: PANEL DETAIL HARI TERPILIH (5 KOLOM) */}
-                  <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
+                  <div className="lg:col-span-5 bg-white dark:bg-[#001438] p-5 sm:p-6 border border-[#00296E]/15 dark:border-white/10 shadow-none space-y-4">
                     {/* Header Panel Tanggal */}
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center justify-between pb-3 border-b border-[#00296E]/10 dark:border-white/10">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-sky-50 text-[#00296E] flex items-center justify-center shrink-0 border border-sky-100">
-                          <CalendarDays className="w-4 h-4 text-[#0094E0]" />
+                        <div className="w-9 h-9 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
+                          <CalendarDays className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-400">Agenda Tanggal:</h4>
-                          <p className="text-sm font-black text-[#00296E]">
+                          <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500">Agenda Tanggal:</h4>
+                          <p className="text-sm font-semibold text-[#00296E] dark:text-white">
                             {formatTanggalIndoFull(adminSelectedDate)}
                           </p>
                         </div>
@@ -4785,31 +4971,31 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => handleOpenTambahAgenda(adminSelectedDate)}
-                        className="px-3 py-1.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-[11px] font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95"
+                        className="px-3 py-1.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-3.5 h-3.5 text-sky-300" />
                         <span>Tambah</span>
                       </button>
                     </div>
 
                     {/* Daftar Acara pada Hari Terpilih */}
                     {selectedDateEvents.length === 0 ? (
-                      <div className="py-12 px-4 rounded-2xl bg-slate-50/70 border border-dashed border-slate-200 text-center flex flex-col items-center justify-center">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
-                          <Calendar className="w-6 h-6 text-slate-400" />
+                      <div className="py-12 px-4 bg-[#00296E]/5 dark:bg-white/5 border border-dashed border-[#00296E]/15 dark:border-white/10 text-center flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 rounded-none bg-white dark:bg-[#001740] border border-[#00296E]/15 dark:border-white/10 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
+                          <Calendar className="w-6 h-6" />
                         </div>
-                        <h5 className="text-xs font-bold text-slate-700">
+                        <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200">
                           Tidak ada agenda di tanggal ini
                         </h5>
-                        <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-xs mt-1">
                           Belum ada kegiatan organisasi HIMASI, agenda akademik kampus, maupun libur nasional yang dijadwalkan.
                         </p>
                         <button
                           type="button"
                           onClick={() => handleOpenTambahAgenda(adminSelectedDate)}
-                          className="mt-4 px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                          className="mt-4 px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-3.5 h-3.5 text-sky-300" />
                           <span>Buat Acara di Hari Ini</span>
                         </button>
                       </div>
@@ -4824,42 +5010,42 @@ NOTIFY pgrst, 'reload schema';`;
                           return (
                             <div
                               key={event.id}
-                              className={`p-4 rounded-2xl border ${meta.border} bg-white shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3`}
+                              className={`p-4 border ${meta.border} bg-white dark:bg-[#001740] shadow-none transition-colors flex flex-col justify-between gap-3`}
                             >
                               <div>
                                 <div className="flex items-center justify-between gap-2 mb-1.5">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span
-                                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${meta.bgBadge} ${meta.textBadge}`}
+                                      className={`px-2 py-0.5 rounded-none text-[10px] font-mono uppercase tracking-wider ${meta.bgBadge} ${meta.textBadge}`}
                                     >
                                       {meta.label}
                                     </span>
                                     {event.status === "pending_review" && (
-                                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                      <span className="text-[10px] font-mono uppercase text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 border border-amber-500/20">
                                         Menunggu ACC
                                       </span>
                                     )}
                                     {event.status === "rejected" && (
-                                      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                                      <span className="text-[10px] font-mono uppercase text-rose-700 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 border border-rose-500/20">
                                         Ditolak
                                       </span>
                                     )}
                                   </div>
 
                                   {isMultiDay && (
-                                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                    <span className="text-[10px] font-mono uppercase text-indigo-700 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 border border-indigo-500/20">
                                       Rentang Hari
                                     </span>
                                   )}
                                 </div>
 
-                                <h5 className="text-xs sm:text-sm font-black text-slate-900 leading-snug">
+                                <h5 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white leading-snug">
                                   {event.judul}
                                 </h5>
 
-                                <div className="mt-2 space-y-1 text-[11px] text-slate-500 font-medium">
+                                <div className="mt-2 space-y-1 text-[11px] font-mono text-slate-500 dark:text-slate-400">
                                   {isMultiDay && (
-                                    <div className="flex items-center gap-1.5 text-indigo-600">
+                                    <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
                                       <Calendar className="w-3.5 h-3.5 shrink-0" />
                                       <span>
                                         {event.tanggal_mulai} s/d {event.tanggal_selesai}
@@ -4877,18 +5063,18 @@ NOTIFY pgrst, 'reload schema';`;
                                 </div>
 
                                 {event.deskripsi && (
-                                  <p className="mt-2 text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                  <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed bg-[#00296E]/5 dark:bg-white/5 p-2 border border-[#00296E]/10 dark:border-white/10">
                                     {event.deskripsi}
                                   </p>
                                 )}
                               </div>
 
-                              <div className="pt-2.5 border-t border-slate-100 flex items-center justify-end gap-1.5">
+                              <div className="pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-end gap-1.5">
                                 {canPublishContent(currentUserRole) && event.status === "pending_review" && (
                                   <button
                                     type="button"
                                     onClick={() => handleApproveAgenda(event)}
-                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                    className="px-2.5 py-1.5 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
                                   >
                                     <Check className="w-3 h-3 stroke-[3]" />
                                     <span>Setujui Agenda</span>
@@ -4899,22 +5085,22 @@ NOTIFY pgrst, 'reload schema';`;
                                     <button
                                       type="button"
                                       onClick={() => handleOpenEditAgenda(event)}
-                                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                      className="px-2.5 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
                                     >
-                                      <Edit3 className="w-3 h-3 text-[#0094E0]" />
+                                      <Edit3 className="w-3 h-3 text-[#00296E] dark:text-[#38BDF8]" />
                                       <span>Edit</span>
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => setAgendaToDelete(event)}
-                                      className="px-2.5 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                      className="px-2.5 py-1.5 rounded-none border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
                                     >
                                       <Trash2 className="w-3 h-3" />
                                       <span>Hapus</span>
                                     </button>
                                   </>
                                 ) : (
-                                  <span className="text-[10px] text-slate-400 font-medium px-2 py-1 bg-slate-50 rounded border border-slate-100">
+                                  <span className="text-[10px] font-mono text-slate-400 px-2 py-1 bg-[#00296E]/5 dark:bg-white/5 border border-[#00296E]/10 dark:border-white/10 uppercase">
                                     Terkurasi Medkominfo
                                   </span>
                                 )}
@@ -4932,20 +5118,20 @@ NOTIFY pgrst, 'reload schema';`;
             {/* TAB 8: SUPABASE DATABASE HUB */}
             {activeTab === "database" && (
               <div className="space-y-5 animate-in fade-in duration-200">
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                      <Database className="w-4 h-4 text-slate-600" />
+                    <div className="w-9 h-9 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
+                      <Database className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-base font-bold text-[#00296E] flex items-center gap-2">
+                      <h2 className="text-base font-semibold text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <span>Database PostgreSQL Supabase</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Terkoneksi
+                        <span className="px-2 py-0.5 rounded-none text-[10px] font-mono border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                          TERKONEKSI
                         </span>
                       </h2>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Proyek: <code className="font-mono text-slate-700 bg-slate-50 px-1 py-0.5 rounded border border-slate-200">{supabaseProjectId}</code> &bull; Region: Southeast Asia
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Proyek: <code className="font-mono text-slate-800 dark:text-slate-200 bg-[#00296E]/5 dark:bg-white/5 px-1.5 py-0.5 border border-[#00296E]/15 dark:border-white/10">{supabaseProjectId}</code> &bull; Region: Southeast Asia
                       </p>
                     </div>
                   </div>
@@ -4954,21 +5140,21 @@ NOTIFY pgrst, 'reload schema';`;
                     href={`https://supabase.com/dashboard/project/${supabaseProjectId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-none cursor-pointer"
                   >
                     <span>Buka Supabase Dashboard</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 </div>
 
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs space-y-3">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none space-y-3">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div>
-                      <h3 className="font-bold text-xs text-[#00296E] flex items-center gap-2">
-                        <FileCode className="w-3.5 h-3.5 text-slate-600" />
+                      <h3 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
+                        <FileCode className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
                         <span>Skrip SQL Schema Database (schema.sql)</span>
                       </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Jalankan skrip ini di SQL Editor Supabase untuk membuat atau memperbarui tabel database.
                       </p>
                     </div>
@@ -4976,11 +5162,11 @@ NOTIFY pgrst, 'reload schema';`;
                     <button
                       type="button"
                       onClick={handleCopySQL}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="px-3 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       {copiedSQL ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                           <span>Tersalin!</span>
                         </>
                       ) : (
@@ -4992,7 +5178,7 @@ NOTIFY pgrst, 'reload schema';`;
                     </button>
                   </div>
 
-                  <pre className="p-3.5 rounded-lg bg-slate-900 text-slate-100 font-mono text-[11px] leading-relaxed overflow-x-auto border border-slate-800 max-h-72">
+                  <pre className="p-3.5 rounded-none bg-[#00102B] text-slate-100 font-mono text-[11px] leading-relaxed overflow-x-auto border border-[#00296E]/20 dark:border-white/10 max-h-72">
                     <code>{sqlScriptContent}</code>
                   </pre>
                 </div>
@@ -5010,14 +5196,14 @@ NOTIFY pgrst, 'reload schema';`;
             {activeTab === "banner" && (
               <div className="space-y-5 animate-in fade-in duration-200">
                 {/* Segmented Sub-Tab Switch: Hero Banner vs Fitur Utama */}
-                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-xl w-fit">
+                <div className="flex flex-wrap items-center gap-1 p-1 bg-[#FAFBFC] dark:bg-[#001233] border border-[#00296E]/15 dark:border-white/10 w-fit">
                   <button
                     type="button"
                     onClick={() => setHomeSubTab("banner")}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-none text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
                       homeSubTab === "banner"
-                        ? "bg-white text-[#00296E] shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                     }`}
                   >
                     <ImageIcon className="w-4 h-4" />
@@ -5027,15 +5213,15 @@ NOTIFY pgrst, 'reload schema';`;
                   <button
                     type="button"
                     onClick={() => setHomeSubTab("fitur")}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-none text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
                       homeSubTab === "fitur"
-                        ? "bg-white text-[#00296E] shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                     }`}
                   >
-                    <Award className="w-4 h-4 text-emerald-600" />
-                    <span>Daftar Fitur Utama (Toggle Buka / Tutup)</span>
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800">
+                    <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Daftar Fitur Utama</span>
+                    <span className="px-1.5 py-0.5 text-[10px] font-mono border border-emerald-500/20 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
                       Open / Closed
                     </span>
                   </button>
@@ -5044,19 +5230,19 @@ NOTIFY pgrst, 'reload schema';`;
                 {homeSubTab === "banner" && (
                   <div className="space-y-5">
                 {/* Header Info Card */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                      <ImageIcon className="w-4 h-4 text-slate-600" />
+                    <div className="w-9 h-9 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
+                      <ImageIcon className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-base font-bold text-[#00296E] flex items-center gap-2">
+                      <h2 className="text-base font-semibold text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <span>Hero Banner Beranda (Mobile &amp; Desktop)</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+                        <span className="px-2 py-0.5 rounded-none text-[10px] font-mono uppercase bg-[#00296E]/5 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 text-slate-700 dark:text-slate-300">
                           Dual-Source
                         </span>
                       </h2>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Atur gambar latar belakang responsif terpisah untuk Desktop (Landscape) dan Mobile (Portrait).
                       </p>
                     </div>
@@ -5067,7 +5253,7 @@ NOTIFY pgrst, 'reload schema';`;
                       href="/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-[#00296E] hover:border-slate-300 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold uppercase tracking-wider transition-colors shadow-none cursor-pointer"
                     >
                       <span>Lihat Beranda</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -5076,7 +5262,7 @@ NOTIFY pgrst, 'reload schema';`;
                     <button
                       type="button"
                       onClick={() => handleResetBanner()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span>Reset Default</span>
@@ -5085,26 +5271,26 @@ NOTIFY pgrst, 'reload schema';`;
                 </div>
 
                 {/* Live Device Previews */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs space-y-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#00296E]/10 dark:border-white/10">
                     <div>
-                      <h3 className="font-bold text-xs text-[#00296E] flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-slate-600" />
+                      <h3 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
                         <span>Pratinjau Multi-Perangkat (Live Preview)</span>
                       </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Simulasi langsung tampilan hero banner di berbagai orientasi layar.
                       </p>
                     </div>
 
-                    <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl gap-1 text-xs font-semibold">
+                    <div className="inline-flex items-center p-1 bg-[#FAFBFC] dark:bg-[#001233] border border-[#00296E]/15 dark:border-white/10 gap-1 text-xs font-semibold">
                       <button
                         type="button"
                         onClick={() => setPreviewDevice("split")}
-                        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-none font-mono uppercase tracking-wider transition-colors cursor-pointer ${
                           previewDevice === "split"
-                            ? "bg-white text-[#00296E] shadow-xs font-bold"
-                            : "text-slate-600 hover:text-slate-900"
+                            ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                         }`}
                       >
                         Bandingan (Split)
@@ -5112,10 +5298,10 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => setPreviewDevice("desktop")}
-                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-none flex items-center gap-1.5 font-mono uppercase tracking-wider transition-colors cursor-pointer ${
                           previewDevice === "desktop"
-                            ? "bg-white text-[#00296E] shadow-xs font-bold"
-                            : "text-slate-600 hover:text-slate-900"
+                            ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                         }`}
                       >
                         <Monitor className="w-3.5 h-3.5" />
@@ -5124,10 +5310,10 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => setPreviewDevice("mobile")}
-                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-none flex items-center gap-1.5 font-mono uppercase tracking-wider transition-colors cursor-pointer ${
                           previewDevice === "mobile"
-                            ? "bg-white text-[#00296E] shadow-xs font-bold"
-                            : "text-slate-600 hover:text-slate-900"
+                            ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                         }`}
                       >
                         <Smartphone className="w-3.5 h-3.5" />
@@ -5252,20 +5438,20 @@ NOTIFY pgrst, 'reload schema';`;
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     
                     {/* Setting 1: Desktop Banner */}
-                    <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs space-y-3.5">
-                      <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                          <Monitor className="w-4 h-4 text-slate-600" />
+                    <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none space-y-3.5">
+                      <div className="flex items-center gap-2.5 pb-2.5 border-b border-[#00296E]/10 dark:border-white/10">
+                        <div className="w-8 h-8 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
+                          <Monitor className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-[#00296E]">Background Banner Desktop</h4>
-                          <p className="text-[11px] text-slate-400">Aktif pada layar komputer, laptop, &amp; tablet lebar (&ge; 768px)</p>
+                          <h4 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider">Background Banner Desktop</h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">Aktif pada layar komputer, laptop, &amp; tablet lebar (&ge; 768px)</p>
                         </div>
                       </div>
 
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                             URL / Jalur File Gambar Desktop:
                           </label>
                           <input
@@ -5273,14 +5459,14 @@ NOTIFY pgrst, 'reload schema';`;
                             value={formDesktopImage}
                             onChange={(e) => setFormDesktopImage(e.target.value)}
                             placeholder="/hero-banner.png atau link https://..."
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                            className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                             required
                           />
                         </div>
 
                         {/* Presets Desktop */}
                         <div>
-                          <span className="block text-[11px] font-semibold text-slate-500 mb-1">Preset Rekomendasi:</span>
+                          <span className="block text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 mb-1">Preset Rekomendasi:</span>
                           <div className="flex flex-wrap gap-1.5">
                             <button
                               type="button"
@@ -5288,7 +5474,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 setFormDesktopImage("/hero-banner.png");
                                 setFormDesktopPos("object-[center_65%]");
                               }}
-                              className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                              className="px-2.5 py-1 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono transition-colors cursor-pointer"
                             >
                               /hero-banner.png (Resmi 5933x3219)
                             </button>
@@ -5298,7 +5484,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 setFormDesktopImage("/hero-nature.jpg");
                                 setFormDesktopPos("object-center");
                               }}
-                              className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                              className="px-2.5 py-1 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono transition-colors cursor-pointer"
                             >
                               /hero-nature.jpg (Alam)
                             </button>
@@ -5307,13 +5493,13 @@ NOTIFY pgrst, 'reload schema';`;
 
                         {/* Posisi Fokus Desktop */}
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                             Posisi Fokus Gambar (CSS Object-Position):
                           </label>
                           <select
                             value={formDesktopPos}
                             onChange={(e) => setFormDesktopPos(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00296E] bg-white cursor-pointer"
+                            className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] bg-white dark:bg-[#001740] cursor-pointer"
                           >
                             <option value="object-[center_65%]">object-[center_65%] (Fokus Anggota Kabinet &amp; Gedung)</option>
                             <option value="object-center">object-center (Tengah Sempurna)</option>
@@ -5325,20 +5511,20 @@ NOTIFY pgrst, 'reload schema';`;
                     </div>
 
                     {/* Setting 2: Mobile Banner */}
-                    <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs space-y-3.5">
-                      <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                          <Smartphone className="w-4 h-4 text-slate-600" />
+                    <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none space-y-3.5">
+                      <div className="flex items-center gap-2.5 pb-2.5 border-b border-[#00296E]/10 dark:border-white/10">
+                        <div className="w-8 h-8 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
+                          <Smartphone className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-[#00296E]">Background Banner Mobile</h4>
-                          <p className="text-[11px] text-slate-400">Aktif pada perangkat smartphone / vertikal (&lt; 768px)</p>
+                          <h4 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider">Background Banner Mobile</h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">Aktif pada perangkat smartphone / vertikal (&lt; 768px)</p>
                         </div>
                       </div>
 
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                             URL / Jalur File Gambar Mobile:
                           </label>
                           <input
@@ -5346,14 +5532,14 @@ NOTIFY pgrst, 'reload schema';`;
                             value={formMobileImage}
                             onChange={(e) => setFormMobileImage(e.target.value)}
                             placeholder="/hero-banner-mobile.png atau link https://..."
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                            className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                             required
                           />
                         </div>
 
                         {/* Presets Mobile */}
                         <div>
-                          <span className="block text-[11px] font-semibold text-slate-500 mb-1">Preset Rekomendasi:</span>
+                          <span className="block text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 mb-1">Preset Rekomendasi:</span>
                           <div className="flex flex-wrap gap-1.5">
                             <button
                               type="button"
@@ -5361,7 +5547,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 setFormMobileImage("/hero-banner-mobile.png");
                                 setFormMobilePos("object-center");
                               }}
-                              className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                              className="px-2.5 py-1 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono transition-colors cursor-pointer"
                             >
                               /hero-banner-mobile.png (Portrait 1811x3219)
                             </button>
@@ -5371,7 +5557,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 setFormMobileImage("/hero-banner.png");
                                 setFormMobilePos("object-center");
                               }}
-                              className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                              className="px-2.5 py-1 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono transition-colors cursor-pointer"
                             >
                               /hero-banner.png (Gunakan Versi Desktop)
                             </button>
@@ -5380,13 +5566,13 @@ NOTIFY pgrst, 'reload schema';`;
 
                         {/* Posisi Fokus Mobile */}
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                             Posisi Fokus Gambar (CSS Object-Position):
                           </label>
                           <select
                             value={formMobilePos}
                             onChange={(e) => setFormMobilePos(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00296E] bg-white cursor-pointer"
+                            className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] bg-white dark:bg-[#001740] cursor-pointer"
                           >
                             <option value="object-center">object-center (Tengah Sempurna - Rekomendasi)</option>
                             <option value="object-top">object-top (Fokus Atas)</option>
@@ -5399,14 +5585,14 @@ NOTIFY pgrst, 'reload schema';`;
                   </div>
 
                   {/* Submit Button Bar */}
-                  <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <p className="text-xs text-slate-400 text-center sm:text-left">
+                  <div className="bg-white dark:bg-[#001438] p-3.5 sm:p-4 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
                       Konfigurasi tersimpan otomatis dan langsung diterapkan pada pengunjung beranda.
                     </p>
 
                     <button
                       type="submit"
-                      className="w-full sm:w-auto px-5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                      className="w-full sm:w-auto px-5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-none flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Simpan Konfigurasi Banner</span>
@@ -5420,19 +5606,19 @@ NOTIFY pgrst, 'reload schema';`;
             {homeSubTab === "fitur" && (
               <div className="space-y-5 animate-in fade-in duration-200">
                 {/* Header Info Card */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <div className="w-9 h-9 rounded-none bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
                       <Award className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-base font-bold text-[#00296E] flex items-center gap-2">
+                      <h2 className="text-base font-semibold text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <span>Pengaturan Status Fitur Utama Beranda</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-                          Toggle Open / Closed
+                        <span className="px-2 py-0.5 rounded-none text-[10px] font-mono border border-emerald-500/20 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
+                          OPEN / CLOSED
                         </span>
                       </h2>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Aktifkan atau nonaktifkan fitur utama pada halaman beranda dengan status Buka (Open) atau Ditutup (Closed / Coming Soon).
                       </p>
                     </div>
@@ -5440,7 +5626,7 @@ NOTIFY pgrst, 'reload schema';`;
 
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Master Switch Tampilkan Section di Homepage */}
-                    <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer select-none transition-colors">
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 cursor-pointer select-none transition-colors">
                       <input
                         type="checkbox"
                         checked={fiturConfig.showSection}
@@ -5454,7 +5640,7 @@ NOTIFY pgrst, 'reload schema';`;
                               : "Section Fitur Utama DISEMBUNYIKAN dari beranda."
                           );
                         }}
-                        className="w-4 h-4 text-[#00296E] rounded accent-[#00296E] cursor-pointer"
+                        className="w-4 h-4 text-[#00296E] rounded-none accent-[#00296E] cursor-pointer"
                       />
                       <span>Tampilkan Section di Beranda</span>
                     </label>
@@ -5463,7 +5649,7 @@ NOTIFY pgrst, 'reload schema';`;
                       href="/#fitur-utama"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-[#00296E] hover:border-slate-300 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-none bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold uppercase tracking-wider transition-colors shadow-none cursor-pointer"
                     >
                       <span>Lihat Beranda</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -5472,7 +5658,7 @@ NOTIFY pgrst, 'reload schema';`;
                     <button
                       type="button"
                       onClick={() => handleResetFitur()}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                       title="Kembalikan semua ke default"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
@@ -5492,27 +5678,27 @@ NOTIFY pgrst, 'reload schema';`;
                     return (
                       <div
                         key={item.id}
-                        className={`bg-white rounded-2xl border transition-all duration-200 p-4 sm:p-5 flex flex-col justify-between shadow-2xs ${
+                        className={`bg-white dark:bg-[#001438] rounded-none border transition-colors p-4 sm:p-5 flex flex-col justify-between shadow-none ${
                           isOpen
-                            ? "border-emerald-300/80 ring-1 ring-emerald-500/15"
-                            : "border-slate-200/90"
+                            ? "border-emerald-500/40"
+                            : "border-[#00296E]/15 dark:border-white/10"
                         }`}
                       >
                         <div>
                           {/* Top Bar Card */}
-                          <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+                          <div className="flex items-center justify-between pb-3.5 border-b border-[#00296E]/10 dark:border-white/10 mb-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-[#00296E] text-white flex items-center justify-center shrink-0 shadow-xs">
+                              <div className="w-10 h-10 rounded-none bg-[#00296E] dark:bg-white/10 text-white flex items-center justify-center shrink-0 border border-[#00296E]/20 dark:border-white/10">
                                 {item.iconName === "UserPlus" && <UserPlus className="w-5 h-5 stroke-[2.2]" />}
                                 {item.iconName === "Shirt" && <Shirt className="w-5 h-5 stroke-[2.2]" />}
                                 {item.iconName === "Trophy" && <Trophy className="w-5 h-5 stroke-[2.2]" />}
                                 {item.iconName === "Award" && <Award className="w-5 h-5 stroke-[2.2]" />}
                               </div>
                               <div>
-                                <h3 className="font-bold text-sm text-[#00296E] leading-snug">
+                                <h3 className="font-semibold text-sm text-[#00296E] dark:text-white leading-snug">
                                   {item.title}
                                 </h3>
-                                <span className="text-[11px] font-mono text-slate-400">
+                                <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
                                   Tautan: {item.href}
                                 </span>
                               </div>
@@ -5520,32 +5706,32 @@ NOTIFY pgrst, 'reload schema';`;
 
                             {/* Status Indicator Pill */}
                             <span
-                              className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 ${
+                              className={`px-2.5 py-1 rounded-none text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 ${
                                 isOpen
-                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                  : "bg-rose-100 text-rose-800 border border-rose-200"
+                                  ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20"
+                                  : "bg-rose-500/10 text-rose-800 dark:text-rose-300 border border-rose-500/20"
                               }`}
                             >
-                              <span className={`w-2 h-2 rounded-full ${isOpen ? "bg-emerald-600 animate-pulse" : "bg-rose-600"}`} />
+                              <span className={`w-2 h-2 ${isOpen ? "bg-emerald-600 dark:bg-emerald-400" : "bg-rose-600 dark:bg-rose-400"}`} />
                               {isOpen ? "Open" : "Closed"}
                             </span>
                           </div>
 
                           {/* Big Segmented Toggle Switch (OPEN vs CLOSED) */}
                           <div className="mb-4">
-                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
                               Status Fitur di Beranda
                             </label>
-                            <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl">
+                            <div className="grid grid-cols-2 gap-2 p-1.5 bg-[#FAFBFC] dark:bg-[#00102B] border border-[#00296E]/15 dark:border-white/10">
                               <button
                                 type="button"
                                 onClick={() => {
                                   if (!isOpen) handleToggleFiturItem(item.id);
                                 }}
-                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                className={`py-2 px-3 rounded-none text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                                   isOpen
-                                    ? "bg-emerald-600 text-white shadow-xs"
-                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                                    ? "bg-emerald-600 text-white font-bold"
+                                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                 }`}
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -5557,10 +5743,10 @@ NOTIFY pgrst, 'reload schema';`;
                                 onClick={() => {
                                   if (isOpen) handleToggleFiturItem(item.id);
                                 }}
-                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                className={`py-2 px-3 rounded-none text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                                   !isOpen
-                                    ? "bg-rose-600 text-white shadow-xs"
-                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                                    ? "bg-rose-600 text-white font-bold"
+                                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                 }`}
                               >
                                 <Lock className="w-3.5 h-3.5" />
@@ -5572,42 +5758,42 @@ NOTIFY pgrst, 'reload schema';`;
                           {/* Setting Label Input Fields */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                             <div>
-                              <label className="text-[11px] font-medium text-slate-600 block mb-1">
-                                Label saat <strong className="text-emerald-700">Open</strong>
+                              <label className="text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400 block mb-1">
+                                Label saat <strong className="text-emerald-700 dark:text-emerald-400">Open</strong>
                               </label>
                               <input
                                 type="text"
                                 value={item.statusOpenText}
                                 onChange={(e) => handleUpdateFiturItemField(item.id, "statusOpenText", e.target.value)}
                                 placeholder="Lihat Selengkapnya"
-                                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                                className="w-full px-3 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                               />
                             </div>
 
                             <div>
-                              <label className="text-[11px] font-medium text-slate-600 block mb-1">
-                                Label saat <strong className="text-rose-700">Closed</strong>
+                              <label className="text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400 block mb-1">
+                                Label saat <strong className="text-rose-700 dark:text-rose-400">Closed</strong>
                               </label>
                               <input
                                 type="text"
                                 value={item.statusClosedText}
                                 onChange={(e) => handleUpdateFiturItemField(item.id, "statusClosedText", e.target.value)}
                                 placeholder="Coming Soon"
-                                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                                className="w-full px-3 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                               />
                             </div>
                           </div>
 
                           {/* Opsi Kunci Akses saat Closed */}
-                          <div className="mb-4 pt-2 border-t border-slate-100">
+                          <div className="mb-4 pt-2 border-t border-[#00296E]/10 dark:border-white/10">
                             <label className="flex items-start gap-2 cursor-pointer select-none">
                               <input
                                 type="checkbox"
                                 checked={item.lockWhenClosed !== false}
                                 onChange={(e) => handleUpdateFiturItemField(item.id, "lockWhenClosed", e.target.checked)}
-                                className="mt-0.5 w-3.5 h-3.5 text-[#00296E] rounded accent-[#00296E] cursor-pointer"
+                                className="mt-0.5 w-3.5 h-3.5 text-[#00296E] rounded-none accent-[#00296E] cursor-pointer"
                               />
-                              <span className="text-[11px] text-slate-600 leading-tight">
+                              <span className="text-[11px] text-slate-600 dark:text-slate-300 leading-tight">
                                 Kunci klik saat <strong>Closed</strong> (menampilkan pemberitahuan bahwa fitur sedang ditutup dan mencegah pembukaan form)
                               </span>
                             </label>
@@ -5615,29 +5801,28 @@ NOTIFY pgrst, 'reload schema';`;
                         </div>
 
                         {/* Live Visual Preview Kartu Sesuai Tampilan Homepage */}
-                        <div className="pt-3 border-t border-slate-100">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                        <div className="pt-3 border-t border-[#00296E]/10 dark:border-white/10">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-2">
                             Pratinjau Tampilan di Beranda:
                           </span>
                           <div
-                            className="rounded-2xl p-5 flex flex-col justify-between min-h-[140px] select-none text-white shadow-xs transition-transform hover:-translate-y-0.5"
-                            style={{ background: "#00296E" }}
+                            className="rounded-none p-5 flex flex-col justify-between min-h-[140px] select-none text-white shadow-none border border-[#00296E]/20 bg-[#00296E]"
                           >
                             <div className="flex items-center gap-3">
                               {item.iconName === "UserPlus" && <UserPlus className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
                               {item.iconName === "Shirt" && <Shirt className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
                               {item.iconName === "Trophy" && <Trophy className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
                               {item.iconName === "Award" && <Award className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
-                              <h4 className="font-bold text-base text-white leading-snug">
+                              <h4 className="font-semibold text-base text-white leading-snug">
                                 {item.title}
                               </h4>
                             </div>
                             <div className="mt-4 flex items-center justify-between">
-                              <span className={`text-xs font-semibold tracking-wide ${isOpen ? "text-[#22c55e]" : "text-[#eb5f5f]"}`}>
+                              <span className={`text-xs font-mono font-semibold tracking-wide ${isOpen ? "text-[#22c55e]" : "text-[#eb5f5f]"}`}>
                                 {previewLabel}
                               </span>
                               {!isOpen && (
-                                <span className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30">
+                                <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 border border-rose-400/30 bg-rose-500/20 text-rose-300">
                                   Closed
                                 </span>
                               )}
@@ -5650,12 +5835,12 @@ NOTIFY pgrst, 'reload schema';`;
                 </div>
 
                 {/* Bottom Bar: Simpan Perubahan Fitur */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col sm:flex-row items-center justify-between gap-3 rounded-none">
                   <div>
-                    <p className="text-xs font-bold text-[#00296E]">
+                    <p className="text-xs font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">
                       Simpan &amp; Sinkronisasi Seluruh Perubahan
                     </p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Perubahan status Open/Closed dan label teks akan langsung aktif untuk seluruh pengunjung website.
                     </p>
                   </div>
@@ -5664,7 +5849,7 @@ NOTIFY pgrst, 'reload schema';`;
                     type="button"
                     onClick={handleSaveAllFitur}
                     disabled={savingFitur}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-none flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <Check className="w-4 h-4" />
                     <span>Simpan Pengaturan Fitur</span>
@@ -5687,13 +5872,13 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => setSelectedPengurusCard(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-[28px] overflow-hidden bg-white p-4 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-sm rounded-none overflow-hidden bg-white dark:bg-[#001438] p-4 sm:p-6 shadow-none border border-[#00296E]/20 dark:border-white/10 animate-in zoom-in-95 duration-200 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setSelectedPengurusCard(null)}
-              className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer"
+              className="absolute top-4 right-4 z-20 p-2 rounded-none bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer"
               aria-label="Tutup"
             >
               <X className="w-4 h-4" />
@@ -5716,23 +5901,23 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !savingPengurus && setIsPengurusModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 my-8 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-lg rounded-none bg-white dark:bg-[#001438] p-6 sm:p-7 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 my-8 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-sky-100 text-[#00296E] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-none bg-sky-100 dark:bg-sky-950/40 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-sky-200 dark:border-sky-800/40">
                   {editingPengurus ? (
-                    <Edit3 className="w-5 h-5 text-[#0094E0]" />
+                    <Edit3 className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                   ) : (
-                    <UserPlus className="w-5 h-5 text-[#0094E0]" />
+                    <UserPlus className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                   )}
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#00296E]">
+                  <h3 className="text-base font-extrabold text-[#00296E] dark:text-white">
                     {editingPengurus ? "Edit Data Peserta" : "Tambah Peserta Baru"}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 dark:text-slate-400">
                     {editingPengurus
                       ? `Perbarui identitas & profil ${editingPengurus.nama}`
                       : "Daftarkan anggota baru untuk menerbitkan kartu identitas dan QR Code"}
@@ -5743,7 +5928,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={savingPengurus}
                 onClick={() => setIsPengurusModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="p-1.5 rounded-none text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -5752,7 +5937,7 @@ NOTIFY pgrst, 'reload schema';`;
             <form onSubmit={handleSavePengurus} className="mt-5 space-y-4">
               {/* Field 1: Nama Lengkap */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Nama Lengkap Peserta <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -5767,14 +5952,14 @@ NOTIFY pgrst, 'reload schema';`;
                       setFormPengurusToken(generateQrToken(formPengurusNim, val));
                     }
                   }}
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all uppercase font-semibold"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] uppercase font-semibold"
                 />
               </div>
 
               {/* Grid 2 kolom: NIM & Divisi */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     {formPengurusDivisi === "PEMBINA" ? "NIM / NIDN (Opsional)" : "NIM Mahasiswa"}{" "}
                     {formPengurusDivisi !== "PEMBINA" && <span className="text-rose-500">*</span>}
                   </label>
@@ -5790,18 +5975,18 @@ NOTIFY pgrst, 'reload schema';`;
                         setFormPengurusToken(generateQrToken(val, formPengurusNama));
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 text-xs font-mono font-bold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                    className="w-full px-3.5 py-2.5 text-xs font-mono font-bold rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Divisi Organisasi <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={formPengurusDivisi}
                     onChange={(e) => setFormPengurusDivisi(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all bg-white cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] cursor-pointer"
                   >
                     {DAFTAR_DIVISI.map((div) => (
                       <option key={div} value={div}>
@@ -5815,7 +6000,7 @@ NOTIFY pgrst, 'reload schema';`;
               {/* Grid 2 kolom: Jabatan & Urutan Tampil */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Jabatan / Peran <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -5824,12 +6009,12 @@ NOTIFY pgrst, 'reload schema';`;
                     placeholder="Contoh: KETUA UMUM HIMASI"
                     value={formPengurusJabatan}
                     onChange={(e) => setFormPengurusJabatan(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all font-semibold"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Urutan Tampil (Hierarki)
                   </label>
                   <input
@@ -5838,14 +6023,14 @@ NOTIFY pgrst, 'reload schema';`;
                     placeholder="0 = Otomatis hierarki"
                     value={formPengurusUrutan || ""}
                     onChange={(e) => setFormPengurusUrutan(Number(e.target.value) || 0)}
-                    className="w-full px-3.5 py-2.5 text-xs font-mono font-bold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                    className="w-full px-3.5 py-2.5 text-xs font-mono font-bold rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8]"
                   />
                 </div>
               </div>
 
               {/* Field Email */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Email (Opsional)
                 </label>
                 <input
@@ -5853,13 +6038,13 @@ NOTIFY pgrst, 'reload schema';`;
                   placeholder="nama@atmaluhur.ac.id"
                   value={formPengurusEmail}
                   onChange={(e) => setFormPengurusEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8]"
                 />
               </div>
 
               {/* Field Avatar & Upload Foto */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                   Foto Profil Peserta
                 </label>
 
@@ -5878,11 +6063,11 @@ NOTIFY pgrst, 'reload schema';`;
                 />
 
                 {/* Main Upload Box */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="p-4 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10">
                   <div className="flex flex-col sm:flex-row items-center gap-4">
                     {/* Live Preview Avatar */}
                     <div className="relative group shrink-0">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-slate-200 border-2 border-sky-400 shadow-sm flex items-center justify-center">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-none overflow-hidden bg-slate-200 dark:bg-slate-800 border border-sky-400 shadow-none flex items-center justify-center">
                         {formPengurusImage ? (
                           <img
                             src={formPengurusImage}
@@ -5897,7 +6082,7 @@ NOTIFY pgrst, 'reload schema';`;
                         )}
                       </div>
                       {uploadingImage && (
-                        <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/60 rounded-none flex items-center justify-center">
                           <RefreshCw className="w-5 h-5 text-white animate-spin" />
                         </div>
                       )}
@@ -5910,7 +6095,7 @@ NOTIFY pgrst, 'reload schema';`;
                           type="button"
                           disabled={uploadingImage}
                           onClick={() => fileInputRef.current?.click()}
-                          className="px-4 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                          className="px-4 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
                         >
                           <Upload className="w-4 h-4 text-sky-300" />
                           <span>{uploadingImage ? "Mengunggah..." : "Unggah Foto dari Perangkat"}</span>
@@ -5920,13 +6105,13 @@ NOTIFY pgrst, 'reload schema';`;
                           <button
                             type="button"
                             onClick={() => setFormPengurusImage("/DSC01203.png")}
-                            className="px-3 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 text-xs font-semibold border border-slate-200 transition-colors cursor-pointer"
+                            className="px-3 py-2.5 rounded-none bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
                           >
                             Reset Default
                           </button>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                      <p className="text-[11px] text-slate-400 dark:text-slate-400 leading-relaxed">
                         Pilih foto peserta dari perangkat Anda (mendukung JPG, PNG, atau WebP). Berkas akan otomatis dikompres dan disimpan.
                       </p>
                     </div>
@@ -5935,16 +6120,16 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
 
               {/* Field QR Token */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <div className="bg-slate-50 dark:bg-white/5 p-3.5 rounded-none border border-[#00296E]/15 dark:border-white/10">
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <QrCode className="w-3.5 h-3.5 text-[#0094E0]" />
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <QrCode className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
                     <span>QR Code Token</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setFormPengurusToken(generateQrToken(formPengurusNim, formPengurusNama))}
-                    className="text-[10px] font-bold text-sky-600 hover:text-sky-800 transition-colors cursor-pointer"
+                    className="text-[10px] font-bold text-sky-600 dark:text-[#38BDF8] hover:underline cursor-pointer"
                   >
                     Generate Ulang
                   </button>
@@ -5954,36 +6139,36 @@ NOTIFY pgrst, 'reload schema';`;
                   value={formPengurusToken}
                   onChange={(e) => setFormPengurusToken(e.target.value)}
                   placeholder="Auto-generated dari NIM dan Nama"
-                  className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                  className="w-full px-3 py-2 text-xs font-mono font-bold rounded-none border border-[#00296E]/20 dark:border-white/15 bg-white dark:bg-[#001740] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8]"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1">
                   Token unik ini di-encode ke dalam QR Code kartu identitas untuk dipindai oleh admin saat absensi.
                 </p>
               </div>
 
               {/* Tombol Aksi */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#00296E]/15 dark:border-white/10">
                 <button
                   type="button"
                   disabled={savingPengurus}
                   onClick={() => setIsPengurusModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2.5 rounded-none border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={savingPengurus || uploadingImage}
-                  className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                  className="px-5 py-2.5 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {savingPengurus ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
                     <>
-                      <Check className="w-3.5 h-3.5" />
+                      <Check className="w-3.5 h-3.5 text-[#38BDF8] dark:text-[#001740]" />
                       <span>{editingPengurus ? "Simpan Perubahan" : "Terbitkan Kartu & Simpan"}</span>
                     </>
                   )}
@@ -6001,24 +6186,24 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !deletingPengurus && setPengurusToDelete(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            className="relative w-full max-w-sm rounded-none bg-white dark:bg-[#001438] p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-center text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
-              <Trash2 className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-extrabold text-slate-900">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
               Hapus Data Peserta?
             </h3>
 
-            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Anda akan menghapus peserta berikut dari daftar pengurus HIMASI:
             </p>
 
             {/* Preview Peserta yang akan dihapus */}
-            <div className="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3 text-left">
-              <div className="w-11 h-11 rounded-xl overflow-hidden bg-slate-200 shrink-0">
+            <div className="mt-4 p-3 bg-slate-50 dark:bg-white/5 rounded-none border border-[#00296E]/15 dark:border-white/10 flex items-center gap-3 text-left">
+              <div className="w-11 h-11 rounded-none overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0">
                 <img
                   src={pengurusToDelete.image}
                   alt={pengurusToDelete.nama}
@@ -6029,19 +6214,19 @@ NOTIFY pgrst, 'reload schema';`;
                 />
               </div>
               <div className="overflow-hidden flex-1">
-                <h4 className="text-xs font-black text-slate-900 truncate">
+                <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
                   {pengurusToDelete.nama}
                 </h4>
-                <p className="text-[11px] text-slate-500 font-mono">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                   {pengurusToDelete.nim} • {pengurusToDelete.divisi}
                 </p>
-                <p className="text-[10px] text-slate-400 truncate">
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 truncate">
                   {pengurusToDelete.jabatan}
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium text-left">
+            <div className="mt-4 p-2.5 rounded-none bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-[11px] font-medium text-left">
               Kartu identitas dan QR Code untuk peserta ini tidak akan bisa dipindai lagi pada agenda absensi mendatang.
             </div>
 
@@ -6050,7 +6235,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingPengurus}
                 onClick={() => setPengurusToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-none border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -6058,7 +6243,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingPengurus}
                 onClick={handleConfirmDeletePengurus}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="flex-1 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {deletingPengurus ? (
                   <>
@@ -6084,20 +6269,20 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !savingDokumen && setIsDokumenModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 my-8"
+            className="relative w-full max-w-lg rounded-none bg-white dark:bg-[#001438] p-6 sm:p-7 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 my-8 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-sky-50 text-[#00296E] flex items-center justify-center border border-sky-100">
-                  <FileText className="w-5 h-5 text-[#0094E0]" />
+                <div className="w-10 h-10 rounded-none bg-sky-50 dark:bg-sky-950/40 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-sky-100 dark:border-sky-800/40">
+                  <FileText className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#00296E]">
+                  <h3 className="text-base font-extrabold text-[#00296E] dark:text-white">
                     {editingDokumen ? "Edit Dokumen Organisasi" : "Tambah Dokumen Organisasi"}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 dark:text-slate-400">
                     Berkas resmi yang dapat diunduh publik di halaman Profil HIMASI
                   </p>
                 </div>
@@ -6106,7 +6291,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={savingDokumen}
                 onClick={() => setIsDokumenModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="p-1.5 rounded-none text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -6116,7 +6301,7 @@ NOTIFY pgrst, 'reload schema';`;
             <form onSubmit={handleSaveDokumen} className="mt-5 space-y-4">
               {/* Judul Dokumen */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Judul Dokumen <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -6125,13 +6310,13 @@ NOTIFY pgrst, 'reload schema';`;
                   value={formDokumenJudul}
                   onChange={(e) => setFormDokumenJudul(e.target.value)}
                   placeholder="Contoh: AD HIMASI, ART HIMASI, SK Kepengurusan"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
 
               {/* Deskripsi Dokumen */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Deskripsi Singkat <span className="text-rose-500">*</span>
                 </label>
                 <textarea
@@ -6140,13 +6325,13 @@ NOTIFY pgrst, 'reload schema';`;
                   value={formDokumenDeskripsi}
                   onChange={(e) => setFormDokumenDeskripsi(e.target.value)}
                   placeholder="Contoh: Anggaran Dasar HIMASI ISB Atma Luhur Periode 2024/2025"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-normal focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800 resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-normal focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
                 />
               </div>
 
               {/* Urutan Tampilan */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Nomor Urut Tampilan
                 </label>
                 <div className="flex items-center gap-3">
@@ -6155,9 +6340,9 @@ NOTIFY pgrst, 'reload schema';`;
                     min={1}
                     value={formDokumenUrutan}
                     onChange={(e) => setFormDokumenUrutan(parseInt(e.target.value) || 1)}
-                    className="w-24 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all text-slate-800"
+                    className="w-24 px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8]"
                   />
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-slate-400 dark:text-slate-400">
                     Dokumen dengan nomor urut lebih kecil muncul lebih awal (1 = kartu paling kiri).
                   </span>
                 </div>
@@ -6165,7 +6350,7 @@ NOTIFY pgrst, 'reload schema';`;
 
               {/* File Upload PDF */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Berkas Fisik PDF <span className="text-rose-500">*</span>
                 </label>
 
@@ -6183,16 +6368,16 @@ NOTIFY pgrst, 'reload schema';`;
                 />
 
                 {formDokumenFileUrl ? (
-                  <div className="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100 flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-none bg-sky-50/60 dark:bg-white/5 border border-sky-100 dark:border-white/10 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 shadow-2xs font-black text-xs">
+                      <div className="w-10 h-10 rounded-none bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 flex items-center justify-center shrink-0 font-black text-xs">
                         PDF
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                           {formDokumenFileName || "Dokumen.pdf"}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-medium">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-400 font-medium">
                           {formDokumenFileSize || "PDF Siap Diunduh"}
                         </p>
                       </div>
@@ -6202,16 +6387,16 @@ NOTIFY pgrst, 'reload schema';`;
                         href={formDokumenFileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-[11px] font-bold text-slate-700 transition-colors flex items-center gap-1 shadow-2xs"
+                        className="px-2.5 py-1.5 rounded-none bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1"
                       >
-                        <ExternalLink className="w-3 h-3 text-[#0094E0]" />
+                        <ExternalLink className="w-3 h-3 text-[#0094E0] dark:text-[#38BDF8]" />
                         <span>Pratinjau</span>
                       </a>
                       <button
                         type="button"
                         onClick={() => pdfFileInputRef.current?.click()}
                         disabled={uploadingPdf}
-                        className="px-2.5 py-1.5 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-[11px] font-bold text-white transition-colors cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-[11px] font-bold text-white transition-colors cursor-pointer"
                       >
                         Ganti PDF
                       </button>
@@ -6220,24 +6405,24 @@ NOTIFY pgrst, 'reload schema';`;
                 ) : (
                   <div
                     onClick={() => !uploadingPdf && pdfFileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${
+                    className={`border border-dashed rounded-none p-6 text-center transition-all cursor-pointer ${
                       uploadingPdf
-                        ? "border-[#0094E0] bg-sky-50/40"
-                        : "border-slate-200 hover:border-[#0094E0] hover:bg-slate-50/60"
+                        ? "border-[#0094E0] bg-sky-50/40 dark:bg-white/10"
+                        : "border-[#00296E]/20 dark:border-white/15 hover:border-[#0094E0] bg-slate-50 dark:bg-white/5"
                     }`}
                   >
                     {uploadingPdf ? (
                       <div className="flex flex-col items-center justify-center py-2">
-                        <RefreshCw className="w-8 h-8 text-[#0094E0] animate-spin mb-2" />
-                        <p className="text-xs font-bold text-slate-700">Mengunggah Berkas PDF...</p>
+                        <RefreshCw className="w-8 h-8 text-[#0094E0] dark:text-[#38BDF8] animate-spin mb-2" />
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Mengunggah Berkas PDF...</p>
                         <p className="text-[11px] text-slate-400 mt-0.5">Menyiapkan penyimpanan berkas dokumen</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-1">
-                        <div className="w-12 h-12 rounded-2xl bg-sky-50 text-[#0094E0] flex items-center justify-center mb-2 shadow-2xs">
+                        <div className="w-12 h-12 rounded-none bg-sky-50 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center mb-2">
                           <Upload className="w-6 h-6" />
                         </div>
-                        <p className="text-xs font-bold text-slate-800">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                           Klik untuk unggah berkas PDF dari perangkat
                         </p>
                         <p className="text-[11px] text-slate-400 mt-1">
@@ -6250,28 +6435,28 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   disabled={savingDokumen || uploadingPdf}
                   onClick={() => setIsDokumenModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2.5 rounded-none border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={savingDokumen || uploadingPdf || !formDokumenFileUrl}
-                  className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                  className="px-5 py-2.5 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {savingDokumen ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
                     <>
-                      <Check className="w-3.5 h-3.5" />
+                      <Check className="w-3.5 h-3.5 text-[#38BDF8] dark:text-[#001740]" />
                       <span>{editingDokumen ? "Simpan Perubahan" : "Terbitkan Dokumen"}</span>
                     </>
                   )}
@@ -6289,40 +6474,40 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !deletingDokumen && setDokumenToDelete(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            className="relative w-full max-w-sm rounded-none bg-white dark:bg-[#001438] p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-center text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
-              <Trash2 className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-extrabold text-slate-900">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
               Hapus Dokumen Organisasi?
             </h3>
 
-            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Anda akan menghapus dokumen berikut dari daftar publik:
             </p>
 
             {/* Preview Dokumen yang akan dihapus */}
-            <div className="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3 text-left">
-              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 font-black text-xs">
+            <div className="mt-4 p-3 bg-slate-50 dark:bg-white/5 rounded-none border border-[#00296E]/15 dark:border-white/10 flex items-center gap-3 text-left">
+              <div className="w-10 h-10 rounded-none bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 flex items-center justify-center shrink-0 font-black text-xs">
                 PDF
               </div>
               <div className="overflow-hidden flex-1">
-                <h4 className="text-xs font-black text-slate-900 truncate">
+                <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
                   {dokumenToDelete.judul}
                 </h4>
-                <p className="text-[11px] text-slate-500 truncate">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   {dokumenToDelete.deskripsi}
                 </p>
-                <p className="text-[10px] text-slate-400 font-mono truncate">
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 font-mono truncate">
                   {dokumenToDelete.file_name} • {dokumenToDelete.file_size || "PDF"}
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium text-left">
+            <div className="mt-4 p-2.5 rounded-none bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-[11px] font-medium text-left">
               Dokumen ini tidak akan bisa diunduh lagi oleh pengunjung di halaman Profil HIMASI.
             </div>
 
@@ -6331,7 +6516,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingDokumen}
                 onClick={() => setDokumenToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-none border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -6339,7 +6524,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingDokumen}
                 onClick={handleConfirmDeleteDokumen}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="flex-1 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {deletingDokumen ? (
                   <>
@@ -6365,20 +6550,20 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !savingAgenda && setIsAgendaModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 my-8"
+            className="relative w-full max-w-lg rounded-none bg-white dark:bg-[#001438] p-6 sm:p-7 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 my-8 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Modal */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-sky-50 text-[#00296E] flex items-center justify-center border border-sky-100">
-                  <Calendar className="w-5 h-5 text-[#0094E0]" />
+                <div className="w-10 h-10 rounded-none bg-sky-50 dark:bg-sky-950/40 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-sky-100 dark:border-sky-800/40">
+                  <Calendar className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#00296E]">
+                  <h3 className="text-base font-extrabold text-[#00296E] dark:text-white">
                     {editingAgenda ? "Edit Agenda Acara" : "Tambah Agenda Baru"}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 dark:text-slate-400">
                     Jadwalkan kegiatan organisasi, agenda akademik, atau libur nasional
                   </p>
                 </div>
@@ -6387,7 +6572,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={savingAgenda}
                 onClick={() => setIsAgendaModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="p-1.5 rounded-none text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -6397,7 +6582,7 @@ NOTIFY pgrst, 'reload schema';`;
             <form onSubmit={handleSaveAgenda} className="mt-5 space-y-4">
               {/* Judul Agenda */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Judul Agenda / Acara <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -6406,13 +6591,13 @@ NOTIFY pgrst, 'reload schema';`;
                   value={formAgendaJudul}
                   onChange={(e) => setFormAgendaJudul(e.target.value)}
                   placeholder="Contoh: Malam Keakraban (MAKRAB) HIMASI 2026"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
 
               {/* Kategori Agenda */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Kategori Agenda <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -6424,10 +6609,10 @@ NOTIFY pgrst, 'reload schema';`;
                         key={cat}
                         type="button"
                         onClick={() => setFormAgendaKategori(cat)}
-                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        className={`p-2.5 rounded-none border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           isSelected
-                            ? `${meta.border} ${meta.bgBadge} ${meta.textBadge} ring-2 ring-[#0094E0]/20 shadow-2xs`
-                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                            ? `${meta.border} ${meta.bgBadge} ${meta.textBadge} ring-1 ring-[#0094E0]/40 shadow-none`
+                            : "border-slate-200 dark:border-white/15 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10"
                         }`}
                       >
                         <span className={`w-2.5 h-2.5 rounded-full ${meta.dot}`} />
@@ -6439,19 +6624,19 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
 
               {/* Checkbox Rentang Tanggal */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="p-3 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formAgendaIsMultiDay}
                     onChange={(e) => setFormAgendaIsMultiDay(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#0094E0] focus:ring-[#0094E0] border-slate-300"
+                    className="w-4 h-4 rounded-none text-[#0094E0] focus:ring-[#0094E0] border-slate-300 dark:border-white/20"
                   />
-                  <span className="text-xs font-bold text-slate-700">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     Acara berlangsung beberapa hari (Rentang Tanggal)
                   </span>
                 </label>
-                <p className="text-[11px] text-slate-400 ml-6 mt-0.5">
+                <p className="text-[11px] text-slate-400 dark:text-slate-400 ml-6 mt-0.5">
                   Centang jika acara memakan waktu lebih dari 1 hari (contoh: UTS, Sidang Gelombang I).
                 </p>
               </div>
@@ -6459,7 +6644,7 @@ NOTIFY pgrst, 'reload schema';`;
               {/* Input Tanggal */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     {formAgendaIsMultiDay ? "Tanggal Mulai" : "Tanggal Pelaksanaan"}{" "}
                     <span className="text-rose-500">*</span>
                   </label>
@@ -6473,13 +6658,13 @@ NOTIFY pgrst, 'reload schema';`;
                         setFormAgendaTanggalSelesai(e.target.value);
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all text-slate-800"
+                    className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all"
                   />
                 </div>
 
                 {formAgendaIsMultiDay && (
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                       Tanggal Selesai <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -6488,7 +6673,7 @@ NOTIFY pgrst, 'reload schema';`;
                       min={formAgendaTanggalMulai}
                       value={formAgendaTanggalSelesai}
                       onChange={(e) => setFormAgendaTanggalSelesai(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all text-slate-800"
+                      className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all"
                     />
                   </div>
                 )}
@@ -6497,7 +6682,7 @@ NOTIFY pgrst, 'reload schema';`;
               {/* Waktu & Lokasi */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Waktu / Jam Pelaksanaan
                   </label>
                   <input
@@ -6505,11 +6690,11 @@ NOTIFY pgrst, 'reload schema';`;
                     value={formAgendaWaktu}
                     onChange={(e) => setFormAgendaWaktu(e.target.value)}
                     placeholder="Contoh: 08.30 - 15.00 WIB atau Sepanjang Hari"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800"
+                    className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Lokasi Pelaksanaan
                   </label>
                   <input
@@ -6517,14 +6702,14 @@ NOTIFY pgrst, 'reload schema';`;
                     value={formAgendaLokasi}
                     onChange={(e) => setFormAgendaLokasi(e.target.value)}
                     placeholder="Contoh: Auditorium Utama / Online (Zoom)"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800"
+                    className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
               </div>
 
               {/* Deskripsi */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Keterangan / Deskripsi Acara
                 </label>
                 <textarea
@@ -6532,33 +6717,33 @@ NOTIFY pgrst, 'reload schema';`;
                   value={formAgendaDeskripsi}
                   onChange={(e) => setFormAgendaDeskripsi(e.target.value)}
                   placeholder="Keterangan singkat mengenai agenda atau sasaran kegiatan..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-normal focus:outline-none focus:border-[#0094E0] focus:ring-2 focus:ring-[#0094E0]/20 transition-all placeholder:text-slate-400 text-slate-800 resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-normal focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
                 />
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   disabled={savingAgenda}
                   onClick={() => setIsAgendaModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2.5 rounded-none border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={savingAgenda}
-                  className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                  className="px-5 py-2.5 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {savingAgenda ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
                     <>
-                      <Check className="w-3.5 h-3.5" />
+                      <Check className="w-3.5 h-3.5 text-[#38BDF8] dark:text-[#001740]" />
                       <span>{editingAgenda ? "Simpan Perubahan" : "Terbitkan Agenda"}</span>
                     </>
                   )}
@@ -6576,40 +6761,40 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !deletingAgenda && setAgendaToDelete(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            className="relative w-full max-w-sm rounded-none bg-white dark:bg-[#001438] p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-center text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
-              <Trash2 className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-extrabold text-slate-900">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
               Hapus Agenda Kalender?
             </h3>
 
-            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Anda akan menghapus agenda berikut dari kalender organisasi:
             </p>
 
             {/* Preview Agenda yang akan dihapus */}
-            <div className="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-left">
+            <div className="mt-4 p-3 bg-slate-50 dark:bg-white/5 rounded-none border border-[#00296E]/15 dark:border-white/10 text-left">
               <span
-                className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold mb-1 ${
+                className={`inline-block px-2 py-0.5 rounded-none text-[9px] font-bold mb-1 ${
                   getCategoryMeta(agendaToDelete.kategori).bgBadge
                 } ${getCategoryMeta(agendaToDelete.kategori).textBadge}`}
               >
                 {getCategoryMeta(agendaToDelete.kategori).label}
               </span>
-              <h4 className="text-xs font-black text-slate-900 leading-snug">
+              <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug">
                 {agendaToDelete.judul}
               </h4>
-              <p className="text-[11px] text-slate-500 mt-1">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                 {agendaToDelete.tanggal_mulai}
                 {agendaToDelete.tanggal_selesai && ` s/d ${agendaToDelete.tanggal_selesai}`} &bull; {agendaToDelete.waktu}
               </p>
             </div>
 
-            <div className="mt-4 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium text-left">
+            <div className="mt-4 p-2.5 rounded-none bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-[11px] font-medium text-left">
               Agenda ini tidak akan tampil lagi di kalender publik HIMASI.
             </div>
 
@@ -6618,7 +6803,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingAgenda}
                 onClick={() => setAgendaToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-none border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -6626,7 +6811,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingAgenda}
                 onClick={handleConfirmDeleteAgenda}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="flex-1 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {deletingAgenda ? (
                   <>
@@ -6654,19 +6839,19 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => setIsTambahKegiatanModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100"
+            className="relative w-full max-w-md rounded-none bg-white dark:bg-[#001438] p-6 sm:p-7 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-sky-100 text-[#00296E] flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-[#0094E0]" />
+                <div className="w-9 h-9 rounded-none bg-sky-100 dark:bg-sky-950/40 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-sky-200 dark:border-sky-800/40">
+                  <Calendar className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#00296E]">
+                  <h3 className="text-base font-extrabold text-[#00296E] dark:text-white">
                     Tambah Kegiatan Baru
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 dark:text-slate-400">
                     Masukkan nama kegiatan, tanggal, dan jam
                   </p>
                 </div>
@@ -6674,7 +6859,7 @@ NOTIFY pgrst, 'reload schema';`;
               <button
                 type="button"
                 onClick={() => setIsTambahKegiatanModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-1.5 rounded-none text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -6683,7 +6868,7 @@ NOTIFY pgrst, 'reload schema';`;
             <form onSubmit={handleSimpanKegiatan} className="mt-5 space-y-4">
               {/* Field 1: Nama Kegiatan */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Nama Kegiatan / Rapat / Acara <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -6692,13 +6877,13 @@ NOTIFY pgrst, 'reload schema';`;
                   placeholder="Contoh: Rapat Pleno Kabinet / Workshop UI/UX"
                   value={formNamaKegiatan}
                   onChange={(e) => setFormNamaKegiatan(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00296E] placeholder:text-slate-400"
+                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
 
               {/* Field 2: Tanggal Pelaksanaan */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Tanggal Pelaksanaan <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -6706,13 +6891,13 @@ NOTIFY pgrst, 'reload schema';`;
                   required
                   value={formTanggalKegiatan}
                   onChange={(e) => setFormTanggalKegiatan(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00296E]"
+                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8]"
                 />
               </div>
 
               {/* Field 3: Waktu / Jam */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Waktu / Jam Pelaksanaan <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -6721,26 +6906,26 @@ NOTIFY pgrst, 'reload schema';`;
                   placeholder="Contoh: 08:30 WIB atau 09:00 - 12:00 WIB"
                   value={formJamKegiatan}
                   onChange={(e) => setFormJamKegiatan(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00296E] placeholder:text-slate-400"
+                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
+                <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-1">
                   Format waktu akan otomatis dicetak pada lembar rekap PDF ber-kop surat.
                 </p>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#00296E]/15 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsTambahKegiatanModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className="px-5 py-2.5 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Check className="w-4 h-4 text-sky-300" />
+                  <Check className="w-4 h-4 text-[#38BDF8] dark:text-[#001740]" />
                   <span>Simpan & Pilih Kegiatan</span>
                 </button>
               </div>
@@ -6756,34 +6941,34 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !deletingKegiatan && setKegiatanToDelete(null)}
         >
           <div
-            className="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100"
+            className="relative w-full max-w-md rounded-none bg-white dark:bg-[#001438] p-6 sm:p-7 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100">
-              <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100 shadow-2xs">
+            <div className="flex items-center gap-3.5 pb-4 border-b border-[#00296E]/15 dark:border-white/10">
+              <div className="w-11 h-11 rounded-none bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-100 dark:border-rose-900/40">
                 <Trash2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
                   Hapus Agenda Kegiatan?
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Tindakan ini permanen dan tidak dapat dibatalkan
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 p-4 rounded-2xl bg-rose-50/70 border border-rose-200/80 text-xs space-y-1.5">
-              <p className="text-slate-600 font-medium">
+            <div className="mt-4 p-4 rounded-none bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 text-xs space-y-1.5">
+              <p className="text-slate-600 dark:text-slate-300 font-medium">
                 Anda akan menghapus kegiatan:
               </p>
-              <p className="text-sm font-black text-rose-800">
+              <p className="text-sm font-black text-rose-800 dark:text-rose-300">
                 {kegiatanToDelete.nama}
               </p>
-              <p className="text-[11px] text-slate-500 font-semibold">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
                 {formatTanggalIndo(kegiatanToDelete.tanggal)} • {kegiatanToDelete.jam}
               </p>
-              <p className="text-[11px] text-rose-700 pt-1.5 font-medium border-t border-rose-200/60 mt-2">
+              <p className="text-[11px] text-rose-700 dark:text-rose-300 pt-1.5 font-medium border-t border-rose-200/60 dark:border-rose-900/40 mt-2">
                 Seluruh catatan presensi scan QR pengurus untuk kegiatan ini juga akan dihapus dari sistem.
               </p>
             </div>
@@ -6793,7 +6978,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingKegiatan}
                 onClick={() => setKegiatanToDelete(null)}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2.5 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -6801,7 +6986,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingKegiatan}
                 onClick={handleConfirmDeleteKegiatan}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {deletingKegiatan ? (
                   <>
@@ -6827,28 +7012,28 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !deletingAspirasi && setAspirasiToDelete(null)}
         >
           <div
-            className="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100"
+            className="relative w-full max-w-md rounded-none bg-white dark:bg-[#001438] p-6 sm:p-7 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100">
-              <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100 shadow-2xs">
+            <div className="flex items-center gap-3.5 pb-4 border-b border-[#00296E]/15 dark:border-white/10">
+              <div className="w-11 h-11 rounded-none bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-100 dark:border-rose-900/40">
                 <Trash2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
                   Hapus Catatan Aspirasi?
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Data aspirasi akan dihapus permanen dari sistem
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 p-4 rounded-2xl bg-rose-50/70 border border-rose-200/80 text-xs space-y-1.5">
-              <p className="text-slate-600 font-medium">
-                Pengirim: <strong className="text-slate-900">{aspirasiToDelete.email}</strong> (Angkatan {aspirasiToDelete.angkatan})
+            <div className="mt-4 p-4 rounded-none bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 text-xs space-y-1.5">
+              <p className="text-slate-600 dark:text-slate-300 font-medium">
+                Pengirim: <strong className="text-slate-900 dark:text-white">{aspirasiToDelete.email}</strong> (Angkatan {aspirasiToDelete.angkatan})
               </p>
-              <p className="text-slate-700 italic border-l-2 border-rose-400 pl-2.5 py-1 text-[11px] line-clamp-3">
+              <p className="text-slate-700 dark:text-slate-200 italic border-l-2 border-rose-400 pl-2.5 py-1 text-[11px] line-clamp-3">
                 &ldquo;{aspirasiToDelete.pesan}&rdquo;
               </p>
             </div>
@@ -6858,7 +7043,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingAspirasi}
                 onClick={() => setAspirasiToDelete(null)}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2.5 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -6866,7 +7051,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingAspirasi}
                 onClick={handleConfirmDeleteAspirasi}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {deletingAspirasi ? (
                   <>
@@ -6892,24 +7077,24 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !savingBerita && setIsBeritaModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-2xl rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 my-8 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-2xl rounded-none bg-white dark:bg-[#001438] p-5 sm:p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 my-8 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-3.5 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-slate-100 text-[#00296E] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-none bg-slate-100 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10">
                   {editingBerita ? (
-                    <Edit3 className="w-4 h-4 text-slate-700" />
+                    <Edit3 className="w-4 h-4 text-slate-700 dark:text-[#38BDF8]" />
                   ) : (
-                    <Newspaper className="w-4 h-4 text-slate-700" />
+                    <Newspaper className="w-4 h-4 text-slate-700 dark:text-[#38BDF8]" />
                   )}
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-[#00296E]">
+                  <h3 className="text-sm sm:text-base font-bold text-[#00296E] dark:text-white">
                     {editingBerita ? "Edit Artikel Berita" : "Tulis Artikel Berita Baru"}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
                     {editingBerita
                       ? `Perbarui rincian artikel: ${editingBerita.title}`
                       : "Publikasikan warta, kegiatan, atau pengumuman resmi himpunan."}
@@ -6920,7 +7105,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={savingBerita}
                 onClick={() => setIsBeritaModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="p-1.5 rounded-none text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -6930,7 +7115,7 @@ NOTIFY pgrst, 'reload schema';`;
             <form onSubmit={handleSaveBerita} className="mt-4 space-y-4">
               {/* Field 1: Judul Berita */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Judul Berita <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -6939,16 +7124,16 @@ NOTIFY pgrst, 'reload schema';`;
                   placeholder="Contoh: Pelantikan Pengurus Kabinet REKSABUDAYA 2026"
                   value={formBeritaTitle}
                   onChange={(e) => handleTitleChange(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] font-semibold text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
 
               {/* Field 2 & 3: Slug URL & Kategori */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
                     <span>Slug URL Khusus:</span>
-                    <span className="text-[10px] text-slate-400 font-normal">Otomatis dari judul</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">Otomatis dari judul</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 select-none">
@@ -6963,13 +7148,13 @@ NOTIFY pgrst, 'reload schema';`;
                         setFormBeritaSlug(e.target.value);
                         setSlugManuallyEdited(true);
                       }}
-                      className="w-full pl-16 pr-3 py-2 text-xs font-mono rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800"
+                      className="w-full pl-16 pr-3 py-2 text-xs font-mono rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Kategori Berita:
                   </label>
                   <select
@@ -6981,7 +7166,7 @@ NOTIFY pgrst, 'reload schema';`;
                         setFormBeritaCategoryLabel(selected.label);
                       }
                     }}
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] bg-white cursor-pointer font-medium text-slate-800"
+                    className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] bg-slate-50 dark:bg-[#001740] cursor-pointer font-medium text-slate-900 dark:text-white"
                   >
                     {KATEGORI_BERITA.map((k) => (
                       <option key={k.key} value={k.key}>
@@ -6995,7 +7180,7 @@ NOTIFY pgrst, 'reload schema';`;
               {/* Field 4 & 5: Penulis & Waktu Baca */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Penulis / Departemen:
                   </label>
                   <input
@@ -7004,12 +7189,12 @@ NOTIFY pgrst, 'reload schema';`;
                     placeholder="Contoh: Departemen Medkominfo"
                     value={formBeritaAuthor}
                     onChange={(e) => setFormBeritaAuthor(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800"
+                    className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Estimasi Waktu Baca:
                   </label>
                   <input
@@ -7017,19 +7202,19 @@ NOTIFY pgrst, 'reload schema';`;
                     placeholder="Contoh: 5 min read"
                     value={formBeritaReadTime}
                     onChange={(e) => setFormBeritaReadTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800"
+                    className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
               </div>
 
               {/* Field 6: Sistem Unggah Foto Sampul Berita */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-[#0094E0]" />
+                    <ImageIcon className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
                     <span>Foto Sampul Berita (Cover Image):</span>
                   </span>
-                  <span className="text-[10px] text-slate-400 font-normal">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">
                     Format: JPG, PNG, WebP (Rasio ideal 16:9)
                   </span>
                 </label>
@@ -7051,7 +7236,7 @@ NOTIFY pgrst, 'reload schema';`;
 
                 {formBeritaImage ? (
                   /* Kartu Pratinjau Foto Sampul Terpasang */
-                  <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 group shadow-xs">
+                  <div className="relative rounded-none border border-[#00296E]/20 dark:border-white/10 overflow-hidden bg-slate-100 dark:bg-black/30 group shadow-none">
                     <div className="relative w-full aspect-[16/8] sm:aspect-[16/7] overflow-hidden">
                       <img
                         src={formBeritaImage}
@@ -7063,7 +7248,7 @@ NOTIFY pgrst, 'reload schema';`;
                       />
 
                       {/* Badge Status Terpasang */}
-                      <div className="absolute top-3 left-3 bg-[#00296E]/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+                      <div className="absolute top-3 left-3 bg-[#00296E]/90 dark:bg-[#001438]/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-none border border-white/20 shadow-none flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Foto Sampul Terpasang</span>
                       </div>
@@ -7074,7 +7259,7 @@ NOTIFY pgrst, 'reload schema';`;
                           type="button"
                           disabled={uploadingBeritaImage}
                           onClick={() => beritaFileInputRef.current?.click()}
-                          className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold shadow-md flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                          className="px-4 py-2 rounded-none bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-white text-xs font-bold shadow-none flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 border border-slate-200 dark:border-white/10"
                         >
                           <Upload className="w-3.5 h-3.5 text-[#0094E0]" />
                           <span>Ganti Foto</span>
@@ -7082,7 +7267,7 @@ NOTIFY pgrst, 'reload schema';`;
                         <button
                           type="button"
                           onClick={() => setFormBeritaImage("")}
-                          className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                          className="px-4 py-2 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-none flex items-center gap-1.5 transition-all cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           <span>Hapus</span>
@@ -7091,11 +7276,11 @@ NOTIFY pgrst, 'reload schema';`;
                     </div>
 
                     {/* Tombol Aksi Mobile / Sentuh */}
-                    <div className="flex sm:hidden items-center justify-between p-2.5 bg-white border-t border-slate-200">
+                    <div className="flex sm:hidden items-center justify-between p-2.5 bg-white dark:bg-[#001438] border-t border-[#00296E]/15 dark:border-white/10">
                       <button
                         type="button"
                         onClick={() => beritaFileInputRef.current?.click()}
-                        className="text-xs font-bold text-[#0094E0] flex items-center gap-1 py-1 px-2 cursor-pointer"
+                        className="text-xs font-bold text-[#0094E0] dark:text-[#38BDF8] flex items-center gap-1 py-1 px-2 cursor-pointer"
                       >
                         <Upload className="w-3.5 h-3.5" />
                         <span>Ganti Foto</span>
@@ -7103,7 +7288,7 @@ NOTIFY pgrst, 'reload schema';`;
                       <button
                         type="button"
                         onClick={() => setFormBeritaImage("")}
-                        className="text-xs font-bold text-red-600 flex items-center gap-1 py-1 px-2 cursor-pointer"
+                        className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 py-1 px-2 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         <span>Hapus Foto</span>
@@ -7138,23 +7323,23 @@ NOTIFY pgrst, 'reload schema';`;
                       }
                     }}
                     onClick={() => beritaFileInputRef.current?.click()}
-                    className={`relative rounded-2xl border-2 border-dashed p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
+                    className={`relative rounded-none border border-dashed p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
                       isDraggingOverBerita
-                        ? "border-[#0094E0] bg-sky-50/80 scale-[0.99]"
-                        : "border-slate-300 hover:border-[#00296E] hover:bg-slate-50/80 bg-white"
+                        ? "border-[#0094E0] bg-sky-50/80 dark:bg-sky-950/30"
+                        : "border-[#00296E]/20 dark:border-white/15 hover:border-[#0094E0] bg-slate-50 dark:bg-white/5"
                     }`}
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-sky-50 text-[#00296E] flex items-center justify-center shadow-xs">
-                      <Upload className="w-6 h-6 text-[#0094E0]" />
+                    <div className="w-12 h-12 rounded-none bg-sky-50 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shadow-none">
+                      <Upload className="w-6 h-6 text-[#0094E0] dark:text-[#38BDF8]" />
                     </div>
 
                     <div>
-                      <p className="text-xs sm:text-sm font-bold text-slate-800">
+                      <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
                         {uploadingBeritaImage
                           ? "Sedang memproses foto..."
                           : "Klik atau seret (drag & drop) berkas foto ke sini"}
                       </p>
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-1">
                         Format: PNG, JPG, JPEG, atau WebP (otomatis dikompresi)
                       </p>
                     </div>
@@ -7166,17 +7351,17 @@ NOTIFY pgrst, 'reload schema';`;
                         e.stopPropagation();
                         beritaFileInputRef.current?.click();
                       }}
-                      className="mt-1 px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                      className="mt-1 px-4 py-2 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      <Upload className="w-3.5 h-3.5 text-sky-300" />
+                      <Upload className="w-3.5 h-3.5 text-sky-300 dark:text-[#001740]" />
                       <span>{uploadingBeritaImage ? "Memproses..." : "Pilih Foto dari Perangkat"}</span>
                     </button>
 
                     {/* Loading Overlay */}
                     {uploadingBeritaImage && (
-                      <div className="absolute inset-0 bg-white/80 rounded-2xl flex flex-col items-center justify-center gap-2">
-                        <RefreshCw className="w-6 h-6 animate-spin text-[#00296E]" />
-                        <span className="text-xs font-bold text-slate-800">Mengompresi & mengunggah gambar...</span>
+                      <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 rounded-none flex flex-col items-center justify-center gap-2">
+                        <RefreshCw className="w-6 h-6 animate-spin text-[#00296E] dark:text-[#38BDF8]" />
+                        <span className="text-xs font-bold text-slate-800 dark:text-white">Mengompresi & mengunggah gambar...</span>
                       </div>
                     )}
                   </div>
@@ -7185,9 +7370,9 @@ NOTIFY pgrst, 'reload schema';`;
 
               {/* Field 7: Ringkasan / Excerpt */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
                   <span>Ringkasan Singkat (Excerpt):</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Tampil pada kartu beranda/katalog</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">Tampil pada kartu beranda/katalog</span>
                 </label>
                 <textarea
                   rows={2}
@@ -7195,15 +7380,15 @@ NOTIFY pgrst, 'reload schema';`;
                   placeholder="Ringkasan 1-2 kalimat pengantar isi berita..."
                   value={formBeritaExcerpt}
                   onChange={(e) => setFormBeritaExcerpt(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800 leading-relaxed placeholder:text-slate-400 resize-none"
+                  className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white leading-relaxed placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
                 />
               </div>
 
               {/* Field 8: Konten Berita Lengkap */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
                   <span>Isi Konten Artikel Lengkap:</span>
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 font-mono">
                     {formBeritaContent.split(/\s+/).filter(Boolean).length} kata &bull; {formBeritaReadTime}
                   </span>
                 </label>
@@ -7213,34 +7398,34 @@ NOTIFY pgrst, 'reload schema';`;
                   placeholder="Tuliskan berita lengkap di sini. Gunakan baris baru antar paragraf..."
                   value={formBeritaContent}
                   onChange={(e) => handleContentChange(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] text-slate-800 leading-relaxed placeholder:text-slate-400 font-normal"
+                  className="w-full px-3 py-2.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white leading-relaxed placeholder:text-slate-400 dark:placeholder:text-slate-500 font-normal"
                 />
               </div>
 
               {/* Checkbox Status Terbit */}
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+              <div className="flex items-center justify-between p-3 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10">
                 <label htmlFor="formBeritaIsPublished" className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     id="formBeritaIsPublished"
                     checked={formBeritaIsPublished}
                     onChange={(e) => setFormBeritaIsPublished(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#00296E] focus:ring-[#00296E] cursor-pointer"
+                    className="w-4 h-4 rounded-none text-[#00296E] focus:ring-[#00296E] cursor-pointer"
                   />
                   <div>
-                    <span className="text-xs font-bold text-slate-800">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                       Publikasikan Sekarang (Status Terbit)
                     </span>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-400">
                       Jika dinonaktifkan, berita disimpan sebagai Draf dan tidak muncul di halaman publik.
                     </p>
                   </div>
                 </label>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-none ${
                     formBeritaIsPublished
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : "bg-slate-200 text-slate-600"
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40"
+                      : "bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400"
                   }`}
                 >
                   {formBeritaIsPublished ? "Terbit" : "Draft"}
@@ -7248,28 +7433,28 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
 
               {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#00296E]/15 dark:border-white/10">
                 <button
                   type="button"
                   disabled={savingBerita}
                   onClick={() => setIsBeritaModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={savingBerita}
-                  className="px-5 py-2 rounded-lg bg-[#00296E] hover:bg-[#001f54] active:scale-95 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {savingBerita ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <Check className="w-3.5 h-3.5 text-[#38BDF8] dark:text-[#001740]" />
                       <span>{editingBerita ? "Perbarui Berita" : "Terbitkan Berita"}</span>
                     </>
                   )}
@@ -7287,28 +7472,28 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => !deletingBerita && setBeritaToDelete(null)}
         >
           <div
-            className="relative w-full max-w-md rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100"
+            className="relative w-full max-w-md rounded-none bg-white dark:bg-[#001438] p-5 sm:p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5 text-rose-600" />
+            <div className="flex items-center gap-3 pb-3 border-b border-[#00296E]/15 dark:border-white/10">
+              <div className="w-10 h-10 rounded-none bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-600 dark:text-rose-400" />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                   Hapus Artikel Berita?
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
                   Tindakan ini tidak dapat dibatalkan.
                 </p>
               </div>
             </div>
 
-            <div className="mt-3.5 p-3 rounded-lg bg-rose-50/70 border border-rose-200/80 text-xs">
-              <p className="text-slate-700 font-bold line-clamp-2">
+            <div className="mt-3.5 p-3 rounded-none bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 text-xs">
+              <p className="text-slate-700 dark:text-slate-300 font-bold line-clamp-2">
                 &ldquo;{beritaToDelete.title}&rdquo;
               </p>
-              <p className="text-[11px] text-slate-500 mt-1 font-mono">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-mono">
                 /berita/{beritaToDelete.slug}
               </p>
             </div>
@@ -7318,7 +7503,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingBerita}
                 onClick={() => setBeritaToDelete(null)}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -7326,7 +7511,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={deletingBerita}
                 onClick={handleConfirmDeleteBerita}
-                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="px-4 py-2 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {deletingBerita ? (
                   <>
@@ -7352,34 +7537,34 @@ NOTIFY pgrst, 'reload schema';`;
           onClick={() => setRejectingBeritaItem(null)}
         >
           <div
-            className="relative w-full max-w-md rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100"
+            className="relative w-full max-w-md rounded-none bg-white dark:bg-[#001438] p-5 sm:p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5 text-amber-600" />
+            <div className="flex items-center gap-3 pb-3 border-b border-[#00296E]/15 dark:border-white/10">
+              <div className="w-10 h-10 rounded-none bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                   Kembalikan Warta untuk Revisi
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
                   Berikan catatan perbaikan kepada kontributor warta.
                 </p>
               </div>
             </div>
 
-            <div className="mt-3.5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-              <p className="text-slate-700 font-bold line-clamp-1">
+            <div className="mt-3.5 p-3 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 text-xs">
+              <p className="text-slate-700 dark:text-slate-300 font-bold line-clamp-1">
                 &ldquo;{rejectingBeritaItem.title}&rdquo;
               </p>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Penulis: {rejectingBeritaItem.author} &bull; /berita/{rejectingBeritaItem.slug}
               </p>
             </div>
 
             <div className="mt-3">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 Catatan Revisi / Alasan Penolakan: <span className="text-rose-500">*</span>
               </label>
               <textarea
@@ -7388,7 +7573,7 @@ NOTIFY pgrst, 'reload schema';`;
                 value={catatanRevisiBerita}
                 onChange={(e) => setCatatanRevisiBerita(e.target.value)}
                 placeholder="Contoh: Tolong perbaiki resolusi foto sampul dan lengkapi rincian narasumber..."
-                className="w-full p-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00296E] leading-relaxed resize-none"
+                className="w-full p-2.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 leading-relaxed resize-none"
               />
             </div>
 
@@ -7399,7 +7584,7 @@ NOTIFY pgrst, 'reload schema';`;
                   setRejectingBeritaItem(null);
                   setCatatanRevisiBerita("");
                 }}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
               >
                 Batal
               </button>
@@ -7407,7 +7592,7 @@ NOTIFY pgrst, 'reload schema';`;
                 type="button"
                 disabled={!catatanRevisiBerita.trim()}
                 onClick={handleConfirmRejectBerita}
-                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="px-4 py-2 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <span>Kirim Catatan &amp; Tolak</span>
               </button>

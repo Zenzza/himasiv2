@@ -285,16 +285,16 @@ export default function ApresiasiManager({
       )}
 
       {/* Header Utama Manajemen Apresia-SI */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#001438] p-5 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold uppercase tracking-wider mb-1.5">
-            <Trophy className="w-3.5 h-3.5 text-amber-600" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] font-bold uppercase tracking-wider mb-1.5">
+            <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span>Panggung Prestasi Mahasiswa SI</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-[#00296E] tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">
             Manajemen Apresia-SI
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Kurasi formulir pengajuan mandiri mahasiswa, setujui prestasi, dan kelola galeri karya yang tampil di halaman publik.
           </p>
         </div>
@@ -307,7 +307,7 @@ export default function ApresiasiManager({
               fetchSubmisi();
               fetchShowcase();
             }}
-            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+            className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
             title="Muat Ulang Data"
           >
             <RefreshCw className={`w-4 h-4 ${loadingSubmisi || loadingShowcase ? "animate-spin" : ""}`} />
@@ -316,9 +316,9 @@ export default function ApresiasiManager({
           <Link
             href="/apresiasi"
             target="_blank"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[#00296E] text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-[#00296E] dark:text-[#38BDF8] text-xs font-bold transition-colors cursor-pointer shadow-none uppercase tracking-wider"
           >
-            <Eye className="w-4 h-4 text-[#0094E0]" />
+            <Eye className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
             <span>Lihat Halaman Publik</span>
             <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
           </Link>
@@ -330,9 +330,9 @@ export default function ApresiasiManager({
                 setActiveSubTab("showcase");
                 setIsAddShowcaseOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f52] text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f52] text-white text-xs font-bold transition-all shadow-none active:scale-95 cursor-pointer uppercase tracking-wider"
             >
-              <Plus className="w-4 h-4 text-[#0094E0]" />
+              <Plus className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
               <span>+ Tambah Prestasi Baru</span>
             </button>
           )}
@@ -340,20 +340,20 @@ export default function ApresiasiManager({
       </div>
 
       {/* Navigasi Sub-Tab: "Submisi Mahasiswa" & "Galeri Showcase" */}
-      <div className="flex border-b border-slate-200 gap-6 text-xs sm:text-sm font-bold">
+      <div className="flex border-b border-[#00296E]/20 dark:border-white/10 gap-6 text-xs sm:text-sm font-bold">
         <button
           type="button"
           onClick={() => setActiveSubTab("submisi")}
           className={`pb-3 flex items-center gap-2 transition-all cursor-pointer relative ${
             activeSubTab === "submisi"
-              ? "text-[#00296E] border-b-2 border-[#00296E]"
-              : "text-slate-400 hover:text-slate-600"
+              ? "text-[#00296E] dark:text-[#38BDF8] border-b-2 border-[#00296E] dark:border-[#38BDF8]"
+              : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
           }`}
         >
           <FileText className="w-4 h-4" />
           <span>Submisi Mahasiswa</span>
           {pendingCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shadow-xs">
+            <span className="px-2 py-0.5 rounded-none text-[10px] font-extrabold bg-amber-500 text-white shadow-none font-mono">
               {pendingCount} Menunggu
             </span>
           )}
@@ -364,13 +364,13 @@ export default function ApresiasiManager({
           onClick={() => setActiveSubTab("showcase")}
           className={`pb-3 flex items-center gap-2 transition-all cursor-pointer relative ${
             activeSubTab === "showcase"
-              ? "text-[#00296E] border-b-2 border-[#00296E]"
-              : "text-slate-400 hover:text-slate-600"
+              ? "text-[#00296E] dark:text-[#38BDF8] border-b-2 border-[#00296E] dark:border-[#38BDF8]"
+              : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
           }`}
         >
           <Trophy className="w-4 h-4 text-amber-500" />
           <span>Galeri Showcase Publik</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600">
+          <span className="px-2 py-0.5 rounded-none text-[10px] font-extrabold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 font-mono">
             {showcaseList.length} Item
           </span>
         </button>
@@ -382,7 +382,7 @@ export default function ApresiasiManager({
       {activeSubTab === "submisi" && (
         <div className="space-y-4">
           {/* Controls: Filter Status, Kategori & Search */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Filter Status Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
               {(
@@ -397,17 +397,17 @@ export default function ApresiasiManager({
                   key={tab.id}
                   type="button"
                   onClick={() => setSubmisiStatusFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-none text-xs font-semibold transition-colors shrink-0 cursor-pointer uppercase tracking-wider ${
                     submisiStatusFilter === tab.id
-                      ? "bg-[#00296E] text-white"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                      ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001438] font-bold"
+                      : "bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300"
                   }`}
                 >
                   {tab.label}
                 </button>
               ))}
 
-              <div className="h-4 w-px bg-slate-200 mx-1" />
+              <div className="h-4 w-px bg-slate-200 dark:bg-white/15 mx-1" />
 
               {(
                 [
@@ -421,10 +421,10 @@ export default function ApresiasiManager({
                   key={cat.id}
                   type="button"
                   onClick={() => setSubmisiCategoryFilter(cat.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-none text-xs font-semibold transition-colors shrink-0 cursor-pointer uppercase tracking-wider ${
                     submisiCategoryFilter === cat.id
-                      ? "bg-sky-100 text-[#00296E] border border-sky-200 font-bold"
-                      : "bg-slate-50 hover:bg-slate-100 text-slate-500"
+                      ? "bg-sky-100 dark:bg-sky-950/60 text-[#00296E] dark:text-sky-300 border border-sky-200 dark:border-sky-500/40 font-bold"
+                      : "bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400"
                   }`}
                 >
                   {cat.label}
@@ -440,62 +440,62 @@ export default function ApresiasiManager({
                 value={submisiSearch}
                 onChange={(e) => setSubmisiSearch(e.target.value)}
                 placeholder="Cari pengaju, NIM, judul..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0094E0]/40 focus:border-[#0094E0]"
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
               />
             </div>
           </div>
 
           {/* Daftar Tabel Submisi */}
-          <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none overflow-hidden">
             {loadingSubmisi ? (
               <div className="py-12 text-center text-xs text-slate-400">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0094E0] mb-2" />
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0094E0] dark:text-[#38BDF8] mb-2" />
                 <span>Memuat data pengajuan mahasiswa...</span>
               </div>
             ) : filteredSubmisi.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-400">
-                <FileText className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                <p className="font-semibold text-slate-600">Tidak ada data submisi yang sesuai.</p>
+                <FileText className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="font-semibold text-slate-600 dark:text-slate-300">Tidak ada data submisi yang sesuai.</p>
                 <p className="text-[11px] text-slate-400 mt-1">Coba ubah kata kunci atau filter status di atas.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50/80 border-b border-slate-200/70 text-slate-500 uppercase tracking-wider font-semibold text-[10px]">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#FAFBFC] dark:bg-[#001233] border-b border-[#00296E]/20 dark:border-white/10 text-[#00296E] dark:text-slate-200 uppercase tracking-wider font-semibold text-[10px]">
                     <tr>
-                      <th className="py-3 px-4">Status & Kategori</th>
-                      <th className="py-3 px-4">Mahasiswa & Kontak</th>
+                      <th className="py-3 px-4">Status &amp; Kategori</th>
+                      <th className="py-3 px-4">Mahasiswa &amp; Kontak</th>
                       <th className="py-3 px-4">Judul Prestasi / Karya</th>
                       <th className="py-3 px-4">Penyelenggara / Mitra</th>
                       <th className="py-3 px-4">Bukti / Link</th>
                       <th className="py-3 px-4 text-right">Aksi Tindak Lanjut</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/5 text-xs">
                     {filteredSubmisi.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={item.id} className="hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.03] transition-colors">
                         {/* Status & Kategori */}
                         <td className="py-3.5 px-4 align-top whitespace-nowrap">
                           <div className="space-y-1">
                             {item.status === "pending" && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 uppercase font-mono">
                                 <Clock className="w-3 h-3 text-amber-500" />
                                 <span>Menunggu</span>
                               </span>
                             )}
                             {item.status === "approved" && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 uppercase font-mono">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                                 <span>Disetujui</span>
                               </span>
                             )}
                             {item.status === "rejected" && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 uppercase font-mono">
                                 <XCircle className="w-3 h-3 text-rose-500" />
                                 <span>Ditolak</span>
                               </span>
                             )}
-                            <div className="text-[11px] font-semibold text-slate-700 flex items-center gap-1 mt-1">
+                            <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-1">
                               {item.category === "lomba" ? (
                                 <Trophy className="w-3 h-3 text-amber-500" />
                               ) : item.category === "karya" ? (
@@ -510,14 +510,14 @@ export default function ApresiasiManager({
 
                         {/* Mahasiswa & Kontak */}
                         <td className="py-3.5 px-4 align-top">
-                          <div className="font-bold text-slate-800 text-xs">
+                          <div className="font-bold text-slate-800 dark:text-white text-xs">
                             {item.studentName}
                           </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             NIM: <span className="font-mono">{item.nim}</span> &bull; Angk. {item.batch}
                           </div>
                           {item.teamMembers && (
-                            <div className="text-[10px] text-slate-400 mt-0.5 truncate max-w-[180px]">
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[180px]">
                               Tim: {item.teamMembers}
                             </div>
                           )}
@@ -650,7 +650,7 @@ export default function ApresiasiManager({
       {activeSubTab === "showcase" && (
         <div className="space-y-4">
           {/* Controls: Filter Kategori & Search */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
               {(
                 [
@@ -664,10 +664,10 @@ export default function ApresiasiManager({
                   key={cat.id}
                   type="button"
                   onClick={() => setShowcaseCategoryFilter(cat.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-none text-xs font-semibold transition-colors shrink-0 cursor-pointer uppercase tracking-wider ${
                     showcaseCategoryFilter === cat.id
-                      ? "bg-[#00296E] text-white"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                      ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001438] font-bold"
+                      : "bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300"
                   }`}
                 >
                   {cat.label}
@@ -682,14 +682,14 @@ export default function ApresiasiManager({
                 value={showcaseSearch}
                 onChange={(e) => setShowcaseSearch(e.target.value)}
                 placeholder="Cari prestasi di showcase..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0094E0]/40 focus:border-[#0094E0]"
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
               />
             </div>
           </div>
 
           {!canPublish && (
-            <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl flex items-center gap-2.5 text-xs text-blue-800">
-              <Sparkles className="w-4 h-4 text-[#0094E0] shrink-0" />
+            <div className="p-3 bg-blue-50/70 dark:bg-sky-950/30 border border-blue-100 dark:border-sky-500/20 rounded-none flex items-center gap-2.5 text-xs text-blue-800 dark:text-sky-300">
+              <Sparkles className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8] shrink-0" />
               <span>
                 <strong>Mode Kontributor:</strong> Anda dapat meninjau galeri karya yang telah dipublikasikan. Untuk mengajukan karya baru, silakan ajukan melalui tab <em>Submisi Mahasiswa</em> untuk disetujui oleh tim Medkominfo.
               </span>
@@ -700,22 +700,22 @@ export default function ApresiasiManager({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {loadingShowcase ? (
               <div className="col-span-full py-12 text-center text-xs text-slate-400">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0094E0] mb-2" />
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0094E0] dark:text-[#38BDF8] mb-2" />
                 <span>Memuat data galeri showcase...</span>
               </div>
             ) : filteredShowcase.length === 0 ? (
-              <div className="col-span-full py-12 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200">
-                <Trophy className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                <p className="font-semibold text-slate-600">Tidak ada karya yang sesuai filter.</p>
+              <div className="col-span-full py-12 text-center text-xs text-slate-400 bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10">
+                <Trophy className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="font-semibold text-slate-600 dark:text-slate-300">Tidak ada karya yang sesuai filter.</p>
               </div>
             ) : (
               filteredShowcase.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden flex flex-col justify-between hover:border-[#0094E0]/50 transition-all"
+                  className="bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none overflow-hidden flex flex-col justify-between hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-all"
                 >
                   {/* Foto Thumbnail */}
-                  <div className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden">
+                  <div className="relative aspect-[16/9] w-full bg-slate-100 dark:bg-slate-900 overflow-hidden">
                     <img
                       src={item.image}
                       alt={item.title}
@@ -727,7 +727,7 @@ export default function ApresiasiManager({
                     />
                     <div className="absolute top-2.5 left-2.5 flex items-center gap-1">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider text-white shadow-xs ${
+                        className={`px-2 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-wider text-white shadow-none font-mono ${
                           item.category === "lomba"
                             ? "bg-amber-500"
                             : item.category === "karya"
@@ -744,10 +744,10 @@ export default function ApresiasiManager({
                       <button
                         type="button"
                         onClick={() => handleToggleFeatured(item)}
-                        className={`p-1.5 rounded-full backdrop-blur-md shadow-xs transition-colors cursor-pointer ${
+                        className={`p-1.5 rounded-none backdrop-blur-md shadow-none transition-colors cursor-pointer ${
                           item.featured
                             ? "bg-amber-400 text-amber-950"
-                            : "bg-black/30 hover:bg-black/50 text-white"
+                            : "bg-black/40 hover:bg-black/60 text-white"
                         }`}
                         title={item.featured ? "Hapus dari Unggulan" : "Tandai sebagai Unggulan"}
                       >
@@ -755,12 +755,12 @@ export default function ApresiasiManager({
                       </button>
                     </div>
 
-                    <div className="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between text-[10px] text-white font-semibold drop-shadow-sm">
-                      <span className="bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                    <div className="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between text-[10px] text-white font-semibold drop-shadow-sm font-mono">
+                      <span className="bg-black/60 px-2 py-0.5 rounded-none backdrop-blur-xs">
                         {item.badge}
                       </span>
                       {item.level && (
-                        <span className="bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                        <span className="bg-black/60 px-2 py-0.5 rounded-none backdrop-blur-xs">
                           {item.level}
                         </span>
                       )}
@@ -770,30 +770,30 @@ export default function ApresiasiManager({
                   {/* Info Konten */}
                   <div className="p-4 flex-1 flex flex-col justify-between">
                     <div>
-                      <div className="text-[11px] text-slate-500 mb-1 flex items-center gap-1">
-                        <Users className="w-3 h-3 text-[#0094E0]" />
-                        <span className="font-semibold text-slate-700">{item.studentName}</span>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                        <Users className="w-3 h-3 text-[#0094E0] dark:text-[#38BDF8]" />
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">{item.studentName}</span>
                         <span>&bull;</span>
                         <span>Angk. {item.batch}</span>
                       </div>
 
-                      <h4 className="text-xs sm:text-sm font-bold text-[#00296E] line-clamp-2 leading-snug">
+                      <h4 className="text-xs sm:text-sm font-bold text-[#00296E] dark:text-white line-clamp-2 leading-snug">
                         {item.title}
                       </h4>
 
-                      <div className="mt-1 text-[11px] text-[#0094E0] font-medium flex items-center gap-1">
+                      <div className="mt-1 text-[11px] text-[#0094E0] dark:text-[#38BDF8] font-medium flex items-center gap-1">
                         <Building2 className="w-3 h-3 shrink-0" />
                         <span className="truncate">{item.organizerOrCompany}</span>
                       </div>
 
-                      <p className="mt-2 text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
+                      <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {item.description}
                       </p>
                     </div>
 
                     {/* Footer Kartu & Aksi Edit / Hapus */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-400">
+                    <div className="mt-4 pt-3 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400 font-mono">
                         ❤️ {item.likes} apresiasi
                       </span>
 
@@ -802,7 +802,7 @@ export default function ApresiasiManager({
                           <button
                             type="button"
                             onClick={() => setEditingShowcase(item)}
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                             title="Edit Karya/Prestasi"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
@@ -810,14 +810,14 @@ export default function ApresiasiManager({
                           <button
                             type="button"
                             onClick={() => setShowcaseToDelete(item)}
-                            className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-none border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                             title="Hapus dari Showcase"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 rounded bg-slate-100">
+                        <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 rounded-none bg-slate-100 dark:bg-white/10">
                           Terkurasi Medkominfo
                         </span>
                       )}
@@ -835,77 +835,77 @@ export default function ApresiasiManager({
       {/* =================================================================== */}
       {selectedSubmisi && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => setSelectedSubmisi(null)}
         >
           <div
-            className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl p-6 space-y-4 my-8"
+            className="relative w-full max-w-xl bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none p-6 space-y-4 my-8 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between border-b pb-3 border-slate-100">
+            <div className="flex items-start justify-between border-b pb-3 border-[#00296E]/15 dark:border-white/10">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#0094E0] block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#0094E0] dark:text-[#38BDF8] block">
                   Detail Pengajuan Mahasiswa
                 </span>
-                <h3 className="text-base font-bold text-[#00296E] mt-0.5">
+                <h3 className="text-base font-bold text-[#00296E] dark:text-white mt-0.5">
                   {selectedSubmisi.title}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedSubmisi(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                className="p-1 rounded-none text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 rounded-none">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Nama Pengaju:</span>
-                  <span className="font-bold text-slate-800">{selectedSubmisi.studentName}</span>
+                  <span className="text-slate-400 dark:text-slate-400 block text-[10px]">Nama Pengaju:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{selectedSubmisi.studentName}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">NIM & Angkatan:</span>
-                  <span className="font-bold text-slate-800">{selectedSubmisi.nim} ({selectedSubmisi.batch})</span>
+                  <span className="text-slate-400 dark:text-slate-400 block text-[10px]">NIM & Angkatan:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{selectedSubmisi.nim} ({selectedSubmisi.batch})</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Kontak WhatsApp/Email:</span>
-                  <span className="font-bold text-[#00296E]">{selectedSubmisi.contact}</span>
+                  <span className="text-slate-400 dark:text-slate-400 block text-[10px]">Kontak WhatsApp/Email:</span>
+                  <span className="font-bold text-[#00296E] dark:text-[#38BDF8]">{selectedSubmisi.contact}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Kategori & Tingkat:</span>
-                  <span className="font-bold capitalize text-slate-800">
+                  <span className="text-slate-400 dark:text-slate-400 block text-[10px]">Kategori & Tingkat:</span>
+                  <span className="font-bold capitalize text-slate-800 dark:text-slate-200">
                     {selectedSubmisi.category} &bull; {selectedSubmisi.level || "Nasional"}
                   </span>
                 </div>
                 {selectedSubmisi.teamMembers && (
                   <div className="col-span-2">
-                    <span className="text-slate-400 block text-[10px]">Anggota Tim:</span>
-                    <span className="font-medium text-slate-700">{selectedSubmisi.teamMembers}</span>
+                    <span className="text-slate-400 dark:text-slate-400 block text-[10px]">Anggota Tim:</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{selectedSubmisi.teamMembers}</span>
                   </div>
                 )}
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">
+                <span className="text-slate-400 dark:text-slate-400 block text-[10px] font-bold uppercase">
                   Penyelenggara / Mitra Perusahaan:
                 </span>
-                <p className="font-semibold text-slate-800 mt-0.5">{selectedSubmisi.organizerOrCompany}</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{selectedSubmisi.organizerOrCompany}</p>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">
+                <span className="text-slate-400 dark:text-slate-400 block text-[10px] font-bold uppercase">
                   Deskripsi Inovasi / Capaian:
                 </span>
-                <p className="text-slate-600 leading-relaxed mt-0.5 whitespace-pre-line bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5 whitespace-pre-line bg-slate-50 dark:bg-white/5 p-3 rounded-none border border-[#00296E]/15 dark:border-white/10">
                   {selectedSubmisi.description}
                 </p>
               </div>
 
               <div className="space-y-1.5 pt-2">
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">
+                <span className="text-slate-400 dark:text-slate-400 block text-[10px] font-bold uppercase">
                   Tautan Bukti & Demo:
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -914,7 +914,7 @@ export default function ApresiasiManager({
                       href={selectedSubmisi.proofUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 font-semibold text-xs hover:bg-blue-100"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-sky-300 border border-blue-200 dark:border-blue-800 font-semibold text-xs hover:bg-blue-100 dark:hover:bg-blue-900/50"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>Buka Bukti Sertifikat / Dokumen</span>
@@ -925,7 +925,7 @@ export default function ApresiasiManager({
                       href={selectedSubmisi.linkDemoOrRepo}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs hover:bg-slate-200"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/15 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-white/15"
                     >
                       <Link2 className="w-3.5 h-3.5" />
                       <span>Buka Tautan Demo / Repository</span>
@@ -936,11 +936,11 @@ export default function ApresiasiManager({
             </div>
 
             {/* Tombol Aksi Modal */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="pt-4 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setSelectedSubmisi(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors"
+                className="px-4 py-2 rounded-none bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-white/15 transition-colors border border-slate-200 dark:border-white/10"
               >
                 Tutup
               </button>
@@ -954,7 +954,7 @@ export default function ApresiasiManager({
                       setSelectedSubmisi(null);
                       setSubmisiToReject(item);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none border border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold transition-all cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                     <span>Tolak Pengajuan</span>
@@ -968,7 +968,7 @@ export default function ApresiasiManager({
                       setSelectedSubmisi(null);
                       openApproveModal(item);
                     }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-xs cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-none cursor-pointer"
                   >
                     <Check className="w-4 h-4 stroke-[2.5]" />
                     <span>Setujui & Terbitkan</span>
@@ -990,42 +990,42 @@ export default function ApresiasiManager({
       {/* =================================================================== */}
       {approveModalSubmisi && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => setApproveModalSubmisi(null)}
         >
           <div
-            className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 space-y-4 my-8"
+            className="relative w-full max-w-lg bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none p-6 space-y-4 my-8 text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between border-b pb-3 border-slate-100">
+            <div className="flex items-start justify-between border-b pb-3 border-[#00296E]/15 dark:border-white/10">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
                   Konfirmasi Publikasi Showcase
                 </span>
-                <h3 className="text-base font-bold text-[#00296E] mt-0.5">
+                <h3 className="text-base font-bold text-[#00296E] dark:text-white mt-0.5">
                   Setujui & Terbitkan ke Apresia-SI
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setApproveModalSubmisi(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                className="p-1 rounded-none text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleConfirmApproveAndPublish} className="space-y-4 text-xs">
-              <div className="p-3 bg-emerald-50/70 border border-emerald-100 rounded-xl space-y-1">
-                <span className="font-bold text-emerald-900 block">Karya yang Disetujui:</span>
-                <p className="text-emerald-800 font-semibold">{approveModalSubmisi.title}</p>
-                <p className="text-emerald-700 text-[11px]">
+              <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-none space-y-1">
+                <span className="font-bold text-emerald-900 dark:text-emerald-300 block">Karya yang Disetujui:</span>
+                <p className="text-emerald-800 dark:text-emerald-200 font-semibold">{approveModalSubmisi.title}</p>
+                <p className="text-emerald-700 dark:text-emerald-400 text-[11px]">
                   Oleh: {approveModalSubmisi.studentName} ({approveModalSubmisi.nim}) &bull; Angk. {approveModalSubmisi.batch}
                 </p>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                   Label Badge Tampilan di Kartu <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1034,15 +1034,15 @@ export default function ApresiasiManager({
                   value={approveCustomBadge}
                   onChange={(e) => setApproveCustomBadge(e.target.value)}
                   placeholder="Contoh: Juara 1 Nasional / MSIB Batch 6"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0094E0]/40 text-xs"
+                  className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
                 />
-                <span className="text-[10px] text-slate-400 mt-0.5 block">
+                <span className="text-[10px] text-slate-400 dark:text-slate-400 mt-0.5 block">
                   Badge ini akan langsung tampil di pojok kanan atas foto kartu galeri.
                 </span>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                   URL Foto Banner / Dokumentasi <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1051,22 +1051,22 @@ export default function ApresiasiManager({
                   value={approveCustomImage}
                   onChange={(e) => setApproveCustomImage(e.target.value)}
                   placeholder="https://images.unsplash.com/... atau URL foto"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0094E0]/40 text-xs"
+                  className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setApproveModalSubmisi(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors"
+                  className="px-4 py-2 rounded-none bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-white/15 transition-colors border border-slate-200 dark:border-white/10"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-none transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isProcessing ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1109,34 +1109,34 @@ export default function ApresiasiManager({
           onClick={() => !isProcessing && setShowcaseToDelete(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            className="relative w-full max-w-sm rounded-none bg-white dark:bg-[#001438] p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-center text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
-              <Trash2 className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-extrabold text-slate-900">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
               Hapus Prestasi dari Showcase?
             </h3>
 
-            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Anda akan menghapus karya berikut dari galeri publik Apresia-SI:
             </p>
 
-            <div className="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block">
+            <div className="mt-4 p-3.5 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 text-left space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-none border border-amber-200 dark:border-amber-800/50 inline-block">
                 {showcaseToDelete.badge}
               </span>
-              <h4 className="text-xs font-bold text-slate-900 leading-snug">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">
                 {showcaseToDelete.title}
               </h4>
-              <p className="text-[11px] text-slate-500">
-                Oleh: <strong className="text-slate-700">{showcaseToDelete.studentName}</strong> (Angk. {showcaseToDelete.batch})
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Oleh: <strong className="text-slate-700 dark:text-slate-300">{showcaseToDelete.studentName}</strong> (Angk. {showcaseToDelete.batch})
               </p>
             </div>
 
-            <div className="mt-3.5 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium text-left">
+            <div className="mt-3.5 p-2.5 rounded-none bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-[11px] font-medium text-left">
               Item ini tidak akan tampil lagi di halaman publik /apresiasi.
             </div>
 
@@ -1145,7 +1145,7 @@ export default function ApresiasiManager({
                 type="button"
                 disabled={isProcessing}
                 onClick={() => setShowcaseToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -1153,7 +1153,7 @@ export default function ApresiasiManager({
                 type="button"
                 disabled={isProcessing}
                 onClick={handleConfirmDeleteShowcase}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="flex-1 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {isProcessing ? (
                   <>
@@ -1181,30 +1181,30 @@ export default function ApresiasiManager({
           onClick={() => !isProcessing && setSubmisiToReject(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            className="relative w-full max-w-sm rounded-none bg-white dark:bg-[#001438] p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-center text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
-              <XCircle className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-none bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center mx-auto mb-4">
+              <XCircle className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-extrabold text-slate-900">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
               Tolak Pengajuan Prestasi?
             </h3>
 
-            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Pengajuan ini tidak akan diterbitkan ke showcase dan statusnya akan diubah menjadi &quot;Ditolak&quot;:
             </p>
 
-            <div className="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 capitalize">
+            <div className="mt-4 p-3.5 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 text-left space-y-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 capitalize">
                 Kategori: {submisiToReject.category}
               </div>
-              <h4 className="text-xs font-bold text-slate-900 leading-snug">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">
                 {submisiToReject.title}
               </h4>
-              <p className="text-[11px] text-slate-500">
-                Pengaju: <strong className="text-slate-700">{submisiToReject.studentName}</strong> ({submisiToReject.nim})
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Pengaju: <strong className="text-slate-700 dark:text-slate-300">{submisiToReject.studentName}</strong> ({submisiToReject.nim})
               </p>
             </div>
 
@@ -1213,7 +1213,7 @@ export default function ApresiasiManager({
                 type="button"
                 disabled={isProcessing}
                 onClick={() => setSubmisiToReject(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -1221,7 +1221,7 @@ export default function ApresiasiManager({
                 type="button"
                 disabled={isProcessing}
                 onClick={handleConfirmRejectSubmisi}
-                className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="flex-1 py-2.5 rounded-none bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {isProcessing ? (
                   <>
@@ -1249,27 +1249,27 @@ export default function ApresiasiManager({
           onClick={() => !isProcessing && setSubmisiToDelete(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 text-center"
+            className="relative w-full max-w-sm rounded-none bg-white dark:bg-[#001438] p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-center text-slate-900 dark:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-2xs">
-              <Trash2 className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-extrabold text-slate-900">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
               Hapus Data Pengajuan?
             </h3>
 
-            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Data submisi berikut akan dihapus secara permanen dari sistem database:
             </p>
 
-            <div className="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-1">
-              <h4 className="text-xs font-bold text-slate-900 leading-snug">
+            <div className="mt-4 p-3.5 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 text-left space-y-1">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">
                 {submisiToDelete.title}
               </h4>
-              <p className="text-[11px] text-slate-500">
-                Oleh: <strong className="text-slate-700">{submisiToDelete.studentName}</strong> ({submisiToDelete.nim})
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Oleh: <strong className="text-slate-700 dark:text-slate-300">{submisiToDelete.studentName}</strong> ({submisiToDelete.nim})
               </p>
             </div>
 
@@ -1278,7 +1278,7 @@ export default function ApresiasiManager({
                 type="button"
                 disabled={isProcessing}
                 onClick={() => setSubmisiToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -1286,7 +1286,7 @@ export default function ApresiasiManager({
                 type="button"
                 disabled={isProcessing}
                 onClick={handleConfirmDeleteSubmisi}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                className="flex-1 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {isProcessing ? (
                   <>
@@ -1407,26 +1407,26 @@ function ShowcaseFormModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 space-y-4 my-8"
+        className="relative w-full max-w-2xl bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none p-6 space-y-4 my-8 text-slate-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b pb-3 border-slate-100">
+        <div className="flex items-start justify-between border-b pb-3 border-[#00296E]/15 dark:border-white/10">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0094E0] block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0094E0] dark:text-[#38BDF8] block">
               {isEditing ? "Perbarui Prestasi" : "Tambah Karya / Prestasi Baru"}
             </span>
-            <h3 className="text-base font-bold text-[#00296E] mt-0.5">
+            <h3 className="text-base font-bold text-[#00296E] dark:text-white mt-0.5">
               {isEditing ? initialItem?.title : "Formulir Showcase Apresia-SI"}
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+            className="p-1 rounded-none text-slate-400 hover:text-slate-600 dark:hover:text-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1435,17 +1435,17 @@ function ShowcaseFormModal({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs max-h-[70vh] overflow-y-auto pr-1">
           {/* Kategori */}
           <div>
-            <label className="block text-slate-700 font-bold mb-1.5">
+            <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">
               Kategori Showcase <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setCategory("lomba")}
-                className={`py-2 px-3 rounded-xl border text-center font-bold cursor-pointer transition-colors ${
+                className={`py-2 px-3 rounded-none border text-center font-bold cursor-pointer transition-colors ${
                   category === "lomba"
-                    ? "bg-[#00296E] text-white border-[#00296E]"
-                    : "bg-slate-50 text-slate-600 border-slate-200"
+                    ? "bg-[#00296E] text-white border-[#00296E] dark:bg-[#38BDF8] dark:text-[#001740] dark:border-[#38BDF8]"
+                    : "bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10"
                 }`}
               >
                 🏆 Pemenang Lomba
@@ -1453,10 +1453,10 @@ function ShowcaseFormModal({
               <button
                 type="button"
                 onClick={() => setCategory("karya")}
-                className={`py-2 px-3 rounded-xl border text-center font-bold cursor-pointer transition-colors ${
+                className={`py-2 px-3 rounded-none border text-center font-bold cursor-pointer transition-colors ${
                   category === "karya"
-                    ? "bg-[#00296E] text-white border-[#00296E]"
-                    : "bg-slate-50 text-slate-600 border-slate-200"
+                    ? "bg-[#00296E] text-white border-[#00296E] dark:bg-[#38BDF8] dark:text-[#001740] dark:border-[#38BDF8]"
+                    : "bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10"
                 }`}
               >
                 💻 Karya & Inovasi
@@ -1464,10 +1464,10 @@ function ShowcaseFormModal({
               <button
                 type="button"
                 onClick={() => setCategory("magang")}
-                className={`py-2 px-3 rounded-xl border text-center font-bold cursor-pointer transition-colors ${
+                className={`py-2 px-3 rounded-none border text-center font-bold cursor-pointer transition-colors ${
                   category === "magang"
-                    ? "bg-[#00296E] text-white border-[#00296E]"
-                    : "bg-slate-50 text-slate-600 border-slate-200"
+                    ? "bg-[#00296E] text-white border-[#00296E] dark:bg-[#38BDF8] dark:text-[#001740] dark:border-[#38BDF8]"
+                    : "bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10"
                 }`}
               >
                 💼 Magang & MSIB
@@ -1478,7 +1478,7 @@ function ShowcaseFormModal({
           {/* Judul & Badge */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                 Judul Capaian / Karya <span className="text-red-500">*</span>
               </label>
               <input
@@ -1487,11 +1487,11 @@ function ShowcaseFormModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Juara 1 UI/UX Hackathon"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                 Badge / Teks Label <span className="text-red-500">*</span>
               </label>
               <input
@@ -1500,7 +1500,7 @@ function ShowcaseFormModal({
                 value={badge}
                 onChange={(e) => setBadge(e.target.value)}
                 placeholder="Contoh: Juara 1 Nasional / MSIB Batch 6"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
           </div>
@@ -1508,7 +1508,7 @@ function ShowcaseFormModal({
           {/* Nama Mahasiswa / Tim & NIM */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-slate-700 font-bold mb-1">
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                 Nama Mahasiswa / Ketua <span className="text-red-500">*</span>
               </label>
               <input
@@ -1517,17 +1517,17 @@ function ShowcaseFormModal({
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
                 placeholder="Contoh: Muhammad Fadhil"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">NIM (Opsional)</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">NIM (Opsional)</label>
               <input
                 type="text"
                 value={nim}
                 onChange={(e) => setNim(e.target.value)}
                 placeholder="231150002"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
           </div>
@@ -1535,11 +1535,11 @@ function ShowcaseFormModal({
           {/* Angkatan & Anggota Tim */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Angkatan</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Angkatan</label>
               <select
                 value={batch}
                 onChange={(e) => setBatch(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               >
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
@@ -1549,13 +1549,13 @@ function ShowcaseFormModal({
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-slate-700 font-bold mb-1">Anggota Tim (Opsional)</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Anggota Tim (Opsional)</label>
               <input
                 type="text"
                 value={teamMembers}
                 onChange={(e) => setTeamMembers(e.target.value)}
                 placeholder="Anindya Putri, Zahra Salsabila"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
           </div>
@@ -1563,7 +1563,7 @@ function ShowcaseFormModal({
           {/* Penyelenggara / Mitra & Tingkat */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                 Penyelenggara / Tempat Magang <span className="text-red-500">*</span>
               </label>
               <input
@@ -1572,15 +1572,15 @@ function ShowcaseFormModal({
                 value={organizerOrCompany}
                 onChange={(e) => setOrganizerOrCompany(e.target.value)}
                 placeholder="Contoh: Kemendikbudristek / Bank Mandiri"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Tingkat Prestasi</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Tingkat Prestasi</label>
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               >
                 <option value="Kampus">Kampus</option>
                 <option value="Regional">Regional</option>
@@ -1592,7 +1592,7 @@ function ShowcaseFormModal({
 
           {/* Gambar Banner */}
           <div>
-            <label className="block text-slate-700 font-bold mb-1">
+            <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
               URL Foto Dokumentasi / Banner <span className="text-red-500">*</span>
             </label>
             <input
@@ -1601,13 +1601,13 @@ function ShowcaseFormModal({
               value={image}
               onChange={(e) => setImage(e.target.value)}
               placeholder="https://images.unsplash.com/... atau tautan gambar"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+              className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
             />
           </div>
 
           {/* Deskripsi Singkat */}
           <div>
-            <label className="block text-slate-700 font-bold mb-1">
+            <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
               Deskripsi Singkat (Tampil di Kartu) <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -1616,14 +1616,14 @@ function ShowcaseFormModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ringkasan prestasi atau karya dalam 1-2 kalimat..."
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs resize-none"
+              className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs resize-none"
             />
           </div>
 
           {/* Cerita Lengkap & Dosen Pembina */}
           <div className="grid grid-cols-1 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                 Cerita Lengkap / Kisah Inovasi (Tampil di Modal Detail)
               </label>
               <textarea
@@ -1631,17 +1631,17 @@ function ShowcaseFormModal({
                 value={fullStory}
                 onChange={(e) => setFullStory(e.target.value)}
                 placeholder="Latar belakang inovasi, teknologi yang digunakan, serta dampak pencapaian..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs resize-none"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs resize-none"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Dosen Pembimbing / Lab (Opsional)</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Dosen Pembimbing / Lab (Opsional)</label>
               <input
                 type="text"
                 value={mentorOrLecturer}
                 onChange={(e) => setMentorOrLecturer(e.target.value)}
                 placeholder="Contoh: Dosen Pembina HIMASI / Laboratorium Komputasi"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
           </div>
@@ -1649,33 +1649,33 @@ function ShowcaseFormModal({
           {/* Tautan Live, GitHub & Bukti */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Live Demo URL</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Live Demo URL</label>
               <input
                 type="url"
                 value={liveUrl}
                 onChange={(e) => setLiveUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">GitHub Repo URL</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">GitHub Repo URL</label>
               <input
                 type="url"
                 value={githubUrl}
                 onChange={(e) => setGithubUrl(e.target.value)}
                 placeholder="https://github.com/..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Bukti / Sertifikat URL</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Bukti / Sertifikat URL</label>
               <input
                 type="text"
                 value={proofUrl}
                 onChange={(e) => setProofUrl(e.target.value)}
                 placeholder="Link Drive / dokumen"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               />
             </div>
           </div>
@@ -1687,31 +1687,31 @@ function ShowcaseFormModal({
               id="featured-check"
               checked={featured}
               onChange={(e) => setFeatured(e.target.checked)}
-              className="rounded text-[#00296E] focus:ring-[#0094E0]"
+              className="rounded-none text-[#00296E] dark:text-[#38BDF8] focus:ring-[#00296E]"
             />
-            <label htmlFor="featured-check" className="font-bold text-slate-700 cursor-pointer">
+            <label htmlFor="featured-check" className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
               Tandai sebagai Karya Unggulan (Featured) di Galeri
             </label>
           </div>
 
           {/* Actions */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+          <div className="pt-4 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors"
+              className="px-4 py-2 rounded-none bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-white/15 transition-colors border border-slate-200 dark:border-white/10"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#00296E] hover:bg-[#001f52] text-white font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f52] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] font-bold shadow-none transition-all disabled:opacity-50 cursor-pointer"
             >
               {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <Loader2 className="w-4 h-4 animate-spin text-white dark:text-[#001740]" />
               ) : (
-                <Check className="w-4 h-4 text-[#0094E0]" />
+                <Check className="w-4 h-4 text-[#38BDF8] dark:text-[#001740]" />
               )}
               <span>{isEditing ? "Simpan Perubahan" : "Terbitkan ke Galeri"}</span>
             </button>

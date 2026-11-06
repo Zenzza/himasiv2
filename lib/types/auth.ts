@@ -20,6 +20,7 @@ export type DashboardTabKey =
   | "kartu-qr"
   | "dokumen"
   | "kalender"
+  | "persuratan"
   | "aspirasi"
   | "apresiasi"
   | "absensi"
