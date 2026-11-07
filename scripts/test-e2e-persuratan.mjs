@@ -32,22 +32,22 @@ assert.equal(DEFAULT_SURAT_LIST.length, 5, "Seed list surat keluar harus berisi 
 
 const seed014 = DEFAULT_SURAT_LIST.find((s) => s.nomor_urut === 14);
 assert(seed014, "Harus terdapat surat nomor 014");
-assert.equal(seed014.nomor_surat, "014/HIMASI/UND/ISB-AL/XI/2026");
+assert.equal(seed014.nomor_surat, "014/UND/HIMASI/XI/2026");
 assert.equal(seed014.status, "menunggu_ttd");
 
 const seed013 = DEFAULT_SURAT_LIST.find((s) => s.nomor_urut === 13);
 assert(seed013, "Harus terdapat surat nomor 013");
-assert.equal(seed013.nomor_surat, "013/HIMASI/PRM/ISB-AL/XI/2026");
-assert.equal(seed013.status, "terkirim");
+assert.equal(seed013.nomor_surat, "013/PRM/HIMASI/X/2026");
+assert.equal(seed013.status, "menunggu_ttd");
 
 const seed012 = DEFAULT_SURAT_LIST.find((s) => s.nomor_urut === 12);
 assert(seed012, "Harus terdapat surat nomor 012");
-assert.equal(seed012.nomor_surat, "012/HIMASI/PDN/ISB-AL/X/2026");
-assert.equal(seed012.status, "terkirim");
+assert.equal(seed012.nomor_surat, "012/PDN/HIMASI/X/2026");
+assert.equal(seed012.status, "menunggu_ttd");
 
 const seed011 = DEFAULT_SURAT_LIST.find((s) => s.nomor_urut === 11);
 assert(seed011, "Harus terdapat surat nomor 011");
-assert.equal(seed011.nomor_surat, "011/HIMASI/DSP/ISB-AL/X/2026");
+assert.equal(seed011.nomor_surat, "011/DSP/HIMASI/X/2026");
 assert.equal(seed011.status, "terkirim");
 
 const seedDraft = DEFAULT_SURAT_LIST.find((s) => s.status === "draft");
@@ -66,8 +66,8 @@ const nextInitial = await getNextNomorUrut("UND", "2026-11-06");
 assert.equal(nextInitial.nomor_urut, 15, "Nomor urut berikutnya awal harus 15");
 assert.equal(
   nextInitial.nomor_surat,
-  "015/HIMASI/UND/ISB-AL/XI/2026",
-  "Nomor surat awal harus 015/HIMASI/UND/ISB-AL/XI/2026"
+  "015/UND/HIMASI/XI/2026",
+  "Nomor surat awal harus 015/UND/HIMASI/XI/2026"
 );
 console.log(`  ✓ Next number awal terverifikasi: ${nextInitial.nomor_surat} (Urut: ${nextInitial.nomor_urut})`);
 
@@ -86,12 +86,12 @@ const newSubmittedSurat = await createSurat({
 });
 
 assert.equal(newSubmittedSurat.nomor_urut, 15, "Surat yang diajukan harus dialokasikan nomor 15");
-assert.equal(newSubmittedSurat.nomor_surat, "015/HIMASI/UND/ISB-AL/XI/2026");
+assert.equal(newSubmittedSurat.nomor_surat, "015/UND/HIMASI/XI/2026");
 assert.equal(newSubmittedSurat.status, "menunggu_ttd");
 
 const nextAfterSubmit = await getNextNomorUrut("UND", "2026-11-06");
 assert.equal(nextAfterSubmit.nomor_urut, 16, "Nomor urut setelah alokasi harus bergeser ke 16");
-assert.equal(nextAfterSubmit.nomor_surat, "016/HIMASI/UND/ISB-AL/XI/2026");
+assert.equal(nextAfterSubmit.nomor_surat, "016/UND/HIMASI/XI/2026");
 console.log(`  ✓ Alokasi nomor berhasil: ${newSubmittedSurat.nomor_surat}`);
 console.log(`  ✓ Counter bergeser ke: ${nextAfterSubmit.nomor_surat}`);
 
@@ -113,7 +113,7 @@ assert.equal(
 );
 assert.equal(
   nextAfterRecycle.nomor_surat,
-  "015/HIMASI/UND/ISB-AL/XI/2026",
+  "015/UND/HIMASI/XI/2026",
   "Nomor 015 harus tersedia kembali untuk pengajuan berikutnya"
 );
 console.log("  ✓ Number Recycling sukses: nomor_urut=null, nomor_surat='—'");
@@ -130,7 +130,7 @@ const reallocatedSurat = await createSurat({
   status: "menunggu_ttd",
 });
 assert.equal(reallocatedSurat.nomor_urut, 15);
-assert.equal(reallocatedSurat.nomor_surat, "015/HIMASI/PRM/ISB-AL/XI/2026");
+assert.equal(reallocatedSurat.nomor_surat, "015/PRM/HIMASI/XI/2026");
 console.log(`  ✓ Alokasi ulang berhasil memakai 015: ${reallocatedSurat.nomor_surat}`);
 
 // --------------------------------------------------------------------------
@@ -264,10 +264,11 @@ assert.equal(angkaKeRomawi(12), "XII");
 assert.equal(angkaKeRomawi(99), "I", "Fallback aman untuk angka di luar 1-12");
 
 const testFormat = generateNomorSurat(7, "PDN", "2026-05-18");
-assert.equal(testFormat, "007/HIMASI/PDN/ISB-AL/V/2026");
+assert.equal(testFormat, "007/PDN/HIMASI/V/2026");
 
-assert.equal(parseNomorUrut("014/HIMASI/UND/ISB-AL/XI/2026"), 14);
-assert.equal(parseNomorUrut("001/HIMASI/DSP/ISB-AL/I/2026"), 1);
+assert.equal(parseNomorUrut("014/UND/HIMASI/XI/2026"), 14);
+assert.equal(parseNomorUrut("001/DSP/HIMASI/I/2026"), 1);
+assert.equal(parseNomorUrut("014/HIMASI/UND/ISB-AL/XI/2026"), 14, "Mendukung format lama untuk backward compatibility");
 assert.equal(parseNomorUrut("045/BEM-ISBAL/E/X/2026"), null, "Surat luar tidak boleh dianggap nomor HIMASI");
 assert.equal(parseNomorUrut("—"), null);
 assert.equal(parseNomorUrut("draft"), null);

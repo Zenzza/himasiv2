@@ -21,12 +21,15 @@ export type DashboardTabKey =
   | "dokumen"
   | "kalender"
   | "persuratan"
+  | "content-planner"
   | "aspirasi"
   | "apresiasi"
   | "absensi"
   | "rekap-absensi"
   | "database"
   | "users";
+
+export type TabKey = DashboardTabKey;
 
 export interface UserProfile {
   id: string;

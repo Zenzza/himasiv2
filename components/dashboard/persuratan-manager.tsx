@@ -71,7 +71,7 @@ export default function PersuratanManager({
   const [isLoading, setIsLoading] = useState(true);
   const [nextNomorData, setNextNomorData] = useState<{ nomor_urut: number; nomor_surat: string }>({
     nomor_urut: 15,
-    nomor_surat: "015/HIMASI/UND/ISB-AL/XI/2026",
+    nomor_surat: "015/UND/HIMASI/XI/2026",
   });
 
   // Tab & Filter
@@ -1136,7 +1136,7 @@ export default function PersuratanManager({
             <span>
               Format penomoran:{" "}
               <strong className="text-slate-700 dark:text-slate-300">
-                [urut]/HIMASI/[kode jenis]/ISB-AL/[bulan romawi]/[tahun]
+                [nomor]/[jenis]/HIMASI/[bulan romawi]/[tahun]
               </strong>
             </span>
           </div>

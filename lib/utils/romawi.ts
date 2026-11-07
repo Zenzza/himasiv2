@@ -84,8 +84,8 @@ export function parseBulanTahun(tanggal: Date | string): {
 
 /**
  * Membentuk string nomor surat resmi HIMASI ISB Atma Luhur.
- * Formula: [urut 3-digit]/HIMASI/[kode jenis]/ISB-AL/[bulan romawi]/[tahun]
- * Contoh: generateNomorSurat(14, 'UND', '2026-11-04') => "014/HIMASI/UND/ISB-AL/XI/2026"
+ * Formula: [nomor 3-digit]/[jenis]/HIMASI/[bulan romawi]/[tahun]
+ * Contoh: generateNomorSurat(14, 'UND', '2026-11-04') => "014/UND/HIMASI/XI/2026"
  */
 export function generateNomorSurat(
   urut: number,
@@ -97,18 +97,19 @@ export function generateNomorSurat(
   const cleanKode = (kodeJenis || "UND").trim().toUpperCase();
   const { tahun, bulanRomawi } = parseBulanTahun(tanggal);
 
-  return `${paddedUrut}/HIMASI/${cleanKode}/ISB-AL/${bulanRomawi}/${tahun}`;
+  return `${paddedUrut}/${cleanKode}/HIMASI/${bulanRomawi}/${tahun}`;
 }
 
 /**
  * Mengekstrak angka urut dari string nomor surat.
- * Hanya mencocokkan nomor surat resmi HIMASI (misal: "014/HIMASI/...")
- * atau angka murni untuk mencegah bentrok dengan nomor surat masuk eksternal.
+ * Mendukung format baru: "[nomor]/[jenis]/HIMASI/..." (misal: "014/UND/HIMASI/XI/2026")
+ * serta format lama: "[nomor]/HIMASI/..." atau angka murni.
  *
  * Contoh:
+ *   "014/UND/HIMASI/XI/2026"        => 14
  *   "014/HIMASI/UND/ISB-AL/XI/2026" => 14
- *   "001/HIMASI/DSP/ISB-AL/I/2026"   => 1
- *   "045/BEM-ISBAL/E/X/2026"        => null (Surat masuk eksternal, bukan urutan HIMASI)
+ *   "001/DSP/HIMASI/I/2026"         => 1
+ *   "045/BEM-ISBAL/E/X/2026"        => null (Surat masuk eksternal)
  *   "—" atau "draft" atau ""        => null
  */
 export function parseNomorUrut(nomorSurat?: string | null): number | null {
@@ -121,7 +122,14 @@ export function parseNomorUrut(nomorSurat?: string | null): number | null {
     return null;
   }
 
-  // Khusus mencocokkan pola urutan surat keluar HIMASI: "014/HIMASI/..."
+  // Mencocokkan format baru: "014/UND/HIMASI/..."
+  const newFormatMatch = trimmed.match(/^(\d+)\/[A-Z0-9-]+\/HIMASI\//i);
+  if (newFormatMatch) {
+    const parsed = parseInt(newFormatMatch[1], 10);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  // Mencocokkan format terdahulu: "014/HIMASI/..."
   const himasiMatch = trimmed.match(/^(\d+)\/HIMASI\//i);
   if (himasiMatch) {
     const parsed = parseInt(himasiMatch[1], 10);

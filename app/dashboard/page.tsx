@@ -94,6 +94,7 @@ import PengurusQrCard from "@/components/absensi/pengurus-qr-card";
 import ApresiasiManager from "@/components/dashboard/apresiasi-manager";
 import UserManager from "@/components/dashboard/user-manager";
 import PersuratanManager from "@/components/dashboard/persuratan-manager";
+import ContentPlannerManager from "@/components/dashboard/content-planner-manager";
 import {
   type UserRole,
   type ContentStatus,
@@ -192,7 +193,7 @@ export default function DashboardPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "persuratan" | "aspirasi" | "berita" | "kalender" | "database" | "banner" | "apresiasi" | "users"
+    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "persuratan" | "content-planner" | "aspirasi" | "berita" | "kalender" | "database" | "banner" | "apresiasi" | "users"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>("humas_biskraf");
@@ -2711,7 +2712,7 @@ NOTIFY pgrst, 'reload schema';`;
             type="button"
             onClick={() => setActiveTab("kartu-qr")}
             className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
-              ["kartu-qr", "kalender", "dokumen", "persuratan"].includes(activeTab)
+              ["kartu-qr", "kalender", "dokumen", "persuratan", "content-planner"].includes(activeTab)
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
             }`}
@@ -2985,6 +2986,25 @@ NOTIFY pgrst, 'reload schema';`;
                 >
                   <span>Persuratan</span>
                   {activeTab === "persuratan" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* Content Planner */}
+              {canAccessTab(currentUserRole, "content-planner") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("content-planner");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "content-planner"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Content Planner</span>
+                  {activeTab === "content-planner" && <span className="font-mono text-sm leading-none">&rarr;</span>}
                 </button>
               )}
             </nav>
@@ -4159,6 +4179,11 @@ NOTIFY pgrst, 'reload schema';`;
             {/* TAB PERSURATAN & PENOMORAN OTOMATIS */}
             {activeTab === "persuratan" && (
               <PersuratanManager currentUserRole={currentUserRole} />
+            )}
+
+            {/* TAB CONTENT PLANNER */}
+            {activeTab === "content-planner" && (
+              <ContentPlannerManager currentUserRole={currentUserRole} />
             )}
 
             {/* TAB 5: ASPIRASI MAHASISWA */}

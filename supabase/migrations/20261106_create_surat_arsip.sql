@@ -85,8 +85,8 @@ BEGIN
       AND EXTRACT(YEAR FROM tanggal_surat) = v_tahun
       AND nomor_urut IS NOT NULL;
 
-    -- Format nomor baku HIMASI: [urut 3-digit]/HIMASI/[kode jenis]/ISB-AL/[bulan romawi]/[tahun]
-    v_nomor_surat := LPAD(v_next_urut::text, 3, '0') || '/HIMASI/' || UPPER(TRIM(p_kode_jenis)) || '/ISB-AL/' || v_bulan_romawi || '/' || v_tahun::text;
+    -- Format nomor surat keluar HIMASI: [nomor 3-digit]/[jenis]/HIMASI/[bulan romawi]/[tahun]
+    v_nomor_surat := LPAD(v_next_urut::text, 3, '0') || '/' || UPPER(TRIM(p_kode_jenis)) || '/HIMASI/' || v_bulan_romawi || '/' || v_tahun::text;
 
     RETURN jsonb_build_object(
         'nomor_urut', v_next_urut,
@@ -152,15 +152,23 @@ CREATE POLICY "dokumen_organisasi_public_insert" ON storage.objects
 
 -- ====================================================================
 -- 8. DATA AWAL (SEED INITIAL DATA)
--- Sesuai tampilan persis referensi visual mockup HIMASI
+-- Sesuai tampilan persis referensi visual mockup HIMASI:
+-- - Surat Keluar: 5 arsip (4 resmi 011-014, 1 draft)
+-- - Surat Masuk: 3 arsip (1 belum didisposisi)
 -- ====================================================================
 INSERT INTO public.surat_arsip (
     id, jenis_surat, kode_jenis, nomor_urut, nomor_surat, perihal, kategori_label,
-    tujuan_pengirim, tanggal_surat, status, file_name
+    tujuan_pengirim, tanggal_surat, tanggal_diterima, status, catatan_disposisi, file_name
 ) VALUES
-('b1111111-1111-4111-8111-111111111111', 'keluar', 'UND', NULL, '—', 'Permohonan Narasumber Seminar', 'Permohonan', '[NAMA NARASUMBER]', '2026-11-06', 'draft', NULL),
-('b2222222-2222-4222-8222-222222222222', 'keluar', 'UND', 14, '014/HIMASI/UND/ISB-AL/XI/2026', 'Undangan Rapat Pleno Pengurus', 'Undangan', 'Seluruh Pengurus', '2026-11-04', 'terkirim', 'Surat_Undangan_Pleno_014.pdf'),
-('b3333333-3333-4333-8333-333333333333', 'keluar', 'PRM', 13, '013/HIMASI/PRM/ISB-AL/X/2026', 'Peminjaman Ruang Aula', 'Peminjaman Ruang', 'Bagian Sarana Prasarana', '2026-10-30', 'menunggu_ttd', 'Peminjaman_Aula_013.pdf'),
-('b4444444-4444-4444-8444-444444444444', 'keluar', 'PDN', 12, '012/HIMASI/PDN/ISB-AL/X/2026', 'Permohonan Dana Delegasi Lomba', 'Permohonan Dana', 'Bagian Kemahasiswaan', '2026-10-28', 'menunggu_ttd', 'Pengajuan_Dana_Lomba_012.pdf'),
-('b5555555-5555-4555-8555-555555555555', 'keluar', 'DSP', 11, '011/HIMASI/DSP/ISB-AL/X/2026', 'Dispensasi Perkuliahan Peserta Kegiatan', 'Dispensasi', 'Kaprodi Sistem Informasi', '2026-10-21', 'terkirim', 'Dispensasi_Kuliah_011.pdf')
+-- Surat Keluar HIMASI
+('b1111111-1111-4111-8111-111111111111', 'keluar', 'UND', NULL, '—', 'Permohonan Narasumber Seminar', 'Permohonan', '[NAMA NARASUMBER]', '2026-11-06', NULL, 'draft', NULL, NULL),
+('b2222222-2222-4222-8222-222222222222', 'keluar', 'UND', 14, '014/UND/HIMASI/XI/2026', 'Undangan Rapat Pleno Pengurus', 'Undangan', 'Seluruh Pengurus', '2026-11-04', NULL, 'terkirim', NULL, 'Surat_Undangan_Pleno_014.pdf'),
+('b3333333-3333-4333-8333-333333333333', 'keluar', 'PRM', 13, '013/PRM/HIMASI/X/2026', 'Peminjaman Ruang Aula', 'Peminjaman Ruang', 'Bagian Sarana Prasarana', '2026-10-30', NULL, 'menunggu_ttd', NULL, 'Peminjaman_Aula_013.pdf'),
+('b4444444-4444-4444-8444-444444444444', 'keluar', 'PDN', 12, '012/PDN/HIMASI/X/2026', 'Permohonan Dana Delegasi Lomba', 'Permohonan Dana', 'Bagian Kemahasiswaan', '2026-10-28', NULL, 'menunggu_ttd', NULL, 'Pengajuan_Dana_Lomba_012.pdf'),
+('b5555555-5555-4555-8555-555555555555', 'keluar', 'DSP', 11, '011/DSP/HIMASI/X/2026', 'Dispensasi Perkuliahan Peserta Kegiatan', 'Dispensasi', 'Kaprodi Sistem Informasi', '2026-10-21', NULL, 'terkirim', NULL, 'Dispensasi_Kuliah_011.pdf'),
+
+-- Surat Masuk dari Instansi Luar
+('c1111111-1111-4111-8111-111111111111', 'masuk', 'UND', NULL, '045/BEM-ISBAL/E/X/2026', 'Undangan Pembukaan Pekan Olahraga & Seni Mahasiswa', 'Undangan', 'Badan Eksekutif Mahasiswa (BEM) ISB Atma Luhur', '2026-10-29', '2026-10-30', 'didisposisi', 'Disposisi ke Departemen Olahraga & Seni untuk mengirim perwakilan 4 orang.', '045-BEM-ISBAL-E-X-2026.pdf'),
+('c2222222-2222-4222-8222-222222222222', 'masuk', 'PBM', NULL, '112/LPPM-AL/PBM/XI/2026', 'Pemberitahuan Sosialisasi Program Kreativitas Mahasiswa (PKM) 2027', 'Pemberitahuan', 'Lembaga Penelitian & Pengabdian Masyarakat (LPPM)', '2026-11-03', '2026-11-04', 'belum_disposisi', NULL, '112-LPPM-AL-PBM-XI-2026.pdf'),
+('c3333333-3333-4333-8333-333333333333', 'masuk', 'UND', NULL, '088/DPM-ISBAL/U/X/2026', 'Undangan Sidang Umum Mahasiswa & Laporan Triwulan', 'Undangan', 'Dewan Perwakilan Mahasiswa (DPM)', '2026-10-25', '2026-10-26', 'selesai', 'Dihadiri langsung oleh Ketua Umum dan Sekretaris 1.', '088-DPM-ISBAL-U-X-2026.pdf')
 ON CONFLICT (id) DO NOTHING;
