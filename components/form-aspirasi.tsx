@@ -6,17 +6,13 @@ import {
   CheckCircle2,
   Mail,
   GraduationCap,
-  MessageSquare,
-  ShieldCheck,
-  Sparkles,
   RotateCcw,
   Check,
-  Megaphone,
-  Clock
+  Copy,
 } from "lucide-react";
 import ScrollReveal from "@/components/scroll-reveal";
 
-import { supabase } from "@/lib/supabase/client";
+import { createAspirasi } from "@/lib/supabase/aspirasi";
 
 export default function FormAspirasi() {
   const [email, setEmail] = useState("");
@@ -26,35 +22,43 @@ export default function FormAspirasi() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !pesan.trim()) return;
 
     setIsSubmitting(true);
-    const randomTicket = `ASP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
-      // Kirim data aspirasi ke tabel PostgreSQL Supabase 'public.aspirasi'
-      const { error } = await supabase.from("aspirasi").insert([
-        {
-          email: email.trim(),
-          angkatan,
-          pesan: pesan.trim(),
-          status: "baru",
-        },
-      ]);
+      // Simpan aspirasi via service Supabase (dengan sinkronisasi nomor tiket database / offline fallback)
+      const res = await createAspirasi({
+        email: email.trim(),
+        angkatan,
+        pesan: pesan.trim(),
+      });
 
-      if (error) {
-        console.warn("Catatan: Menyimpan ke Supabase:", error.message);
-        // Fallback tetap berhasil di sisi klien jika tabel belum di-create via SQL Editor
+      if (res && res.nomor_tiket) {
+        setTicketId(res.nomor_tiket);
       }
+      setIsSubmitted(true);
     } catch (err) {
       console.warn("Koneksi Supabase error / offline:", err);
     } finally {
-      setTicketId(randomTicket);
       setIsSubmitting(false);
-      setIsSubmitted(true);
+    }
+  };
+
+  const handleCopyTicket = async () => {
+    if (!ticketId) return;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(ticketId);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (err) {
+      console.warn("Gagal menyalin nomor tiket:", err);
     }
   };
 
@@ -64,6 +68,8 @@ export default function FormAspirasi() {
     setPesan("");
     setAngkatan("2024");
     setAgreed(true);
+    setTicketId("");
+    setCopied(false);
   };
 
   return (
@@ -124,9 +130,24 @@ export default function FormAspirasi() {
                   <span className="text-xs text-slate-500 font-medium">
                     Nomor Tiket Aspirasi
                   </span>
-                  <span className="font-mono text-xl sm:text-2xl font-extrabold text-[#00296E] tracking-wider mt-1">
-                    {ticketId}
-                  </span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="font-mono text-xl sm:text-2xl font-extrabold text-[#00296E] tracking-wider">
+                      {ticketId}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyTicket}
+                      title={copied ? "Tersalin!" : "Salin Nomor Tiket"}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-[#00296E] hover:bg-slate-200/60 active:scale-95 transition-all cursor-pointer"
+                      aria-label="Salin nomor tiket"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                   <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
                     <span>Email: <strong className="text-slate-600">{email}</strong></span>
                     <span>•</span>
