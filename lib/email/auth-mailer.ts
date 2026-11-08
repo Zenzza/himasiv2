@@ -154,7 +154,7 @@ export function generateAuthEmailHtml(params: SendAuthEmailParams): string {
   <meta name="supported-color-schemes" content="light">
   <title>${meta.title} - HIMASI ISB Atma Luhur</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #0F172A; line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #0F172A; line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
   
   <!-- Outer Wrapper (Light Clean Slate Backdrop) -->
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F1F5F9; padding: 32px 12px;">
@@ -167,15 +167,6 @@ export function generateAuthEmailHtml(params: SendAuthEmailParams): string {
           <!-- GRADIENT BRANDING CARD HEADER (Identik dengan form-aspirasi & login beranda) -->
           <tr>
             <td style="background-color: #00296E; background-image: linear-gradient(135deg, #00296E 0%, #002257 55%, #00173d 100%); padding: 36px 32px 30px 32px; text-align: left;">
-              
-              <!-- Ambient Accent Badge -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 12px;">
-                <tr>
-                  <td style="background-color: rgba(0, 148, 224, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 9999px; padding: 4px 12px; font-size: 11px; font-weight: 700; color: #38BDF8; letter-spacing: 1px; text-transform: uppercase;">
-                    ${meta.badgeLabel}
-                  </td>
-                </tr>
-              </table>
 
               <!-- Header Headline -->
               <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px; line-height: 1.3;">
@@ -198,11 +189,6 @@ export function generateAuthEmailHtml(params: SendAuthEmailParams): string {
                           <div style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 14px; font-weight: 700; color: #38BDF8; letter-spacing: 0.5px; margin-top: 2px;">
                             ${sanitizedTo}
                           </div>
-                        </td>
-                        <td align="right" valign="middle">
-                          <span style="display: inline-block; background-color: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #E0F2FE; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">
-                            &#128274; Resmi HIMASI
-                          </span>
                         </td>
                       </tr>
                     </table>
@@ -264,7 +250,7 @@ export function generateAuthEmailHtml(params: SendAuthEmailParams): string {
           <!-- FOOTER -->
           <tr>
             <td style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 24px 32px; text-align: center; color: #64748B; font-size: 11px;">
-              <div style="font-weight: 700; color: #00296E; font-size: 12px; margin-bottom: 4px;">
+              <div style="font-weight: 700; color: #00296E; font-size: 12px;">
                 Himpunan Mahasiswa Sistem Informasi (HIMASI)
               </div>
               <div style="margin-bottom: 8px;">
