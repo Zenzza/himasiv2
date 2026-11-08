@@ -53,6 +53,9 @@ pnpm-debug.log*
 *.sublime-project
 *.sublime-workspace
 .superpowers/
+.agents/skills/
+.gemini/
+.impeccable/
 
 # typescript
 *.tsbuildinfo
