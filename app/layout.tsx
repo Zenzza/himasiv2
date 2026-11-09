@@ -6,6 +6,8 @@ import BackToTop from "@/components/back-to-top";
 import LoadingScreen from "@/components/loading-screen";
 import ScrollToTopOnNav from "@/components/scroll-to-top-on-nav";
 import { PhosphorIconProvider } from "@/components/providers/phosphor-icon-provider";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -36,6 +38,8 @@ export default function RootLayout({
             <BackToTop />
           </LoadingScreen>
         </PhosphorIconProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
