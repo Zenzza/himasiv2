@@ -5,6 +5,7 @@ import Navbar from "@/components/navbar";
 import BackToTop from "@/components/back-to-top";
 import LoadingScreen from "@/components/loading-screen";
 import ScrollToTopOnNav from "@/components/scroll-to-top-on-nav";
+import { PhosphorIconProvider } from "@/components/providers/phosphor-icon-provider";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -25,14 +26,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning className={`${poppins.variable} h-full antialiased`}>
+    <html lang="id" suppressHydrationWarning className={`${poppins.variable} min-h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans bg-white dark:bg-[#001740] text-[#091e42] dark:text-slate-100 selection:bg-[#0094E0]/20 selection:text-[#00296E]">
-        <ScrollToTopOnNav />
-        <LoadingScreen>
-          <Navbar />
-          <main className="flex-1 w-full overflow-x-clip max-w-full">{children}</main>
-          <BackToTop />
-        </LoadingScreen>
+        <PhosphorIconProvider>
+          <ScrollToTopOnNav />
+          <LoadingScreen>
+            <Navbar />
+            <main className="flex-1 w-full overflow-x-clip max-w-full">{children}</main>
+            <BackToTop />
+          </LoadingScreen>
+        </PhosphorIconProvider>
       </body>
     </html>
   );

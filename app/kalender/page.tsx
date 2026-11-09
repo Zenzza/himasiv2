@@ -3,19 +3,16 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
-  Download,
-  CheckCircle2,
-  ExternalLink,
-  Sparkles,
+  CaretLeft,
+  CaretRight,
+  CalendarBlank,
+  DownloadSimple,
+  CheckCircle,
+  ArrowSquareOut,
   Info,
-  CalendarDays,
   Clock,
   MapPin,
-  RefreshCw
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
 import {
@@ -301,7 +298,7 @@ export default function KalenderPage() {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-clip bg-white text-[#091e42] min-h-screen">
       
       {/* ============================================================ */}
       {/* SECTION HEADER: PERSIS SESUAI STYLE PAGE LAIN */}
@@ -350,7 +347,7 @@ export default function KalenderPage() {
                 className="p-2 sm:p-2.5 rounded-full text-slate-300 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer active:scale-95"
                 aria-label="Bulan Sebelumnya"
               >
-                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2]" />
+                <CaretLeft className="w-5 h-5 sm:w-6 sm:h-6" weight="bold" />
               </button>
 
               <div className="flex flex-col items-center">
@@ -379,7 +376,7 @@ export default function KalenderPage() {
                 className="p-2 sm:p-2.5 rounded-full text-slate-300 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer active:scale-95"
                 aria-label="Bulan Selanjutnya"
               >
-                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2]" />
+                <CaretRight className="w-5 h-5 sm:w-6 sm:h-6" weight="bold" />
               </button>
             </div>
 
@@ -486,7 +483,7 @@ export default function KalenderPage() {
                           {/* Header: Tanggal & Badge Kategori */}
                           <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100 text-[11px]">
                             <span className="font-semibold text-slate-500 flex items-center gap-1.5 flex-wrap">
-                              <CalendarDays className="w-3.5 h-3.5 text-[#0094E0]" />
+                              <CalendarBlank className="w-3.5 h-3.5 text-[#0094E0]" />
                               <span>{formatDayName(cell.fullDate)}, {cell.dayNumber} {MONTH_SHORT_ID[parseInt(cell.fullDate.split("-")[1], 10) - 1]}</span>
                               {cell.isToday && (
                                 <span className="text-[9px] font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded-full">
@@ -568,7 +565,7 @@ export default function KalenderPage() {
               onClick={handleExportICS}
               className="inline-flex items-center gap-1.5 font-bold text-[#00296E] hover:text-[#0094E0] transition-colors cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
+              <DownloadSimple className="w-3.5 h-3.5" />
               <span>Ekspor Kalender (.ics)</span>
             </button>
           </div>
@@ -614,7 +611,7 @@ export default function KalenderPage() {
           {selectedDate && (
             <div className="mb-6 p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-950">
               <div className="flex items-center gap-2.5 font-medium">
-                <CalendarDays className="w-4 h-4 text-amber-700 shrink-0" />
+                <CalendarBlank className="w-4 h-4 text-amber-700 shrink-0" />
                 <span>
                   Memfilter agenda pada tanggal: <strong>{formatDateIndo(selectedDate)} ({formatDayName(selectedDate)})</strong>
                 </span>
@@ -729,9 +726,9 @@ export default function KalenderPage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-[#00296E] bg-slate-100 hover:bg-[#00296E] hover:text-white transition-all shadow-xs cursor-pointer group/cal"
                         >
-                          <CalendarIcon className="w-3.5 h-3.5 text-[#0094E0] group-hover/cal:text-white" />
+                          <CalendarBlank className="w-3.5 h-3.5 text-[#0094E0] group-hover/cal:text-white" />
                           <span>Simpan ke Kalender</span>
-                          <ExternalLink className="w-3 h-3 opacity-60" />
+                          <ArrowSquareOut className="w-3 h-3 opacity-60" />
                         </a>
                       </div>
                     </div>
@@ -769,7 +766,7 @@ export default function KalenderPage() {
       {/* Toast Notifikasi Ekspor ICS */}
       {downloadToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#00296E] text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-[#0094E0]/30 animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <CheckCircle2 className="w-5 h-5 text-[#0094E0] shrink-0" />
+          <CheckCircle className="w-5 h-5 text-[#0094E0] shrink-0" weight="fill" />
           <span className="text-xs sm:text-sm font-semibold">{downloadToast}</span>
         </div>
       )}

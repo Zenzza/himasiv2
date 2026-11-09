@@ -3,17 +3,17 @@
 import { useState, useEffect } from "react";
 import {
   X,
-  Calendar,
-  Sparkles,
-  Link2,
-  CheckCircle2,
+  CalendarBlank,
+  Sparkle,
+  LinkSimple,
+  CheckCircle,
   Sliders,
   FileText,
-  Layers,
-  Send,
-  Save,
+  Stack,
+  PaperPlaneTilt,
+  FloppyDisk,
   Info,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import {
   type ContentPlanItem,
   type ContentPlanInput,
@@ -239,12 +239,12 @@ export function ContentModal({
                 </>
               ) : canManage ? (
                 <>
-                  <Calendar className="w-5 h-5 text-[#00296E] dark:text-[#38BDF8]" />
+                  <CalendarBlank className="w-5 h-5 text-[#00296E] dark:text-[#38BDF8]" />
                   <span>Tambah Jadwal Konten Baru</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                  <Sparkle className="w-5 h-5 text-amber-500 dark:text-amber-400" />
                   <span>Ajukan Gagasan / Ide Konten Baru</span>
                 </>
               )}
@@ -329,7 +329,7 @@ export function ContentModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1.5 font-semibold">
-                <Layers className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
+                <Stack className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
                 Jenis Konten <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
@@ -347,7 +347,7 @@ export function ContentModal({
 
             <div>
               <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1.5 font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <Sparkle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                 Tipe Konten (Format) <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
@@ -392,7 +392,7 @@ export function ContentModal({
 
             <div>
               <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1.5 font-semibold">
-                <Link2 className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
+                <LinkSimple className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
                 Tautan Referensi / Drive
               </label>
               <input
@@ -453,7 +453,7 @@ export function ContentModal({
               </label>
               {isDone && (
                 <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle className="w-3.5 h-3.5" />
                   Siap / Sudah Terbit (Publish)
                 </span>
               )}
@@ -494,12 +494,12 @@ export function ContentModal({
                 <span>Menyimpan...</span>
               ) : canManage ? (
                 <>
-                  <Save className="w-4 h-4" />
+                  <FloppyDisk className="w-4 h-4" />
                   <span>{initialData ? "Simpan Perubahan" : "Simpan Jadwal"}</span>
                 </>
               ) : (
                 <>
-                  <Send className="w-4 h-4" />
+                  <PaperPlaneTilt className="w-4 h-4" />
                   <span>Ajukan Ide Konten</span>
                 </>
               )}

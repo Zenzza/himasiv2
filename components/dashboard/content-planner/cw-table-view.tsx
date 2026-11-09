@@ -2,22 +2,22 @@
 
 import { useState, useMemo, useEffect } from "react";
 import {
-  Calendar,
+  CalendarBlank,
   Clock,
-  CheckCircle2,
-  AlertCircle,
-  ExternalLink,
+  CheckCircle,
+  WarningCircle,
+  ArrowSquareOut,
   Plus,
-  ChevronDown,
+  CaretDown,
   Check,
-  Edit3,
-  Trash2,
+  NotePencil,
+  Trash,
   X,
-  Sparkles,
-  Layers,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+  Sparkle,
+  Stack,
+  CaretLeft,
+  CaretRight,
+} from "@phosphor-icons/react";
 import {
   type ContentPlanItem,
   type ContentPlanInput,
@@ -383,7 +383,7 @@ export function CwTableView({
 
           <div className="flex items-center justify-between text-xs">
             <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Selesai (Publish):
+              <CheckCircle className="w-3.5 h-3.5" /> Selesai (Publish):
             </span>
             <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300">{monthStats.done}</span>
           </div>
@@ -397,7 +397,7 @@ export function CwTableView({
 
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-slate-400" /> Planning / Proses:
+              <Sparkle className="w-3.5 h-3.5 text-slate-400" /> Planning / Proses:
             </span>
             <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{monthStats.planning}</span>
           </div>
@@ -451,7 +451,7 @@ export function CwTableView({
                   className="px-2 py-1 text-[11px] font-mono border border-slate-300 dark:border-[#00296E]/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#001740] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center gap-1"
                   title="Minggu Sebelumnya"
                 >
-                  <ChevronLeft className="w-3 h-3" />
+                  <CaretLeft className="w-3 h-3" />
                   <span>Prev CW</span>
                 </button>
                 <button
@@ -462,7 +462,7 @@ export function CwTableView({
                   title="Minggu Berikutnya"
                 >
                   <span>Next CW</span>
-                  <ChevronRight className="w-3 h-3" />
+                  <CaretRight className="w-3 h-3" />
                 </button>
               </div>
 
@@ -567,7 +567,7 @@ export function CwTableView({
                               className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono border border-slate-300 dark:border-[#00296E]/50 text-slate-800 dark:text-slate-200 bg-white dark:bg-[#001740] rounded-none hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer shadow-none"
                             >
                               <span>{item.platform}</span>
-                              <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                              <CaretDown className="w-2.5 h-2.5 opacity-60" />
                             </button>
                           </td>
 
@@ -579,7 +579,7 @@ export function CwTableView({
                               className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono border ${jenisStyle.className} rounded-none transition-colors cursor-pointer shadow-none`}
                             >
                               <span>{item.tipe_konten}</span>
-                              <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                              <CaretDown className="w-2.5 h-2.5 opacity-60" />
                             </button>
                           </td>
 
@@ -633,7 +633,7 @@ export function CwTableView({
                                     {item.topik}
                                   </span>
                                 </div>
-                                <Edit3 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                                <NotePencil className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                               </div>
                             )}
                           </td>
@@ -646,7 +646,7 @@ export function CwTableView({
                               className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono border ${formatStyle.className} rounded-none transition-colors cursor-pointer shadow-none`}
                             >
                               <span>{item.konsep}</span>
-                              <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                              <CaretDown className="w-2.5 h-2.5 opacity-60" />
                             </button>
                           </td>
 
@@ -659,7 +659,7 @@ export function CwTableView({
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
                               <span>{item.status}</span>
-                              <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                              <CaretDown className="w-2.5 h-2.5 opacity-60" />
                             </button>
                           </td>
 
@@ -675,7 +675,7 @@ export function CwTableView({
                                 className="p-1 inline-flex items-center justify-center text-[#0094E0] dark:text-[#38BDF8] hover:text-[#00296E] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#00296E]/40 transition-colors"
                                 title={item.referensi_url}
                               >
-                                <ExternalLink className="w-3.5 h-3.5" />
+                                <ArrowSquareOut className="w-3.5 h-3.5" />
                               </a>
                             ) : (
                               <button
@@ -699,7 +699,7 @@ export function CwTableView({
                             >
                               <div className="flex items-center justify-between text-[10px] font-mono mb-1">
                                 <span className={`font-bold ${progVisual.textClass}`}>{item.progress}%</span>
-                                <ChevronDown className="w-2.5 h-2.5 opacity-60 group-hover/prog:opacity-100 transition-opacity" />
+                                <CaretDown className="w-2.5 h-2.5 opacity-60 group-hover/prog:opacity-100 transition-opacity" />
                               </div>
                               <div className="w-full h-1.5 bg-slate-200 dark:bg-[#001740] border border-slate-300 dark:border-[#00296E] overflow-hidden">
                                 <div
@@ -730,7 +730,7 @@ export function CwTableView({
                                 className="p-1 text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#00296E]/30 rounded-none transition-colors cursor-pointer"
                                 title="Edit Detail Konten"
                               >
-                                <Edit3 className="w-3.5 h-3.5" />
+                                <NotePencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 type="button"
@@ -738,7 +738,7 @@ export function CwTableView({
                                 className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-none transition-colors cursor-pointer"
                                 title="Hapus Rencana Konten"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>

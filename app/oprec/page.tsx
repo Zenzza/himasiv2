@@ -5,20 +5,16 @@ import Link from "next/link";
 import {
   UserPlus,
   Users,
-  CheckCircle2,
-  Calendar,
-  Send,
-  Sparkles,
+  CheckCircle,
+  CalendarBlank,
+  PaperPlaneTilt,
   ArrowLeft,
-  ChevronRight,
   Clock,
-  Award,
-  Layers,
-  HeartHandshake,
+  Medal,
+  Stack,
+  Handshake,
   Laptop,
-  HelpCircle,
-  FileCheck
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 
 export default function OprecPage() {
@@ -46,7 +42,7 @@ export default function OprecPage() {
     },
     {
       name: "Akademik & Riset",
-      icon: Layers,
+      icon: Stack,
       desc: "Menyelenggarakan klinik koding, bootcamp teknologi, modul materi kuliah, dan persiapan lomba mahasiswa.",
     },
     {
@@ -56,12 +52,12 @@ export default function OprecPage() {
     },
     {
       name: "Hublu (Hubungan Luar)",
-      icon: HeartHandshake,
+      icon: Handshake,
       desc: "Menjalin kemitraan dengan instansi industri, company visit, studi banding, dan relasi alumni.",
     },
     {
       name: "Danus (Dana & Usaha)",
-      icon: Award,
+      icon: Medal,
       desc: "Kewirausahaan organisasi, pengadaan merchandise dan baju jurusan, serta pengelolaan sponsorship.",
     },
   ];
@@ -105,7 +101,7 @@ export default function OprecPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-[#091e42] w-full max-w-full overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-[#091e42] w-full max-w-full overflow-x-clip">
       {/* Top Banner */}
       <section className="relative w-full bg-[#00296E] text-white py-14 sm:py-20 px-4 sm:px-6 lg:px-12 overflow-hidden">
         {/* Glow Effects */}
@@ -142,7 +138,7 @@ export default function OprecPage() {
         {/* Linimasa Pendaftaran */}
         <section>
           <div className="flex items-center gap-2 text-xs font-bold text-[#0094E0] uppercase tracking-wider mb-2">
-            <Calendar className="w-4 h-4" />
+            <CalendarBlank className="w-4 h-4" />
             <span>Jadwal & Tahapan Seleksi</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-6">
@@ -186,7 +182,7 @@ export default function OprecPage() {
         {/* Pilihan Divisi */}
         <section>
           <div className="flex items-center gap-2 text-xs font-bold text-[#0094E0] uppercase tracking-wider mb-2">
-            <Layers className="w-4 h-4" />
+            <Stack className="w-4 h-4" />
             <span>Kenali Bidang Minatmu</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-6">
@@ -227,19 +223,19 @@ export default function OprecPage() {
             </h2>
             <ul className="space-y-2.5 text-xs sm:text-sm text-slate-200">
               <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" weight="fill" />
                 <span>Mahasiswa aktif Program Studi Sistem Informasi ISB Atma Luhur (Angkatan 2024 dan 2025).</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" weight="fill" />
                 <span>Memiliki integritas, rasa tanggung jawab, dan komitmen tinggi selama satu periode kepengurusan.</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" weight="fill" />
                 <span>Mampu bekerja sama dalam tim dan bersedia belajar hal-hal baru di bidang keorganisasian & teknologi.</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" weight="fill" />
                 <span>Tidak sedang menjabat sebagai pengurus inti pada organisasi mahasiswa lainnya.</span>
               </li>
             </ul>
@@ -263,7 +259,7 @@ export default function OprecPage() {
           {isSubmitted ? (
             <div className="p-8 sm:p-12 rounded-2xl bg-emerald-50 border border-emerald-300 text-center max-w-lg mx-auto animate-in fade-in zoom-in-95">
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-4">
-                <CheckCircle2 className="w-9 h-9" />
+                <CheckCircle className="w-9 h-9" weight="fill" />
               </div>
               <h3 className="text-2xl font-bold text-slate-900">
                 Pendaftaran Berhasil Dikirim!
@@ -437,7 +433,7 @@ export default function OprecPage() {
                   <span>Mengirim Pendaftaran...</span>
                 ) : (
                   <>
-                    <Send className="w-4 h-4 text-[#0094E0]" />
+                    <PaperPlaneTilt className="w-4 h-4 text-[#0094E0]" weight="bold" />
                     <span>Kirim Formulir Pendaftaran</span>
                   </>
                 )}

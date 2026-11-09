@@ -4,35 +4,35 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   Trophy,
-  Code2,
+  Code,
   Briefcase,
-  Search,
-  Filter,
-  CheckCircle2,
+  MagnifyingGlass,
+  Funnel,
+  CheckCircle,
   Clock,
   XCircle,
-  AlertCircle,
-  ExternalLink,
+  WarningCircle,
+  ArrowSquareOut,
   Plus,
-  Trash2,
-  Edit3,
+  Trash,
+  NotePencil,
   Star,
   Users,
   GraduationCap,
-  Building2,
-  Link2,
+  Buildings,
+  LinkSimple,
   FileText,
   Eye,
-  RefreshCw,
-  Loader2,
-  Share2,
+  ArrowsClockwise,
+  Spinner,
+  ShareNetwork,
   ArrowUpRight,
   X,
   Check,
-  Send,
+  PaperPlaneTilt,
   Phone,
-  Sparkles,
-} from "lucide-react";
+  Sparkle,
+} from "@phosphor-icons/react";
 import {
   type ApresiasiItem,
   type ApresiasiSubmisiItem,
@@ -279,7 +279,7 @@ export default function ApresiasiManager({
       {/* Toast Notifikasi */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-slate-900 text-white text-xs font-semibold shadow-xl border border-slate-700 flex items-center gap-2 animate-in slide-in-from-bottom-2 duration-150">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <CheckCircle className="w-4 h-4 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -310,7 +310,7 @@ export default function ApresiasiManager({
             className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
             title="Muat Ulang Data"
           >
-            <RefreshCw className={`w-4 h-4 ${loadingSubmisi || loadingShowcase ? "animate-spin" : ""}`} />
+            <ArrowsClockwise className={`w-4 h-4 ${loadingSubmisi || loadingShowcase ? "animate-spin" : ""}`} />
           </button>
 
           <Link
@@ -434,7 +434,7 @@ export default function ApresiasiManager({
 
             {/* Search Input */}
             <div className="relative w-full md:w-64 shrink-0">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <MagnifyingGlass className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={submisiSearch}
@@ -449,7 +449,7 @@ export default function ApresiasiManager({
           <div className="bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none overflow-hidden">
             {loadingSubmisi ? (
               <div className="py-12 text-center text-xs text-slate-400">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0094E0] dark:text-[#38BDF8] mb-2" />
+                <Spinner className="w-6 h-6 animate-spin mx-auto text-[#0094E0] dark:text-[#38BDF8] mb-2" />
                 <span>Memuat data pengajuan mahasiswa...</span>
               </div>
             ) : filteredSubmisi.length === 0 ? (
@@ -485,7 +485,7 @@ export default function ApresiasiManager({
                             )}
                             {item.status === "approved" && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 uppercase font-mono">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                <CheckCircle className="w-3 h-3 text-emerald-500" />
                                 <span>Disetujui</span>
                               </span>
                             )}
@@ -499,7 +499,7 @@ export default function ApresiasiManager({
                               {item.category === "lomba" ? (
                                 <Trophy className="w-3 h-3 text-amber-500" />
                               ) : item.category === "karya" ? (
-                                <Code2 className="w-3 h-3 text-cyan-500" />
+                                <Code className="w-3 h-3 text-cyan-500" />
                               ) : (
                                 <Briefcase className="w-3 h-3 text-emerald-500" />
                               )}
@@ -565,7 +565,7 @@ export default function ApresiasiManager({
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline block"
                             >
-                              <ExternalLink className="w-3 h-3" />
+                              <ArrowSquareOut className="w-3 h-3" />
                               <span>Sertifikat / Bukti</span>
                             </a>
                           )}
@@ -576,7 +576,7 @@ export default function ApresiasiManager({
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:underline block"
                             >
-                              <Link2 className="w-3 h-3" />
+                              <LinkSimple className="w-3 h-3" />
                               <span>Live / Repo</span>
                             </a>
                           )}
@@ -630,7 +630,7 @@ export default function ApresiasiManager({
                               className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                               title="Hapus Pengajuan"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -676,7 +676,7 @@ export default function ApresiasiManager({
             </div>
 
             <div className="relative w-full md:w-64 shrink-0">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <MagnifyingGlass className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={showcaseSearch}
@@ -689,7 +689,7 @@ export default function ApresiasiManager({
 
           {!canPublish && (
             <div className="p-3 bg-blue-50/70 dark:bg-sky-950/30 border border-blue-100 dark:border-sky-500/20 rounded-none flex items-center gap-2.5 text-xs text-blue-800 dark:text-sky-300">
-              <Sparkles className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8] shrink-0" />
+              <Sparkle className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8] shrink-0" />
               <span>
                 <strong>Mode Kontributor:</strong> Anda dapat meninjau galeri karya yang telah dipublikasikan. Untuk mengajukan karya baru, silakan ajukan melalui tab <em>Submisi Mahasiswa</em> untuk disetujui oleh tim Medkominfo.
               </span>
@@ -700,7 +700,7 @@ export default function ApresiasiManager({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {loadingShowcase ? (
               <div className="col-span-full py-12 text-center text-xs text-slate-400">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0094E0] dark:text-[#38BDF8] mb-2" />
+                <Spinner className="w-6 h-6 animate-spin mx-auto text-[#0094E0] dark:text-[#38BDF8] mb-2" />
                 <span>Memuat data galeri showcase...</span>
               </div>
             ) : filteredShowcase.length === 0 ? (
@@ -782,7 +782,7 @@ export default function ApresiasiManager({
                       </h4>
 
                       <div className="mt-1 text-[11px] text-[#0094E0] dark:text-[#38BDF8] font-medium flex items-center gap-1">
-                        <Building2 className="w-3 h-3 shrink-0" />
+                        <Buildings className="w-3 h-3 shrink-0" />
                         <span className="truncate">{item.organizerOrCompany}</span>
                       </div>
 
@@ -805,7 +805,7 @@ export default function ApresiasiManager({
                             className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                             title="Edit Karya/Prestasi"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <NotePencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
@@ -813,7 +813,7 @@ export default function ApresiasiManager({
                             className="p-1.5 rounded-none border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                             title="Hapus dari Showcase"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ) : (
@@ -916,7 +916,7 @@ export default function ApresiasiManager({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-sky-300 border border-blue-200 dark:border-blue-800 font-semibold text-xs hover:bg-blue-100 dark:hover:bg-blue-900/50"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ArrowSquareOut className="w-3.5 h-3.5" />
                       <span>Buka Bukti Sertifikat / Dokumen</span>
                     </a>
                   )}
@@ -927,7 +927,7 @@ export default function ApresiasiManager({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/15 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-white/15"
                     >
-                      <Link2 className="w-3.5 h-3.5" />
+                      <LinkSimple className="w-3.5 h-3.5" />
                       <span>Buka Tautan Demo / Repository</span>
                     </a>
                   )}
@@ -1069,7 +1069,7 @@ export default function ApresiasiManager({
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-none transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isProcessing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Spinner className="w-4 h-4 animate-spin" />
                   ) : (
                     <Check className="w-4 h-4 stroke-[3]" />
                   )}
@@ -1113,7 +1113,7 @@ export default function ApresiasiManager({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-6 h-6" />
+              <Trash className="w-6 h-6" />
             </div>
 
             <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
@@ -1157,12 +1157,12 @@ export default function ApresiasiManager({
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Spinner className="w-3.5 h-3.5 animate-spin" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash className="w-3.5 h-3.5" />
                     <span>Ya, Hapus</span>
                   </>
                 )}
@@ -1225,7 +1225,7 @@ export default function ApresiasiManager({
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Spinner className="w-3.5 h-3.5 animate-spin" />
                     <span>Menolak...</span>
                   </>
                 ) : (
@@ -1253,7 +1253,7 @@ export default function ApresiasiManager({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-6 h-6" />
+              <Trash className="w-6 h-6" />
             </div>
 
             <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
@@ -1290,12 +1290,12 @@ export default function ApresiasiManager({
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Spinner className="w-3.5 h-3.5 animate-spin" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash className="w-3.5 h-3.5" />
                     <span>Hapus Permanen</span>
                   </>
                 )}
@@ -1709,7 +1709,7 @@ function ShowcaseFormModal({
               className="inline-flex items-center gap-1.5 px-5 py-2 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f52] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] font-bold shadow-none transition-all disabled:opacity-50 cursor-pointer"
             >
               {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin text-white dark:text-[#001740]" />
+                <Spinner className="w-4 h-4 animate-spin text-white dark:text-[#001740]" />
               ) : (
                 <Check className="w-4 h-4 text-[#38BDF8] dark:text-[#001740]" />
               )}

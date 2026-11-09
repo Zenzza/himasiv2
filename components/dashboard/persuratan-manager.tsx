@@ -3,31 +3,31 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   FileText,
-  Send,
-  Inbox,
+  PaperPlaneTilt,
+  Tray,
   Clock,
-  CheckCircle2,
-  AlertCircle,
+  CheckCircle,
+  WarningCircle,
   Plus,
-  Download,
+  DownloadSimple,
   Eye,
-  Trash2,
+  Trash,
   Copy,
   Check,
-  Search,
-  RefreshCw,
+  MagnifyingGlass,
+  ArrowsClockwise,
   X,
   FileCode,
-  FileSpreadsheet,
-  Upload,
-  RotateCcw,
+  FileXls,
+  UploadSimple,
+  ArrowCounterClockwise,
   ShieldCheck,
-  Building2,
-  Calendar,
-  ExternalLink,
-  ChevronRight,
+  Buildings,
+  CalendarBlank,
+  ArrowSquareOut,
+  CaretRight,
   Info,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import {
   type SuratArsipItem,
   type JenisSurat,
@@ -591,7 +591,7 @@ export default function PersuratanManager({
             className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer shadow-none"
             title="Muat Ulang Data"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            <ArrowsClockwise className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           </button>
 
           <button
@@ -599,7 +599,7 @@ export default function PersuratanManager({
             onClick={handleExportCSV}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-[#00296E] dark:text-[#38BDF8] text-xs font-bold transition-colors cursor-pointer shadow-none uppercase tracking-wider"
           >
-            <FileSpreadsheet className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
+            <FileXls className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
             <span>Ekspor Rekap</span>
           </button>
 
@@ -630,7 +630,7 @@ export default function PersuratanManager({
             <span className="text-[11px] font-mono tracking-wider uppercase font-bold">
               Surat Keluar
             </span>
-            <Send className="w-4 h-4 text-[#00296E] dark:text-white/60" />
+            <PaperPlaneTilt className="w-4 h-4 text-[#00296E] dark:text-white/60" />
           </div>
           <div className="mt-3">
             <div className="text-3xl font-extrabold text-[#00296E] dark:text-white font-mono tracking-tight">
@@ -648,7 +648,7 @@ export default function PersuratanManager({
             <span className="text-[11px] font-mono tracking-wider uppercase font-bold">
               Surat Masuk
             </span>
-            <Inbox className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
+            <Tray className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
           </div>
           <div className="mt-3">
             <div className="text-3xl font-extrabold text-[#00296E] dark:text-white font-mono tracking-tight">
@@ -712,7 +712,7 @@ export default function PersuratanManager({
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
           }`}
         >
-          <Send className="w-4 h-4" />
+          <PaperPlaneTilt className="w-4 h-4" weight={activeTab === "keluar" ? "fill" : "regular"} />
           <span>Surat Keluar</span>
           <span className="px-2 py-0.5 rounded-none text-[10px] font-extrabold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 font-mono">
             {totalKeluar}
@@ -728,7 +728,7 @@ export default function PersuratanManager({
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
           }`}
         >
-          <Inbox className="w-4 h-4" />
+          <Tray className="w-4 h-4" weight={activeTab === "masuk" ? "fill" : "regular"} />
           <span>Surat Masuk</span>
           {belumDisposisiCount > 0 ? (
             <span className="px-2 py-0.5 rounded-none text-[10px] font-extrabold bg-amber-500 text-white font-mono">
@@ -806,7 +806,7 @@ export default function PersuratanManager({
 
         {/* Search Bar Input */}
         <div className="relative min-w-[260px] md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <MagnifyingGlass className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
@@ -848,7 +848,7 @@ export default function PersuratanManager({
                 {isLoading ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400 font-mono">
-                      <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#0094E0]" />
+                      <ArrowsClockwise className="w-5 h-5 animate-spin mx-auto mb-2 text-[#0094E0]" />
                       Memuat buku agenda surat keluar...
                     </td>
                   </tr>
@@ -954,7 +954,7 @@ export default function PersuratanManager({
                                 className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 text-[#00296E] dark:text-[#38BDF8] transition-colors"
                                 title={`Unduh Berkas: ${item.file_name || "Surat"}`}
                               >
-                                <Download className="w-3.5 h-3.5" />
+                                <DownloadSimple className="w-3.5 h-3.5" />
                               </a>
                             ) : (
                               <button
@@ -963,7 +963,7 @@ export default function PersuratanManager({
                                 className="p-1.5 rounded-none border border-dashed border-slate-300 dark:border-white/20 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                                 title="Lampirkan Dokumen PDF"
                               >
-                                <Upload className="w-3.5 h-3.5" />
+                                <UploadSimple className="w-3.5 h-3.5" />
                               </button>
                             )}
 
@@ -974,7 +974,7 @@ export default function PersuratanManager({
                                 className="p-1.5 rounded-none border border-red-500/20 hover:bg-red-500/10 text-red-500 transition-colors"
                                 title="Hapus Arsip Surat"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>
@@ -1002,7 +1002,7 @@ export default function PersuratanManager({
                 {isLoading ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400 font-mono">
-                      <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#0094E0]" />
+                      <ArrowsClockwise className="w-5 h-5 animate-spin mx-auto mb-2 text-[#0094E0]" />
                       Memuat buku agenda surat masuk...
                     </td>
                   </tr>
@@ -1104,7 +1104,7 @@ export default function PersuratanManager({
                                 className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 text-[#00296E] dark:text-[#38BDF8] transition-colors"
                                 title={`Unduh Berkas: ${item.file_name || "Surat"}`}
                               >
-                                <Download className="w-3.5 h-3.5" />
+                                <DownloadSimple className="w-3.5 h-3.5" />
                               </a>
                             )}
 
@@ -1115,7 +1115,7 @@ export default function PersuratanManager({
                                 className="p-1.5 rounded-none border border-red-500/20 hover:bg-red-500/10 text-red-500 transition-colors"
                                 title="Hapus Arsip Surat"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>
@@ -1296,7 +1296,7 @@ export default function PersuratanManager({
                     "Memproses..."
                   ) : (
                     <>
-                      <Send className="w-3.5 h-3.5" />
+                      <PaperPlaneTilt className="w-3.5 h-3.5" />
                       <span>Ajukan ke BPH</span>
                     </>
                   )}
@@ -1489,7 +1489,7 @@ export default function PersuratanManager({
                   disabled={isSubmittingMasuk}
                   className="px-5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f52] text-white font-bold uppercase tracking-wider text-xs flex items-center gap-1.5"
                 >
-                  <Inbox className="w-3.5 h-3.5 text-[#0094E0]" />
+                  <Tray className="w-3.5 h-3.5 text-[#0094E0]" />
                   <span>{isSubmittingMasuk ? "Menyimpan..." : "Simpan Surat Masuk"}</span>
                 </button>
               </div>
@@ -1644,7 +1644,7 @@ export default function PersuratanManager({
                       download={selectedSurat.file_name || undefined}
                       className="px-3 py-1.5 rounded-none bg-[#00296E] hover:bg-[#001f52] text-white font-mono text-xs font-bold flex items-center gap-1.5"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <DownloadSimple className="w-3.5 h-3.5" />
                       <span>Unduh Dokumen</span>
                     </a>
                   </div>
@@ -1738,7 +1738,7 @@ export default function PersuratanManager({
                         onClick={() => handlePromoteDraftToMenungguTtd(selectedSurat)}
                         className="px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f52] text-white font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
                       >
-                        <Send className="w-3.5 h-3.5 text-[#0094E0]" />
+                        <PaperPlaneTilt className="w-3.5 h-3.5 text-[#0094E0]" />
                         <span>Ajukan untuk TTD</span>
                       </button>
                     </div>
@@ -1761,7 +1761,7 @@ export default function PersuratanManager({
                           className="px-3.5 py-2 rounded-none border border-red-500/30 hover:bg-red-500/10 text-red-600 dark:text-red-400 font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                           title="Tarik kembali nomor urut ke antrean tanpa nomor bolong"
                         >
-                          <RotateCcw className="w-3.5 h-3.5" />
+                          <ArrowCounterClockwise className="w-3.5 h-3.5" />
                           <span>Tolak &amp; Tarik ke Draf (Recycle)</span>
                         </button>
 
@@ -1771,7 +1771,7 @@ export default function PersuratanManager({
                           onClick={() => handleApproveTtd(selectedSurat)}
                           className="px-4 py-2 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <CheckCircle className="w-3.5 h-3.5" />
                           <span>Setujui &amp; Tandai Terkirim</span>
                         </button>
                       </div>
@@ -1789,7 +1789,7 @@ export default function PersuratanManager({
                         onClick={() => handleRevertToDraft(selectedSurat)}
                         className="px-3 py-1.5 rounded-none border border-slate-300 dark:border-white/10 hover:bg-red-500/10 hover:text-red-600 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px] flex items-center justify-center gap-1 shrink-0 cursor-pointer"
                       >
-                        <RotateCcw className="w-3 h-3" />
+                        <ArrowCounterClockwise className="w-3 h-3" />
                         <span>Batalkan &amp; Recycle Nomor</span>
                       </button>
                     </div>
@@ -1810,7 +1810,7 @@ export default function PersuratanManager({
                   }}
                   className="text-red-500 hover:text-red-600 font-bold uppercase tracking-wider text-xs flex items-center gap-1"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash className="w-3.5 h-3.5" />
                   <span>Hapus Arsip</span>
                 </button>
               ) : (
@@ -1837,7 +1837,7 @@ export default function PersuratanManager({
           <div className="bg-white dark:bg-[#001438] border border-red-500/30 rounded-none shadow-none w-full max-w-md p-5 space-y-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-500/10 text-red-500">
-                <AlertCircle className="w-6 h-6" />
+                <WarningCircle className="w-6 h-6" />
               </div>
               <div>
                 <h4 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-wider text-sm">

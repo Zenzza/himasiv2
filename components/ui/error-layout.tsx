@@ -8,11 +8,11 @@ import {
   sanitizeRedirectUrl,
 } from "@/lib/constants/error-configs";
 import {
-  Home,
-  LayoutDashboard,
-  LogIn,
-  RefreshCw,
-} from "lucide-react";
+  House,
+  SquaresFour,
+  SignIn,
+  ArrowsClockwise,
+} from "@phosphor-icons/react";
 
 interface ErrorLayoutProps {
   code: string;
@@ -140,13 +140,13 @@ function ErrorLayoutContent({ code, error, reset }: ErrorLayoutProps) {
               className="rounded-full px-8 py-3.5 bg-[#00296E] hover:bg-[#001f54] text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 inline-flex items-center justify-center gap-2 cursor-pointer"
             >
               {config.code === "404" ? (
-                <Home className="w-4 h-4 text-sky-300" />
+                <House className="w-4 h-4 text-sky-300" />
               ) : config.code === "403" ? (
-                <LayoutDashboard className="w-4 h-4 text-sky-300" />
+                <SquaresFour className="w-4 h-4 text-sky-300" />
               ) : config.code === "401" ? (
-                <LogIn className="w-4 h-4 text-sky-300" />
+                <SignIn className="w-4 h-4 text-sky-300" />
               ) : (
-                <Home className="w-4 h-4 text-sky-300" />
+                <House className="w-4 h-4 text-sky-300" />
               )}
               <span>{config.primaryAction.label}</span>
             </Link>
@@ -160,7 +160,7 @@ function ErrorLayoutContent({ code, error, reset }: ErrorLayoutProps) {
                   : "bg-[#00296E] hover:bg-[#001f54] text-white hover:shadow-lg"
               }`}
             >
-              <RefreshCw
+              <ArrowsClockwise
                 className={`w-4 h-4 text-sky-300 ${
                   config.showCountdown && countdown > 0 ? "animate-spin" : ""
                 }`}

@@ -3,27 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Building2,
-  Headphones,
-  Quote,
-  ArrowRight,
   Play,
   X,
-  Calendar,
+  CalendarBlank,
   Users,
-  Award,
+  Medal,
   Globe,
-  Compass,
-  Sparkles,
-  HeartHandshake,
-  Rocket,
-  CheckCircle2,
-  Layers,
-  Lightbulb,
-  Target,
   MapPin,
-  ArrowUpRight
-} from "lucide-react";
+  ArrowUpRight,
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
 
@@ -156,7 +144,7 @@ export default function TentangPage() {
   const pinY = targetPin ? 9 + 0.82 * targetPin.top : 50;
 
   return (
-    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-clip bg-white text-[#091e42] min-h-screen">
       
       {/* ============================================================ */}
       {/* BAGIAN 1: HERO & STAGGERED PHOTO COLLAGE (SESUAI GAMBAR ATAS) */}
@@ -340,7 +328,7 @@ export default function TentangPage() {
                   className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-[#00296E] hover:bg-[#001f52] text-white text-xs sm:text-sm font-semibold transition-all shadow-md hover:shadow-lg hover:translate-y-[-1px] group cursor-pointer"
                 >
                   <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Play className="w-3 h-3 fill-white text-white ml-0.5" />
+                    <Play className="w-3 h-3 text-white ml-0.5" weight="fill" />
                   </div>
                   <span>Tonton Video Profil</span>
                 </button>
@@ -375,7 +363,7 @@ export default function TentangPage() {
             {/* Kolom Kanan: 3 Metric Cards */}
             {[
               {
-                icon: Calendar,
+                icon: CalendarBlank,
                 title: "Est. 2010",
                 subtitle: "16 tahun telah bersama dalam mengembangkan bakat dan minat mahasiswa Sistem Informasi.",
                 iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
@@ -387,7 +375,7 @@ export default function TentangPage() {
                 iconStyle: "bg-[#0094E0] text-[#002257] shadow-md shadow-[#0094E0]/25",
               },
               {
-                icon: Award,
+                icon: Medal,
                 title: "30 Anggota Aktif",
                 subtitle: "30 anggota yang aktif dalam mengembangkan HIMASI dan Sistem Informasi.",
                 iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",

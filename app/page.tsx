@@ -3,33 +3,30 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
-  Calendar,
-  Award,
+  CalendarBlank,
+  Medal,
   Users,
-  ChevronDown,
-  ChevronUp,
-  ChevronLeft,
-  ChevronRight,
+  CaretDown,
+  CaretUp,
+  CaretLeft,
+  CaretRight,
   Play,
   Clock,
   ArrowRight,
-  Sparkles,
+  Sparkle,
   UserPlus,
-  Shirt,
+  TShirt,
   Trophy,
-  Briefcase,
-  Quote,
-  Share2,
-  MoreHorizontal,
+  ShareNetwork,
+  DotsThree,
   Check,
-  Smile,
-  Layers,
+  Smiley,
+  Stack,
   BookOpen,
   FileText,
-  MessageSquare,
+  ChatTeardropText,
   PlayCircle,
-  Tag
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 import FormAspirasi from "@/components/form-aspirasi";
 import ScrollReveal from "@/components/scroll-reveal";
@@ -74,14 +71,14 @@ function getYouTubeVideoId(url: string): string {
 const FAQ_ITEMS = [
   {
     id: 1,
-    icon: Smile,
+    icon: Smiley,
     question: "Apa itu HIMASI dan apa saja peran utamanya di ISB Atma Luhur?",
     answer:
       "\"HIMASI\" adalah organisasi mahasiswa resmi di bawah naungan Program Studi Sistem Informasi di Institut Sains dan Bisnis Atma Luhur. Organisasi ini bertujuan untuk menjadi wadah pengembangan diri, kreativitas, kepemimpinan, dan keterampilan mahasiswa dalam bidang akademik, sosial, serta teknologi informasi.",
   },
   {
     id: 2,
-    icon: Layers,
+    icon: Stack,
     question: "Berapa divisi dalam kepengurusan Kabinet HIMASI saat ini?",
     answer:
       "HIMASI ISB Atma Luhur Kabinet REKSABUDAYA menaungi 6 divisi strategis: Badan Pengurus Harian (BPH), Divisi Akademik & Riset, Divisi Media Komunikasi & Informasi (Medkominfo), Divisi Hubungan Luar (Hublu), Divisi Dana Usaha (Danus), dan Divisi Minat & Bakat (Mikat).",
@@ -109,14 +106,14 @@ const FAQ_ITEMS = [
   },
   {
     id: 6,
-    icon: Sparkles,
+    icon: Sparkle,
     question: "Apakah kegiatan seminar, workshop, atau kompetisi HIMASI terbuka untuk umum?",
     answer:
       "Ya! Sebagian besar agenda besar kami seperti HIMASI Fest, workshop artificial intelligence, seminar karir software engineering, dan turnamen e-sport terbuka untuk seluruh mahasiswa lintas fakultas maupun masyarakat umum dari universitas lain.",
   },
   {
     id: 7,
-    icon: MessageSquare,
+    icon: ChatTeardropText,
     question: "Bagaimana cara menyampaikan aspirasi, saran, atau aduan ke jurusan?",
     answer:
       "Melalui program Apresia-SI (Aspirasi Mahasiswa SI), mahasiswa dapat menyampaikan aspirasi kapan saja secara daring lewat formulir online di website ini atau menghadiri forum tatap muka Serap Aspirasi berkala yang langsung diadvokasikan ke Kaprodi Sistem Informasi.",
@@ -497,17 +494,17 @@ export default function Home() {
       case "UserPlus":
         return UserPlus;
       case "Shirt":
-        return Shirt;
+        return TShirt;
       case "Trophy":
         return Trophy;
       case "Award":
       default:
-        return Award;
+        return Medal;
     }
   };
 
   return (
-    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-clip bg-white text-[#091e42] min-h-screen">
       
       <section className="relative w-full overflow-hidden h-[calc(100dvh-64px)] min-h-[calc(100dvh-64px)] sm:h-auto sm:min-h-[92vh] flex flex-col justify-center items-center">
         
@@ -524,7 +521,7 @@ export default function Home() {
           aria-label="Scroll ke konten bawah"
         >
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/85 hover:bg-white backdrop-blur-md border border-slate-200/80 shadow-md hover:shadow-lg flex items-center justify-center transition-all duration-200 group-hover:scale-110">
-            <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-[#00296E] stroke-[2.5]" />
+            <CaretDown className="w-4 h-4 sm:w-5 sm:h-5 text-[#00296E]" weight="bold" />
           </div>
         </button>
 
@@ -632,7 +629,7 @@ export default function Home() {
                       {/* Center: Red YouTube Play Button */}
                       <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                         <div className="w-16 h-11 sm:w-20 sm:h-14 rounded-2xl bg-[#ff0000] group-hover:bg-red-700 shadow-[0_10px_25px_rgba(255,0,0,0.4)] flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                          <Play className="w-6 h-6 sm:w-7 sm:h-7 text-white fill-white ml-0.5" />
+                          <Play className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-0.5" weight="fill" />
                         </div>
                       </div>
 
@@ -655,7 +652,7 @@ export default function Home() {
                         <span>Tonton di</span>
                         <span className="font-bold flex items-center gap-1">
                           <span className="w-4 h-3 bg-red-600 rounded-[3px] flex items-center justify-center">
-                            <Play className="w-2 h-2 text-white fill-white ml-0.5" />
+                            <Play className="w-2 h-2 text-white ml-0.5" weight="fill" />
                           </span>
                           YouTube
                         </span>
@@ -719,7 +716,7 @@ export default function Home() {
             {[
               {
                 number: "",
-                icon: Calendar,
+                icon: CalendarBlank,
                 title: "Est. 2010",
                 subtitle: "16 tahun telah bersama dalam mengembangkan bakat dan minat mahasiswa Sistem Informasi.",
                 iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
@@ -733,7 +730,7 @@ export default function Home() {
               },
               {
                 number: "",
-                icon: Award,
+                icon: Medal,
                 title: "30 Anggota Aktif",
                 subtitle: "30 anggota yang aktif dalam mengembangkan HIMASI dan Sistem Informasi.",
                 iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
@@ -967,7 +964,7 @@ export default function Home() {
                   className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white border border-slate-200/90 hover:border-[#00296E] hover:bg-[#00296E] hover:text-white text-[#00296E] flex items-center justify-center shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                   aria-label="Berita Sebelumnya"
                 >
-                  <ChevronLeft className="w-5 h-5 stroke-[2.2]" />
+                  <CaretLeft className="w-5 h-5" weight="bold" />
                 </button>
                 <button
                   type="button"
@@ -975,7 +972,7 @@ export default function Home() {
                   className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white border border-slate-200/90 hover:border-[#00296E] hover:bg-[#00296E] hover:text-white text-[#00296E] flex items-center justify-center shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                   aria-label="Berita Selanjutnya"
                 >
-                  <ChevronRight className="w-5 h-5 stroke-[2.2]" />
+                  <CaretRight className="w-5 h-5" weight="bold" />
                 </button>
               </div>
             </div>
@@ -1098,7 +1095,7 @@ export default function Home() {
                               aria-label="Bagikan Berita"
                               title="Bagikan Tautan Berita"
                             >
-                              <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
+                              <ShareNetwork className="w-3.5 h-3.5 sm:w-4 sm:h-4" weight="bold" />
                             </button>
                             <Link
                               href={`/berita/${item.slug}`}
@@ -1107,7 +1104,7 @@ export default function Home() {
                               aria-label="Baca Selengkapnya"
                               title="Detail Berita"
                             >
-                              <MoreHorizontal className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.2]" />
+                              <DotsThree className="w-4 h-4 sm:w-4.5 sm:h-4.5" weight="bold" />
                             </Link>
                           </div>
                         </div>
@@ -1370,9 +1367,9 @@ export default function Home() {
                       }`}
                     >
                       {isOpen ? (
-                        <ChevronUp className="w-5 h-5 stroke-[2.2]" />
+                        <CaretUp className="w-5 h-5" weight="bold" />
                       ) : (
-                        <ChevronDown className="w-5 h-5 stroke-[2.2]" />
+                        <CaretDown className="w-5 h-5" weight="bold" />
                       )}
                     </div>
                   </button>
@@ -1387,7 +1384,7 @@ export default function Home() {
       {/* Toast Notifikasi Berhasil Salin Link */}
       {copiedToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#00296E] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs sm:text-sm font-semibold animate-bounce">
-          <Check className="w-4 h-4 text-emerald-400" />
+          <Check className="w-4 h-4 text-emerald-400" weight="bold" />
           <span>Tautan berita berhasil disalin!</span>
         </div>
       )}

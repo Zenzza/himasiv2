@@ -241,11 +241,7 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
 
   // Jika rute dikecualikan atau animasi sudah selesai sepenuhnya ('hidden'), render konten normal
   if ((isExcludedPath && !forceShow) || phase === "hidden") {
-    return (
-      <div className="min-h-full flex-1 flex flex-col bg-white">
-        {children}
-      </div>
-    );
+    return <>{children}</>;
   }
 
   const isExiting = phase === "exiting";

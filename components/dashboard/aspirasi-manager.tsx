@@ -2,30 +2,28 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
-  MessageSquare,
-  Search,
-  RefreshCw,
-  CheckCircle2,
+  ChatTeardropText,
+  MagnifyingGlass,
+  ArrowsClockwise,
+  CheckCircle,
   Clock,
-  AlertCircle,
-  AlertTriangle,
-  Trash2,
+  WarningCircle,
+  Warning,
+  Trash,
   Copy,
   Check,
   Eye,
-  EyeOff,
+  EyeSlash,
   Lock,
-  Send,
+  PaperPlaneTilt,
   X,
   ShieldCheck,
-  Filter,
-  Sparkles,
-  MailCheck,
-  MailWarning,
-  Mail,
-  RotateCw,
-  Loader2,
-} from "lucide-react";
+  Funnel,
+  Sparkle,
+  EnvelopeSimple,
+  ArrowClockwise,
+  Spinner,
+} from "@phosphor-icons/react";
 import {
   type AspirasiItem,
   type AspirasiStatus,
@@ -348,7 +346,7 @@ export default function AspirasiManager({
             disabled={isLoading}
             className="flex-1 sm:flex-none px-3.5 py-2 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-mono uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
+            <ArrowsClockwise className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
             <span>Segarkan</span>
           </button>
         </div>
@@ -360,7 +358,7 @@ export default function AspirasiManager({
         <div className="bg-white dark:bg-[#001438] p-4 border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-mono uppercase tracking-wider font-medium">Total Aspirasi</span>
-            <MessageSquare className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
+            <ChatTeardropText className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
           </div>
           <div className="mt-3">
             <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white">
@@ -417,7 +415,7 @@ export default function AspirasiManager({
         <div className="bg-white dark:bg-[#001438] p-4 border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-mono uppercase tracking-wider font-medium">Telah Selesai</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <CheckCircle className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="mt-3">
             <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white">
@@ -438,7 +436,7 @@ export default function AspirasiManager({
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-8 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] font-mono"
           />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <MagnifyingGlass className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           {searchQuery && (
             <button
               type="button"
@@ -492,14 +490,14 @@ export default function AspirasiManager({
       {/* 4. Grid Kartu Aspirasi (Swiss Minimalist Grid) */}
       {isLoading ? (
         <div className="p-16 text-center bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none">
-          <RefreshCw className="w-6 h-6 text-[#00296E] dark:text-[#38BDF8] animate-spin mx-auto mb-3" />
+          <ArrowsClockwise className="w-6 h-6 text-[#00296E] dark:text-[#38BDF8] animate-spin mx-auto mb-3" />
           <p className="text-xs font-mono text-slate-500 uppercase tracking-wider">
             Memuat data aspirasi dari Supabase...
           </p>
         </div>
       ) : filteredList.length === 0 ? (
         <div className="p-16 text-center bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none">
-          <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <ChatTeardropText className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
             Tidak ada aspirasi yang cocok
           </h3>
@@ -572,7 +570,7 @@ export default function AspirasiManager({
                         className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-white/10 rounded-none transition-colors cursor-pointer"
                         title={isRevealed ? "Sensor Alamat Email" : "Tampilkan Alamat Email Lengkap"}
                       >
-                        {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {isRevealed ? <EyeSlash className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
 
                       {/* Tombol Salin Email */}
@@ -603,7 +601,7 @@ export default function AspirasiManager({
                     <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 rounded-none space-y-2 mb-3">
                       <div className="flex items-center justify-between gap-1 text-[10px] font-mono text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider">
                         <span className="flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <CheckCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                           Telah Ditanggapi
                         </span>
                         <span className="text-slate-400 dark:text-slate-400 font-normal">
@@ -617,26 +615,26 @@ export default function AspirasiManager({
                       <div className="pt-2 border-t border-emerald-500/20 flex flex-wrap items-center justify-between gap-1 text-[10px] font-mono">
                         {item.status_email === "terkirim" && (
                           <span className="inline-flex items-center gap-1 text-emerald-800 dark:text-emerald-300 font-semibold">
-                            <MailCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            <CheckCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                             Email Terkirim
                           </span>
                         )}
                         {item.status_email === "pending" && (
                           <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold">
-                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <Spinner className="w-3 h-3 animate-spin" />
                             Mengirim Email...
                           </span>
                         )}
                         {item.status_email === "simulasi_terkirim" && (
                           <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 font-normal">
-                            <Mail className="w-3 h-3" />
+                            <EnvelopeSimple className="w-3 h-3" />
                             Simulasi Email
                           </span>
                         )}
                         {item.status_email === "gagal" && (
                           <div className="flex items-center gap-1.5">
                             <span className="inline-flex items-center gap-1 text-rose-700 dark:text-rose-400 font-semibold">
-                              <MailWarning className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                              <WarningCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                               Email Gagal
                             </span>
                             <button
@@ -648,12 +646,12 @@ export default function AspirasiManager({
                             >
                               {retryingEmailId === item.id ? (
                                 <>
-                                  <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                  <Spinner className="w-2.5 h-2.5 animate-spin" />
                                   <span>Mengirim...</span>
                                 </>
                               ) : (
                                 <>
-                                  <RotateCw className="w-2.5 h-2.5" />
+                                  <ArrowClockwise className="w-2.5 h-2.5" />
                                   <span>Kirim Ulang</span>
                                 </>
                               )}
@@ -728,7 +726,7 @@ export default function AspirasiManager({
                         className="p-1 rounded-none text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer ml-1"
                         title="Hapus Tiket Aspirasi"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
@@ -782,7 +780,7 @@ export default function AspirasiManager({
 
             {/* Banner Peringatan Penguncian Permanen (Immutability Lock) */}
             <div className="p-3 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 rounded-none flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <Warning className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <p className="text-[11px] font-mono text-amber-900 dark:text-amber-200 leading-relaxed">
                 Setelah ditandai selesai, tanggapan ini akan dikunci permanen dan tidak dapat disunting kembali. Mahasiswa akan menerima notifikasi status penyelesaian.
               </p>
@@ -840,12 +838,12 @@ export default function AspirasiManager({
                 >
                   {isSubmittingResolution ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <ArrowsClockwise className="w-3.5 h-3.5 animate-spin" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
                     <>
-                      <Send className="w-3.5 h-3.5" />
+                      <PaperPlaneTilt className="w-3.5 h-3.5" />
                       <span>Kirim Jawaban &amp; Tandai Selesai</span>
                     </>
                   )}
@@ -866,7 +864,7 @@ export default function AspirasiManager({
           <div className="bg-white dark:bg-[#001438] border border-rose-500/30 dark:border-rose-500/20 w-full max-w-md p-5 sm:p-6 rounded-none shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
               <div className="p-2 bg-rose-500/10 border border-rose-500/20 rounded-none">
-                <Trash2 className="w-5 h-5" />
+                <Trash className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white font-mono uppercase">
@@ -903,12 +901,12 @@ export default function AspirasiManager({
               >
                 {isDeleting ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <ArrowsClockwise className="w-3.5 h-3.5 animate-spin" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash className="w-3.5 h-3.5" />
                     <span>Ya, Hapus Permanen</span>
                   </>
                 )}
@@ -922,7 +920,7 @@ export default function AspirasiManager({
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-[100] max-w-md bg-[#001438] text-white border border-[#38BDF8]/40 px-4 py-3 rounded-none shadow-2xl animate-in slide-in-from-bottom-2 duration-200 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#38BDF8] flex-shrink-0" />
+            <Sparkle className="w-4 h-4 text-[#38BDF8] flex-shrink-0" />
             <p className="text-xs font-mono tracking-wide">{toastMessage}</p>
           </div>
           <button

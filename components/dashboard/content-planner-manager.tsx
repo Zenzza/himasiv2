@@ -3,23 +3,22 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Table,
-  Calendar,
+  CalendarBlank,
   Plus,
-  RefreshCw,
-  Search,
-  Filter,
-  Layers,
-  Sparkles,
-  CheckCircle2,
-  AlertCircle,
+  ArrowsClockwise,
+  MagnifyingGlass,
+  Funnel,
+  Stack,
+  Sparkle,
+  CheckCircle,
+  WarningCircle,
   Info,
   X,
-  RotateCcw,
+  ArrowCounterClockwise,
   Radio,
-  FileSpreadsheet,
-  CalendarDays,
+  FileXls,
   Flame,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import {
   type ContentPlanItem,
   type ContentPlanInput,
@@ -319,7 +318,7 @@ export default function ContentPlannerManager({
               <span className="text-[#00296E] dark:text-[#38BDF8] font-bold">PERENCANAAN KONTEN & STRATEGI</span>
             </div>
             <h1 className="text-lg sm:text-xl font-black tracking-tight text-[#00296E] dark:text-white uppercase font-mono flex items-center gap-2">
-              <CalendarDays className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
+              <CalendarBlank className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
               <span>CONTENT PLANNING & EDITORIAL MATRIX</span>
             </h1>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
@@ -348,7 +347,7 @@ export default function ContentPlannerManager({
               className="p-1.5 border border-[#00296E]/20 dark:border-[#00296E]/40 text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#00296E]/30 text-xs font-mono rounded-none transition-colors"
               title="Reset data ke acuan operasional (CW 22 & CW 23)"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <ArrowCounterClockwise className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -400,7 +399,7 @@ export default function ContentPlannerManager({
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 text-amber-300 dark:text-[#001740]" />
+                <Sparkle className="w-4 h-4 text-amber-300 dark:text-[#001740]" />
                 <span>+ Ajukan Ide Konten</span>
               </>
             )}
@@ -448,7 +447,7 @@ export default function ContentPlannerManager({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-44 sm:w-56 bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-[#00296E]/40 text-slate-800 dark:text-white pl-8 pr-3 py-1 text-xs font-mono rounded-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] transition-colors"
               />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+              <MagnifyingGlass className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
               {searchQuery && (
                 <button
                   type="button"
@@ -484,7 +483,7 @@ export default function ContentPlannerManager({
                   : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white"
               }`}
             >
-              <Calendar className="w-3.5 h-3.5" />
+              <CalendarBlank className="w-3.5 h-3.5" />
               <span>Kalender Bulanan</span>
             </button>
           </div>
@@ -496,7 +495,7 @@ export default function ContentPlannerManager({
       {/* ========================================================================= */}
       {isLoading ? (
         <div className="p-12 text-center bg-white dark:bg-[#001438] border border-[#00296E]/20 dark:border-[#00296E]/40 rounded-none shadow-none transition-colors">
-          <RefreshCw className="w-6 h-6 animate-spin text-[#0094E0] dark:text-[#38BDF8] mx-auto mb-3" />
+          <ArrowsClockwise className="w-6 h-6 animate-spin text-[#0094E0] dark:text-[#38BDF8] mx-auto mb-3" />
           <p className="text-xs font-mono text-slate-600 dark:text-slate-400">
             Menyinkronkan lembar kerja perencanaan konten...
           </p>
@@ -560,7 +559,7 @@ export default function ContentPlannerManager({
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white dark:bg-[#001438] border border-red-500/40 p-5 max-w-md w-full space-y-4 rounded-none shadow-2xl text-slate-800 dark:text-slate-100 transition-colors">
             <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm uppercase tracking-wider font-mono">
-              <AlertCircle className="w-5 h-5 shrink-0" />
+              <WarningCircle className="w-5 h-5 shrink-0" />
               <span>Konfirmasi Hapus Rencana Konten</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">

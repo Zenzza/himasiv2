@@ -3,23 +3,23 @@
 import { useState } from "react";
 import {
   Trophy,
-  Code2,
+  Code,
   Briefcase,
-  Send,
-  CheckCircle2,
-  RotateCcw,
+  PaperPlaneTilt,
+  CheckCircle,
+  ArrowCounterClockwise,
   User,
   GraduationCap,
   Phone,
-  Building2,
-  Link2,
+  Buildings,
+  Link,
   FileText,
-  Loader2,
-  Sparkles,
+  Spinner,
+  Sparkle,
   Users,
   ShieldCheck,
   Check,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import { submitApresiasiMahasiswa } from "@/lib/data/apresiasi";
 import { type ApresiasiCategory, type ApresiasiSubmissionPayload } from "@/lib/types/apresiasi";
 
@@ -176,7 +176,7 @@ export default function FormPengajuanApresiasi() {
           /* State Feedback Sukses */
           <div className="py-8 px-4 text-center animate-in fade-in zoom-in-95 duration-200">
             <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-500/20 text-emerald-600 mx-auto flex items-center justify-center mb-4 shadow-sm">
-              <CheckCircle2 className="w-9 h-9 stroke-[2.2]" />
+              <CheckCircle className="w-9 h-9" />
             </div>
             <h3 className="text-xl sm:text-2xl font-extrabold text-[#00296E] tracking-tight">
               Pengajuan Berhasil Dikirim!
@@ -208,7 +208,7 @@ export default function FormPengajuanApresiasi() {
                 onClick={handleReset}
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#00296E] hover:bg-[#001f52] text-white text-xs sm:text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
               >
-                <RotateCcw className="w-4 h-4 text-[#0094E0]" />
+                <ArrowCounterClockwise className="w-4 h-4 text-[#0094E0]" />
                 <span>Ajukan Prestasi Lainnya</span>
               </button>
             </div>
@@ -247,7 +247,10 @@ export default function FormPengajuanApresiasi() {
                       : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                   }`}
                 >
-                  <Trophy className={`w-4 h-4 ${category === "lomba" ? "text-amber-300" : "text-[#0094E0]"}`} />
+                  <Trophy
+                    weight={category === "lomba" ? "fill" : "regular"}
+                    className={`w-4 h-4 ${category === "lomba" ? "text-amber-300" : "text-[#0094E0]"}`}
+                  />
                   <span className="text-center text-[11px] sm:text-xs">Pemenang Lomba</span>
                 </button>
 
@@ -260,7 +263,10 @@ export default function FormPengajuanApresiasi() {
                       : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                   }`}
                 >
-                  <Code2 className={`w-4 h-4 ${category === "karya" ? "text-cyan-300" : "text-[#0094E0]"}`} />
+                  <Code
+                    weight={category === "karya" ? "fill" : "regular"}
+                    className={`w-4 h-4 ${category === "karya" ? "text-cyan-300" : "text-[#0094E0]"}`}
+                  />
                   <span className="text-center text-[11px] sm:text-xs">Karya & Startup</span>
                 </button>
 
@@ -273,7 +279,10 @@ export default function FormPengajuanApresiasi() {
                       : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                   }`}
                 >
-                  <Briefcase className={`w-4 h-4 ${category === "magang" ? "text-emerald-300" : "text-[#0094E0]"}`} />
+                  <Briefcase
+                    weight={category === "magang" ? "fill" : "regular"}
+                    className={`w-4 h-4 ${category === "magang" ? "text-emerald-300" : "text-[#0094E0]"}`}
+                  />
                   <span className="text-center text-[11px] sm:text-xs">Magang & MSIB</span>
                 </button>
               </div>
@@ -422,7 +431,7 @@ export default function FormPengajuanApresiasi() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Building2 className="w-4 h-4" />
+                    <Buildings className="w-4 h-4" />
                   </div>
                   <input
                     type="text"
@@ -488,7 +497,7 @@ export default function FormPengajuanApresiasi() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Link2 className="w-4 h-4" />
+                    <Link className="w-4 h-4" />
                   </div>
                   <input
                     type="url"
@@ -506,7 +515,7 @@ export default function FormPengajuanApresiasi() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Link2 className="w-4 h-4" />
+                    <Link className="w-4 h-4" />
                   </div>
                   <input
                     type="url"
@@ -528,12 +537,12 @@ export default function FormPengajuanApresiasi() {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <Spinner className="w-4 h-4 animate-spin text-white" />
                     <span>Mengirimkan Pengajuan...</span>
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4 text-[#0094E0]" />
+                    <PaperPlaneTilt className="w-4 h-4 text-[#0094E0]" />
                     <span>Kirim Pengajuan Apresia-SI</span>
                   </>
                 )}

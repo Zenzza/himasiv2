@@ -6,17 +6,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { sanitizeRedirectUrl } from "@/lib/constants/error-configs";
 import {
   Lock,
-  Mail,
+  EnvelopeSimple,
   ArrowLeft,
   ShieldCheck,
   Eye,
-  EyeOff,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Sparkles,
-  ArrowRight
-} from "lucide-react";
+  EyeSlash,
+  Spinner,
+  WarningCircle,
+  CheckCircle,
+  Sparkle,
+  ArrowRight,
+} from "@phosphor-icons/react";
 import { supabase } from "@/lib/supabase/client";
 
 function LoginContent() {
@@ -193,7 +193,7 @@ function LoginContent() {
         {/* Notifikasi Alert Error */}
         {errorMessage && (
           <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <WarningCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <div className="flex-1 font-medium leading-relaxed">{errorMessage}</div>
           </div>
         )}
@@ -201,7 +201,7 @@ function LoginContent() {
         {/* Notifikasi Alert Success */}
         {successMessage && (
           <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div className="flex-1 font-medium leading-relaxed">{successMessage}</div>
           </div>
         )}
@@ -231,7 +231,7 @@ function LoginContent() {
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   aria-label={showPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -258,7 +258,7 @@ function LoginContent() {
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   aria-label={showConfirmPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
                 >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showConfirmPassword ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -271,7 +271,7 @@ function LoginContent() {
             >
               {isSettingPassword ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <Spinner className="w-4 h-4 animate-spin text-white" />
                   <span>Menyimpan Kata Sandi...</span>
                 </>
               ) : (
@@ -299,7 +299,7 @@ function LoginContent() {
                 placeholder="pengurus@himasi.atmaluhur.ac.id"
                 className="w-full pl-10 pr-3 py-2.5 sm:py-3 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00296E] focus:border-transparent transition-all"
               />
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <EnvelopeSimple className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
@@ -339,7 +339,7 @@ function LoginContent() {
                 aria-label={showPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
               >
                 {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeSlash className="w-4 h-4" />
                 ) : (
                   <Eye className="w-4 h-4" />
                 )}
@@ -355,7 +355,7 @@ function LoginContent() {
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <Spinner className="w-4 h-4 animate-spin text-white" />
                 <span>Memproses Autentikasi...</span>
               </>
             ) : (

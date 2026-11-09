@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Plus, CheckCircle2, Calendar, Sparkles } from "lucide-react";
+import { Plus, CheckCircle, CalendarBlank, Sparkle } from "@phosphor-icons/react";
 import {
   type ContentPlanItem,
   type PlatformKonten,
@@ -247,7 +247,7 @@ export function CalendarGridView({
                             title={plan.status}
                           />
                           {plan.is_done && (
-                            <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                            <CheckCircle className="w-3 h-3 text-emerald-500 dark:text-emerald-400 shrink-0" />
                           )}
                         </div>
                       </div>

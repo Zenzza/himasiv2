@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
-import { Download, QrCode as QrIcon, Check, Copy, Sparkles, UserCheck, Edit3, Trash2 } from "lucide-react";
+import { DownloadSimple, QrCode as QrIcon, Check, Copy, Sparkle, UserCheck, NotePencil, Trash } from "@phosphor-icons/react";
 import type { PengurusMember } from "@/lib/data/pengurus";
 
 interface PengurusQrCardProps {
@@ -167,7 +167,7 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
             onClick={handleDownloadQr}
             className="flex-1 py-2.5 px-3 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Download className="w-4 h-4 text-sky-300" />
+            <DownloadSimple className="w-4 h-4 text-sky-300" />
             <span>Unduh QR Code</span>
           </button>
 
@@ -199,7 +199,7 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
                 onClick={() => onEdit(member)}
                 className="flex-1 py-2 px-3 rounded-none bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-[#00296E] dark:text-[#38BDF8] text-xs font-bold transition-all border border-sky-200 dark:border-sky-800/60 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Edit3 className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
+                <NotePencil className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
                 <span>Edit Data</span>
               </button>
             )}
@@ -210,7 +210,7 @@ export default function PengurusQrCard({ member, onClose, onEdit, onDelete }: Pe
                 className="py-2 px-3 rounded-none bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all border border-rose-200 dark:border-rose-900/50 flex items-center justify-center gap-1.5 cursor-pointer"
                 title="Hapus Peserta"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash className="w-3.5 h-3.5" />
                 <span>Hapus</span>
               </button>
             )}

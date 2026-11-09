@@ -3,13 +3,13 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
-  Search,
+  MagnifyingGlass,
   ArrowRight,
-  Share2,
+  ShareNetwork,
   Check,
   X,
-  Loader2,
-} from "lucide-react";
+  Spinner,
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
 import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
@@ -114,7 +114,7 @@ export default function BeritaPage() {
     CATEGORIES.find((c) => c.id === selectedCategory)?.label || "Semua Berita";
 
   return (
-    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-clip bg-white text-[#091e42] min-h-screen">
       {/* SECTION HEADER: SESUAI REFERENSI (BREADCRUMB, JUDUL TENGAH BESAR, SUBJUDUL) */}
       <section className="relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
@@ -152,7 +152,7 @@ export default function BeritaPage() {
               {/* Search Bar & Status Filter */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-100">
                 <div className="relative w-full sm:w-72">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <MagnifyingGlass className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -311,7 +311,7 @@ export default function BeritaPage() {
                               title="Bagikan Tautan Artikel"
                               aria-label="Bagikan Tautan Artikel"
                             >
-                              <Share2 className="w-3.5 h-3.5 stroke-[2]" />
+                              <ShareNetwork className="w-3.5 h-3.5" weight="bold" />
                             </button>
                           </div>
                         </article>
@@ -323,7 +323,7 @@ export default function BeritaPage() {
                 /* Tampilan Kosong Jika Pencarian Tidak Ada Hasil */
                 <div className="text-center py-16 px-4 rounded-[24px] bg-slate-50 border border-slate-100">
                   <div className="w-14 h-14 rounded-2xl bg-sky-100 text-[#0094E0] flex items-center justify-center mx-auto mb-4">
-                    <Search className="w-7 h-7" />
+                    <MagnifyingGlass className="w-7 h-7" />
                   </div>
                   <h3 className="text-lg font-bold text-slate-800">
                     Tidak ada artikel yang cocok
@@ -442,7 +442,7 @@ export default function BeritaPage() {
               <div className="bg-white rounded-[20px] p-5 sm:p-6 border border-slate-200/90 shadow-xs">
                 <h2 className="text-[13px] sm:text-sm font-bold text-slate-800 tracking-wider uppercase border-b border-slate-100 pb-3 mb-3.5 flex items-center justify-between">
                   <span>BERITA TERBARU</span>
-                  {loading && <Loader2 className="w-3.5 h-3.5 text-[#0094E0] animate-spin" />}
+                  {loading && <Spinner className="w-3.5 h-3.5 text-[#0094E0] animate-spin" />}
                 </h2>
                 <div className="divide-y divide-slate-100">
                   {loading ? (
@@ -483,7 +483,7 @@ export default function BeritaPage() {
       {/* Toast Notifikasi Berhasil Salin Tautan */}
       {copiedToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#00296E] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs sm:text-sm font-semibold animate-bounce">
-          <Check className="w-4 h-4 text-emerald-400" />
+          <Check className="w-4 h-4 text-emerald-400" weight="bold" />
           <span>Tautan artikel berhasil disalin!</span>
         </div>
       )}

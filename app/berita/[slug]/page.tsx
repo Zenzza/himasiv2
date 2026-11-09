@@ -4,19 +4,16 @@ import { use, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  Calendar,
+  CalendarBlank,
   Clock,
   ArrowLeft,
-  Share2,
   Check,
   Tag,
-  Link2,
-  Sparkles,
-  AlertCircle,
-  MessageCircle,
+  Link as LinkIcon,
+  WarningCircle,
+  ChatCircle,
   ArrowRight,
-  BookOpen,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
 import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
@@ -203,7 +200,7 @@ export default function BeritaDetailPage({ params }: PageProps) {
       <div className="flex flex-col w-full min-h-screen bg-white text-[#091e42]">
         <div className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-20 flex flex-col items-center justify-center text-center">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mb-6 shadow-xs border border-amber-200">
-            <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10" />
+            <WarningCircle className="w-8 h-8 sm:w-10 sm:h-10" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-[#00296E] tracking-tight">
             Artikel Tidak Ditemukan
@@ -292,7 +289,7 @@ export default function BeritaDetailPage({ params }: PageProps) {
 
             <div className="flex items-center gap-4 text-slate-500 font-medium">
               <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <CalendarBlank className="w-3.5 h-3.5 text-slate-400" />
                 <span>{formatBeritaDate(article?.published_at)}</span>
               </div>
               <span>&bull;</span>
@@ -359,7 +356,7 @@ export default function BeritaDetailPage({ params }: PageProps) {
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-xs active:scale-95"
                 title="Bagikan ke WhatsApp"
               >
-                <MessageCircle className="w-4 h-4 fill-emerald-600 text-emerald-600" />
+                <ChatCircle className="w-4 h-4 fill-emerald-600 text-emerald-600" weight="fill" />
                 <span>WhatsApp</span>
               </button>
 
@@ -370,7 +367,7 @@ export default function BeritaDetailPage({ params }: PageProps) {
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-slate-100 hover:bg-[#00296E] text-slate-700 hover:text-white border border-slate-200 text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-xs active:scale-95"
                 title="Salin Tautan Artikel"
               >
-                <Link2 className="w-4 h-4" />
+                <LinkIcon className="w-4 h-4" />
                 <span>Salin Tautan</span>
               </button>
 
@@ -467,7 +464,7 @@ export default function BeritaDetailPage({ params }: PageProps) {
       {/* Toast Notifikasi Salin Tautan */}
       {copiedToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#00296E] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs sm:text-sm font-semibold animate-bounce">
-          <Check className="w-4 h-4 text-emerald-400" />
+          <Check className="w-4 h-4 text-emerald-400" weight="bold" />
           <span>Tautan artikel berhasil disalin!</span>
         </div>
       )}

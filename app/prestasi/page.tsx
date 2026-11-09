@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Award, Trophy, Medal, PlusCircle, CheckCircle2, Search, ExternalLink, Sparkles } from "lucide-react";
+import {
+  Trophy,
+  Medal,
+  PlusCircle,
+  CheckCircle,
+} from "@phosphor-icons/react";
 
 export default function PrestasiPage() {
   const [filterCategory, setFilterCategory] = useState("Semua");
@@ -61,7 +66,7 @@ export default function PrestasiPage() {
   );
 
   return (
-    <div className="flex flex-col w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 overflow-x-hidden">
+    <div className="flex flex-col w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 overflow-x-clip">
       {/* Banner */}
       <section className="relative rounded-[2.5rem] bg-gradient-to-r from-[#0094E0] via-[#0070c0] to-[#00296E] p-8 sm:p-14 text-white shadow-xl shadow-sky-500/10 overflow-hidden mb-8">
         <div className="relative z-10 max-w-2xl">
@@ -157,7 +162,7 @@ export default function PrestasiPage() {
 
             {submitSuccess ? (
               <div className="text-center py-6">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+                <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" weight="fill" />
                 <h4 className="text-base font-bold text-slate-900 dark:text-white">Laporan Berhasil Diajukan!</h4>
                 <p className="text-xs text-slate-500 mt-1">Tim HIMASI akan memvalidasi bukti sertifikat dalam 2 hari kerja.</p>
                 <button

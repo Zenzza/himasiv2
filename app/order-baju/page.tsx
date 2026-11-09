@@ -4,17 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ShoppingBag,
-  CheckCircle2,
+  CheckCircle,
   ArrowLeft,
-  Clock,
-  Sparkles,
-  ShieldCheck,
-  Send,
-  HelpCircle,
-  Truck,
-  CreditCard,
-  Ruler
-} from "lucide-react";
+  Sparkle,
+  Ruler,
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 
 export default function OrderBajuPage() {
@@ -78,7 +72,7 @@ export default function OrderBajuPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-[#091e42] w-full max-w-full overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-[#091e42] w-full max-w-full overflow-x-clip">
       {/* Top Banner */}
       <section className="relative w-full bg-[#00296E] text-white py-14 sm:py-20 px-4 sm:px-6 lg:px-12 overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#0094E0]/20 rounded-full blur-3xl pointer-events-none" />
@@ -114,7 +108,7 @@ export default function OrderBajuPage() {
         {/* Product Cards Selection */}
         <section>
           <div className="flex items-center gap-2 text-xs font-bold text-[#0094E0] uppercase tracking-wider mb-2">
-            <Sparkles className="w-4 h-4" />
+            <Sparkle className="w-4 h-4" />
             <span>Katalog Atribut Resmi</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-6">
@@ -140,7 +134,7 @@ export default function OrderBajuPage() {
                         {p.tag}
                       </span>
                       {isSelected && (
-                        <CheckCircle2 className="w-5 h-5 text-[#0094E0]" />
+                        <CheckCircle className="w-5 h-5 text-[#0094E0]" weight="fill" />
                       )}
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 mb-1">
@@ -155,7 +149,7 @@ export default function OrderBajuPage() {
                     <ul className="space-y-1.5 text-xs text-slate-500 border-t border-slate-100 pt-3">
                       {p.features.map((f, i) => (
                         <li key={i} className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" weight="fill" />
                           <span>{f}</span>
                         </li>
                       ))}
@@ -237,7 +231,7 @@ export default function OrderBajuPage() {
           {isOrdered ? (
             <div className="p-8 sm:p-12 rounded-2xl bg-emerald-50 border border-emerald-300 text-center max-w-lg mx-auto animate-in fade-in zoom-in-95">
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-4">
-                <CheckCircle2 className="w-9 h-9" />
+                <CheckCircle className="w-9 h-9" weight="fill" />
               </div>
               <h3 className="text-2xl font-bold text-slate-900">
                 Pesanan Berhasil Dicatat!

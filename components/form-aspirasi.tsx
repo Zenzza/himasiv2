@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import {
-  Send,
-  CheckCircle2,
-  Mail,
+  PaperPlaneTilt,
+  CheckCircle,
+  EnvelopeSimple,
   GraduationCap,
-  RotateCcw,
+  ArrowCounterClockwise,
   Check,
   Copy,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import ScrollReveal from "@/components/scroll-reveal";
 
 import { createAspirasi } from "@/lib/supabase/aspirasi";
@@ -116,7 +116,7 @@ export default function FormAspirasi() {
               /* Success Feedback State */
               <div className="py-6 px-4 text-center animate-in fade-in zoom-in-95 duration-200">
                 <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-500/20 text-emerald-600 mx-auto flex items-center justify-center mb-4 shadow-sm">
-                  <CheckCircle2 className="w-9 h-9 stroke-[2.2]" />
+                  <CheckCircle className="w-9 h-9" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold text-[#00296E] tracking-tight">
                   Aspirasi Berhasil Terkirim!
@@ -161,7 +161,7 @@ export default function FormAspirasi() {
                     onClick={handleReset}
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#00296E] hover:bg-[#001f52] text-white text-xs sm:text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
                   >
-                    <RotateCcw className="w-4 h-4 text-[#0094E0]" />
+                    <ArrowCounterClockwise className="w-4 h-4 text-[#0094E0]" />
                     <span>Kirim Aspirasi Lainnya</span>
                   </button>
                 </div>
@@ -180,7 +180,7 @@ export default function FormAspirasi() {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <Mail className="w-4 h-4" />
+                      <EnvelopeSimple className="w-4 h-4" />
                     </div>
                     <input
                       id="aspirasi-email"
@@ -282,7 +282,7 @@ export default function FormAspirasi() {
                       </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4 text-[#0094E0]" />
+                        <PaperPlaneTilt className="w-4 h-4 text-[#0094E0]" />
                         <span>Kirim Aspirasi Sekarang</span>
                       </>
                     )}

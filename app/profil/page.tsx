@@ -3,15 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Calendar,
+  CalendarBlank,
   Users,
-  Award,
+  Medal,
   FileText,
-  BookOpen,
-  Gavel,
-  Download,
-  CheckCircle2,
-} from "lucide-react";
+  DownloadSimple,
+  CheckCircle,
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
 import { supabase } from "@/lib/supabase/client";
@@ -34,7 +32,7 @@ import { getDokumenOrganisasi } from "@/lib/supabase/dokumen";
 const KABINET_METRICS = [
   {
     number: "",
-    icon: Calendar,
+    icon: CalendarBlank,
     title: "Est. 2010",
     subtitle: "16 tahun telah bersama dalam mengembangkan bakat dan minat mahasiswa Sistem Informasi.",
     iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
@@ -48,7 +46,7 @@ const KABINET_METRICS = [
   },
   {
     number: "",
-    icon: Award,
+    icon: Medal,
     title: "30 Anggota Aktif",
     subtitle: "30 anggota yang aktif dalam mengembangkan HIMASI dan Sistem Informasi.",
     iconStyle: "bg-[#0c2340] border border-[#0094E0]/40 text-[#0094E0]",
@@ -269,7 +267,7 @@ export default function ProfilPage() {
 
 
   return (
-    <div className="flex flex-col w-full max-w-full overflow-x-hidden bg-white text-[#091e42] min-h-screen">
+    <div className="flex flex-col w-full max-w-full overflow-x-clip bg-white text-[#091e42] min-h-screen">
       
       {/* ============================================================ */}
       {/* SECTION HEADER: PERSIS SESUAI STYLE PAGE BERITA */}
@@ -854,7 +852,7 @@ export default function ProfilPage() {
                         onClick={() => handleDownload(doc)}
                         className="w-full py-3 sm:py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-[#00296E] hover:from-[#001F54] hover:to-[#003B96] transition-all shadow-md shadow-[#00296E]/20 hover:shadow-lg hover:shadow-[#00296E]/30 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
                       >
-                        <Download className="w-4 h-4" />
+                        <DownloadSimple className="w-4 h-4" />
                         <span>Unduh Dokumen</span>
                       </button>
                     </div>
@@ -870,7 +868,7 @@ export default function ProfilPage() {
       {/* Toast Notifikasi Unduh Berkas */}
       {downloadSuccess && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#00296E] text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-[#0094E0]/30 animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <CheckCircle2 className="w-5 h-5 text-[#0094E0] shrink-0" />
+          <CheckCircle className="w-5 h-5 text-[#0094E0] shrink-0" weight="fill" />
           <span className="text-xs sm:text-sm font-semibold">{downloadSuccess}</span>
         </div>
       )}

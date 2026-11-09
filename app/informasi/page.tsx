@@ -5,19 +5,15 @@ import Link from "next/link";
 import {
   Compass,
   FileText,
-  Search,
-  Download,
-  Calendar,
+  MagnifyingGlass,
+  DownloadSimple,
+  CalendarBlank,
   ArrowLeft,
-  ChevronRight,
-  Sparkles,
-  HelpCircle,
-  ExternalLink,
-  BookOpen,
+  CaretRight,
+  Question,
   Bell,
-  CheckCircle2,
-  AlertCircle
-} from "lucide-react";
+  CheckCircle,
+} from "@phosphor-icons/react";
 import Footer from "@/components/footer";
 
 export default function InformasiPage() {
@@ -124,7 +120,7 @@ export default function InformasiPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-[#091e42] w-full max-w-full overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-[#091e42] w-full max-w-full overflow-x-clip">
       {/* Top Banner */}
       <section className="relative w-full bg-[#00296E] text-white py-14 sm:py-20 px-4 sm:px-6 lg:px-12 overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#0094E0]/20 rounded-full blur-3xl pointer-events-none" />
@@ -154,7 +150,7 @@ export default function InformasiPage() {
 
           {/* Search Box */}
           <div className="mt-8 max-w-xl relative">
-            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <MagnifyingGlass className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
@@ -172,7 +168,7 @@ export default function InformasiPage() {
         {/* Notifikasi Download Toast */}
         {downloadSuccess && (
           <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-emerald-600 text-white shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
-            <CheckCircle2 className="w-5 h-5 shrink-0" />
+            <CheckCircle className="w-5 h-5 shrink-0" weight="fill" />
             <span className="text-xs sm:text-sm font-semibold">{downloadSuccess}</span>
           </div>
         )}
@@ -221,7 +217,7 @@ export default function InformasiPage() {
                       {item.tag}
                     </span>
                     <span className="text-xs text-slate-400 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" />
+                      <CalendarBlank className="w-3.5 h-3.5" />
                       <span>{item.date}</span>
                     </span>
                   </div>
@@ -242,7 +238,7 @@ export default function InformasiPage() {
                     className="text-xs font-bold text-[#0094E0] hover:text-[#00296E] inline-flex items-center gap-1"
                   >
                     <span>Baca Detail</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <CaretRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
@@ -291,7 +287,7 @@ export default function InformasiPage() {
                   onClick={() => handleDownload(doc.name)}
                   className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#00296E] hover:bg-[#001e52] text-white text-xs font-bold shrink-0 transition-colors shadow-xs"
                 >
-                  <Download className="w-3.5 h-3.5 text-[#0094E0]" />
+                  <DownloadSimple className="w-3.5 h-3.5 text-[#0094E0]" />
                   <span>Unduh File</span>
                 </button>
               </div>
@@ -302,7 +298,7 @@ export default function InformasiPage() {
         {/* Tanya Jawab (FAQ) */}
         <section>
           <div className="flex items-center gap-2 text-xs font-bold text-[#0094E0] uppercase tracking-wider mb-2">
-            <HelpCircle className="w-4 h-4" />
+            <Question className="w-4 h-4" />
             <span>Pertanyaan Umum</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-6">

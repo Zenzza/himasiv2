@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MessageSquareShare, X as CloseIcon, Send, CheckCircle2 } from "lucide-react";
+import { ChatTeardropDots, X as CloseIcon, PaperPlaneTilt, CheckCircle } from "@phosphor-icons/react";
 
 export default function Footer() {
   const [isAspirasiModalOpen, setIsAspirasiModalOpen] = useState(false);
@@ -194,7 +194,7 @@ export default function Footer() {
 
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0094E0] to-[#00296E] flex items-center justify-center text-white">
-                <MessageSquareShare className="w-5 h-5" />
+                <ChatTeardropDots className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-[#00296E]">Kotak Aspirasi Mahasiswa</h3>
@@ -204,7 +204,7 @@ export default function Footer() {
 
             {submitted ? (
               <div className="py-8 flex flex-col items-center justify-center text-center text-emerald-600">
-                <CheckCircle2 className="w-12 h-12 mb-2 animate-bounce" />
+                <CheckCircle className="w-12 h-12 mb-2 animate-bounce" />
                 <h4 className="font-bold text-base text-slate-800">Aspirasi Berhasil Dikirim!</h4>
                 <p className="text-xs text-slate-500 mt-1">Terima kasih atas aspirasi dan kepedulian Anda.</p>
               </div>
@@ -249,7 +249,7 @@ export default function Footer() {
                     type="submit"
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold shadow-md hover:shadow-lg transition-all"
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    <PaperPlaneTilt className="w-3.5 h-3.5" />
                     <span>Kirim Aspirasi</span>
                   </button>
                 </div>

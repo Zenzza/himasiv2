@@ -3,14 +3,14 @@
 import { useState, useMemo } from "react";
 import {
   Printer,
-  Search,
+  MagnifyingGlass,
   FileText,
   Plus,
-  Trash2,
-  Calendar,
-  RotateCcw,
+  Trash,
+  CalendarBlank,
+  ArrowCounterClockwise,
   Users,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import type { AbsensiRecord } from "@/components/absensi/admin-qr-scanner";
 import { DAFTAR_PENGURUS_HIMASI, type PengurusMember } from "@/lib/data/pengurus";
 
@@ -145,7 +145,7 @@ export default function RekapAbsensiView({
     return (
       <div className="bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-none">
         <div className="w-16 h-16 rounded-none bg-sky-50 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center mx-auto mb-4 border border-[#00296E]/15 dark:border-white/10">
-          <Calendar className="w-8 h-8 text-[#0094E0] dark:text-[#38BDF8]" />
+          <CalendarBlank className="w-8 h-8 text-[#0094E0] dark:text-[#38BDF8]" />
         </div>
         <h3 className="text-xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">Belum Ada Kegiatan Absensi</h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
@@ -247,7 +247,7 @@ export default function RekapAbsensiView({
                     className="text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 flex items-center gap-1 transition-colors cursor-pointer"
                     title={`Hapus kegiatan "${activeKegiatan.nama}"`}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash className="w-3 h-3" />
                     <span>Hapus</span>
                   </button>
                 )}
@@ -258,7 +258,7 @@ export default function RekapAbsensiView({
                     className="text-[11px] font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 flex items-center gap-1 transition-colors cursor-pointer"
                     title={`Kosongkan presensi untuk "${activeKegiatan.nama}"`}
                   >
-                    <RotateCcw className="w-3 h-3" />
+                    <ArrowCounterClockwise className="w-3 h-3" />
                     <span>Reset Presensi ({totalPresensi})</span>
                   </button>
                 )}
@@ -295,7 +295,7 @@ export default function RekapAbsensiView({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-50 dark:bg-[#001740] hover:bg-white dark:hover:bg-[#001a4d] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
               />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <MagnifyingGlass className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             </div>
           </div>
 
@@ -413,7 +413,7 @@ export default function RekapAbsensiView({
                             className="p-1 rounded-none text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                             title={`Reset / Hapus kehadiran ${item.nama}`}
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash className="w-3 h-3" />
                           </button>
                         )}
                       </div>

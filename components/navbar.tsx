@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Mail } from "lucide-react";
+import { List, X, EnvelopeSimple } from "@phosphor-icons/react";
 import { getMaintenanceMode } from "@/lib/supabase/system-settings";
 import { supabase } from "@/lib/supabase/client";
 
@@ -248,7 +248,7 @@ export default function Navbar() {
                     : "bg-white hover:bg-slate-100 text-[#00296E]"
                 }`}
               >
-                <Mail className="w-4 h-4" />
+                <EnvelopeSimple className="w-4 h-4" />
                 <span>Contact Us</span>
               </Link>
 
@@ -263,7 +263,7 @@ export default function Navbar() {
                 }`}
                 aria-label="Buka Menu Navigasi"
               >
-                <Menu className="w-6 h-6" />
+                <List className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -306,7 +306,7 @@ export default function Navbar() {
               className="p-1.5 text-black hover:opacity-60 transition-opacity cursor-pointer focus:outline-none"
               aria-label="Tutup Menu"
             >
-              <X className="w-7 h-7 stroke-[2.3]" />
+              <X className="w-7 h-7" />
             </button>
           </div>
 

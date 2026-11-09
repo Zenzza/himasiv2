@@ -4,66 +4,65 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  MessageSquare,
+  SquaresFour,
+  ChatTeardropText,
   Newspaper,
-  Calendar,
+  CalendarBlank,
   Users,
   Database,
-  LogOut,
-  Sparkles,
-  Search,
-  Filter,
-  CheckCircle2,
+  SignOut,
+  Sparkle,
+  MagnifyingGlass,
+  Funnel,
+  CheckCircle,
   Clock,
-  AlertCircle,
-  ExternalLink,
-  RefreshCw,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  TrendingUp,
+  WarningCircle,
+  ArrowSquareOut,
+  ArrowsClockwise,
+  Trash,
+  CaretLeft,
+  CaretRight,
+  TrendUp,
   FileCode,
   Copy,
   Check,
-  Menu,
+  List,
   X,
   XCircle,
   Plus,
-  ShieldAlert,
+  ShieldWarning,
   ShieldCheck,
   User,
   ArrowUpRight,
   QrCode,
-  ScanLine,
-  IdCard,
+  Scan,
+  IdentificationCard,
   UserCheck,
-  Download,
+  DownloadSimple,
   Printer,
-  ChevronDown,
-  FileSpreadsheet,
+  CaretDown,
+  FileXls,
   FileText,
   Eye,
   Table as TableIcon,
-  Edit3,
+  NotePencil,
   UserPlus,
   Image as ImageIcon,
-  Upload,
+  UploadSimple,
   Camera,
-  FolderCheck,
+  FolderSimple,
   FolderOpen,
-  Monitor,
-  Smartphone,
+  Desktop,
+  DeviceMobile,
   MapPin,
-  CalendarDays,
-  Shirt,
+  TShirt,
   Trophy,
-  Award,
+  Medal,
   Lock,
-  Unlock,
+  LockOpen,
   Sun,
   Moon,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import {
   DEFAULT_HERO_BANNER,
   getHeroBannerConfig,
@@ -2647,7 +2646,7 @@ NOTIFY pgrst, 'reload schema';`;
           />
         </div>
         <div className="flex items-center gap-2.5 text-sky-200 text-xs font-semibold">
-          <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
+          <ArrowsClockwise className="w-4 h-4 animate-spin text-sky-400" />
           <span>Memeriksa hak akses pengurus...</span>
         </div>
       </div>
@@ -2676,7 +2675,7 @@ NOTIFY pgrst, 'reload schema';`;
             className="lg:hidden p-1 text-[#00296E] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
             aria-label="Toggle Sidebar"
           >
-            <Menu className="w-4 h-4" />
+            <List className="w-4 h-4" />
           </button>
         </div>
 
@@ -2758,7 +2757,7 @@ NOTIFY pgrst, 'reload schema';`;
             title="Muat Ulang Data"
             className="h-full px-3.5 border-l border-[#00296E]/20 dark:border-white/10 hover:bg-[#00296E]/5 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white transition-colors cursor-pointer flex items-center justify-center"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingAspirasi ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
+            <ArrowsClockwise className={`w-3.5 h-3.5 ${loadingAspirasi ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
           </button>
 
           {/* SAKLAR TEMA DUAL-MODE (LIGHT / DARK) */}
@@ -3146,7 +3145,7 @@ NOTIFY pgrst, 'reload schema';`;
               className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-[#00296E]/15 dark:hover:border-white/10"
             >
               <div className="flex items-center gap-2">
-                <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                <ArrowSquareOut className="w-3.5 h-3.5 text-slate-400" />
                 <span>Web Utama</span>
               </div>
               <span className="font-mono text-[9px] text-slate-400">&nearr;</span>
@@ -3172,7 +3171,7 @@ NOTIFY pgrst, 'reload schema';`;
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                 >
-                  <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                  <SignOut className="w-3.5 h-3.5 text-rose-500" />
                   <span>Keluar Akun</span>
                 </button>
               </div>
@@ -3319,7 +3318,7 @@ NOTIFY pgrst, 'reload schema';`;
                       target="_blank"
                       className="px-3.5 py-1.5 border border-[#00296E]/20 dark:border-white/20 text-[#00296E] dark:text-white hover:bg-[#00296E]/5 dark:hover:bg-white/10 text-xs font-bold transition-all bg-white dark:bg-[#001233] flex items-center gap-1.5"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ArrowSquareOut className="w-3.5 h-3.5" />
                       <span>Lihat Web</span>
                     </Link>
                     <button
@@ -3419,7 +3418,7 @@ NOTIFY pgrst, 'reload schema';`;
                           onClick={() => setActiveTab("absensi")}
                           className="py-2 px-3 bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <ScanLine className="w-3.5 h-3.5" />
+                          <Scan className="w-3.5 h-3.5" />
                           <span>Scan QR</span>
                         </button>
 
@@ -3428,7 +3427,7 @@ NOTIFY pgrst, 'reload schema';`;
                           onClick={() => setActiveTab("rekap-absensi")}
                           className="py-2 px-3 border border-[#00296E]/20 dark:border-white/20 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <FileSpreadsheet className="w-3.5 h-3.5" />
+                          <FileXls className="w-3.5 h-3.5" />
                           <span>Cetak PDF</span>
                         </button>
                       </div>
@@ -3446,7 +3445,7 @@ NOTIFY pgrst, 'reload schema';`;
                   <div className="p-4 sm:p-5 border-b border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233] flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0">
-                        <Calendar className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
+                        <CalendarBlank className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm text-[#00296E] dark:text-white uppercase tracking-wider">
@@ -3467,7 +3466,7 @@ NOTIFY pgrst, 'reload schema';`;
                           onChange={(e) => setSearchKegiatanOverview(e.target.value)}
                           className="w-40 sm:w-56 pl-8 pr-3 py-1.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                         />
-                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <MagnifyingGlass className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       </div>
 
                       <button
@@ -3507,7 +3506,7 @@ NOTIFY pgrst, 'reload schema';`;
                         {filteredKegiatanOverview.length === 0 ? (
                           <tr>
                             <td colSpan={7} className="py-10 text-center text-slate-400 dark:text-slate-500">
-                              <Calendar className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto mb-1.5" />
+                              <CalendarBlank className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto mb-1.5" />
                               <p className="font-semibold text-slate-600 dark:text-slate-300">Belum ada agenda kegiatan yang cocok.</p>
                               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Klik "+ Tambah" di atas untuk membuat agenda kegiatan baru.</p>
                             </td>
@@ -3532,7 +3531,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 <td className="py-3 px-4">
                                   <div className="flex items-center gap-2">
                                     <div className="w-7 h-7 rounded-none border border-[#00296E]/10 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0">
-                                      <Calendar className="w-3.5 h-3.5" />
+                                      <CalendarBlank className="w-3.5 h-3.5" />
                                     </div>
                                     <span className="font-semibold text-slate-900 dark:text-white">{k.nama}</span>
                                   </div>
@@ -3545,7 +3544,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 </td>
                                 <td className="py-3 px-4 text-center">
                                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none text-[11px] font-mono border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                    <CheckCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                     {logCount} / {studentPengurusList.length} Hadir
                                   </span>
                                 </td>
@@ -3594,7 +3593,7 @@ NOTIFY pgrst, 'reload schema';`;
                                       className="p-1.5 rounded-none text-rose-500 hover:text-rose-700 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                       title={`Hapus agenda "${k.nama}"`}
                                     >
-                                      <Trash2 className="w-4 h-4" />
+                                      <Trash className="w-4 h-4" />
                                     </button>
                                   </div>
                                 </td>
@@ -3680,7 +3679,7 @@ NOTIFY pgrst, 'reload schema';`;
                                   className="p-1.5 rounded-none text-rose-500 hover:bg-rose-500/10 cursor-pointer"
                                   title={`Hapus ${k.nama}`}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
@@ -3748,7 +3747,7 @@ NOTIFY pgrst, 'reload schema';`;
                         className="px-3 py-2 rounded-none border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
                         title={`Hapus kegiatan "${activeKegiatan.nama}"`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash className="w-3.5 h-3.5" />
                         <span>Hapus</span>
                       </button>
                     )}
@@ -3758,7 +3757,7 @@ NOTIFY pgrst, 'reload schema';`;
                 {!activeKegiatan || kegiatanList.length === 0 ? (
                   <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-none">
                     <div className="w-12 h-12 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center mx-auto mb-3">
-                      <ScanLine className="w-6 h-6" />
+                      <Scan className="w-6 h-6" />
                     </div>
                     <h3 className="text-base font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">Belum Ada Kegiatan Absensi Aktif</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
@@ -3779,7 +3778,7 @@ NOTIFY pgrst, 'reload schema';`;
                     <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-none">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0">
-                          <Calendar className="w-4 h-4" />
+                          <CalendarBlank className="w-4 h-4" />
                         </div>
                         <div>
                           <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
@@ -3793,7 +3792,7 @@ NOTIFY pgrst, 'reload schema';`;
 
                       <div className="flex flex-wrap items-center gap-2 text-slate-600 text-xs">
                         <div className="flex items-center gap-1.5 bg-[#00296E]/5 dark:bg-white/5 px-2.5 py-1 border border-[#00296E]/15 dark:border-white/10 text-slate-700 dark:text-slate-300 font-mono text-xs">
-                          <Calendar className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
+                          <CalendarBlank className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
                           <span>{formatTanggalIndo(activeKegiatan.tanggal)}</span>
                         </div>
                         <div className="flex items-center gap-1.5 bg-[#00296E]/5 dark:bg-white/5 px-2.5 py-1 border border-[#00296E]/15 dark:border-white/10 text-slate-700 dark:text-slate-300 font-mono text-xs">
@@ -3818,7 +3817,7 @@ NOTIFY pgrst, 'reload schema';`;
                 <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-none">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0">
-                      <FileSpreadsheet className="w-4 h-4" />
+                      <FileXls className="w-4 h-4" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider">
@@ -3836,7 +3835,7 @@ NOTIFY pgrst, 'reload schema';`;
                     className="px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white font-semibold text-xs uppercase tracking-wider shrink-0 transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <span>Buka Rekap Absensi</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <CaretRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
@@ -3887,7 +3886,7 @@ NOTIFY pgrst, 'reload schema';`;
                       className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors"
                       title="Segarkan Data Pengurus dari Database"
                     >
-                      <RefreshCw
+                      <ArrowsClockwise
                         className={`w-4 h-4 text-slate-500 dark:text-slate-400 ${
                           loadingPengurus ? "animate-spin text-slate-800 dark:text-white" : ""
                         }`}
@@ -3915,7 +3914,7 @@ NOTIFY pgrst, 'reload schema';`;
                       onChange={(e) => setSearchPengurus(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                     />
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <MagnifyingGlass className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
 
                   <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
@@ -4009,7 +4008,7 @@ NOTIFY pgrst, 'reload schema';`;
                               className="flex-1 py-1.5 px-2 rounded-none bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer border border-[#00296E]/20 dark:border-white/20"
                               title="Edit Data Anggota"
                             >
-                              <Edit3 className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                              <NotePencil className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                               <span>Edit</span>
                             </button>
 
@@ -4019,7 +4018,7 @@ NOTIFY pgrst, 'reload schema';`;
                               className="py-1.5 px-2 rounded-none bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer border border-rose-500/20"
                               title="Hapus Anggota"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash className="w-3 h-3" />
                               <span>Hapus</span>
                             </button>
                           </div>
@@ -4058,7 +4057,7 @@ NOTIFY pgrst, 'reload schema';`;
                       className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors"
                       title="Segarkan Data Dokumen"
                     >
-                      <RefreshCw
+                      <ArrowsClockwise
                         className={`w-4 h-4 text-slate-500 dark:text-slate-400 ${
                           loadingDokumen ? "animate-spin text-slate-800 dark:text-white" : ""
                         }`}
@@ -4146,7 +4145,7 @@ NOTIFY pgrst, 'reload schema';`;
                             download={doc.file_name}
                             className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer rounded-none"
                           >
-                            <Download className="w-3.5 h-3.5" />
+                            <DownloadSimple className="w-3.5 h-3.5" />
                             <span>Unduh / Lihat PDF</span>
                           </a>
 
@@ -4156,7 +4155,7 @@ NOTIFY pgrst, 'reload schema';`;
                               onClick={() => handleOpenEditDokumen(doc)}
                               className="flex-1 py-1.5 px-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer"
                             >
-                              <Edit3 className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                              <NotePencil className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                               <span>Edit</span>
                             </button>
                             <button
@@ -4165,7 +4164,7 @@ NOTIFY pgrst, 'reload schema';`;
                               className="py-1.5 px-2.5 rounded-none border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer"
                               title="Hapus Dokumen"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash className="w-3 h-3" />
                               <span>Hapus</span>
                             </button>
                           </div>
@@ -4219,7 +4218,7 @@ NOTIFY pgrst, 'reload schema';`;
                       className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors"
                       title="Segarkan data dari database"
                     >
-                      <RefreshCw className={`w-4 h-4 text-slate-500 dark:text-slate-400 ${loadingBerita ? "animate-spin text-slate-800 dark:text-white" : ""}`} />
+                      <ArrowsClockwise className={`w-4 h-4 text-slate-500 dark:text-slate-400 ${loadingBerita ? "animate-spin text-slate-800 dark:text-white" : ""}`} />
                     </button>
 
                     <Link
@@ -4227,7 +4226,7 @@ NOTIFY pgrst, 'reload schema';`;
                       target="_blank"
                       className="px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                      <ArrowSquareOut className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                       <span>Lihat Halaman Publik</span>
                     </Link>
 
@@ -4272,7 +4271,7 @@ NOTIFY pgrst, 'reload schema';`;
                       </p>
                     </div>
                     <div className="w-8 h-8 rounded-none border border-emerald-500/20 bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="w-4 h-4" />
+                      <CheckCircle className="w-4 h-4" />
                     </div>
                   </div>
 
@@ -4303,7 +4302,7 @@ NOTIFY pgrst, 'reload schema';`;
                       onChange={(e) => setSearchBerita(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                     />
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <MagnifyingGlass className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -4362,7 +4361,7 @@ NOTIFY pgrst, 'reload schema';`;
                 <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 overflow-hidden shadow-none">
                   {loadingBerita ? (
                     <div className="p-12 text-center">
-                      <RefreshCw className="w-6 h-6 text-slate-400 animate-spin mx-auto mb-2" />
+                      <ArrowsClockwise className="w-6 h-6 text-slate-400 animate-spin mx-auto mb-2" />
                       <p className="text-xs text-slate-400">Memuat data berita...</p>
                     </div>
                   ) : filteredBeritaList.length === 0 ? (
@@ -4505,7 +4504,7 @@ NOTIFY pgrst, 'reload schema';`;
                                       className="p-1.5 rounded-none text-slate-500 hover:text-[#00296E] dark:hover:text-[#38BDF8] hover:bg-[#00296E]/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                                       title="Buka halaman baca publik"
                                     >
-                                      <ExternalLink className="w-3.5 h-3.5" />
+                                      <ArrowSquareOut className="w-3.5 h-3.5" />
                                     </Link>
                                     {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) ? (
                                       <button
@@ -4514,7 +4513,7 @@ NOTIFY pgrst, 'reload schema';`;
                                         className="p-1.5 rounded-none text-slate-600 dark:text-slate-300 hover:text-[#00296E] dark:hover:text-[#38BDF8] hover:bg-[#00296E]/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                                         title="Edit Berita"
                                       >
-                                        <Edit3 className="w-3.5 h-3.5" />
+                                        <NotePencil className="w-3.5 h-3.5" />
                                       </button>
                                     ) : null}
                                     {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) ? (
@@ -4524,7 +4523,7 @@ NOTIFY pgrst, 'reload schema';`;
                                         className="p-1.5 rounded-none text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                         title="Hapus Berita"
                                       >
-                                        <Trash2 className="w-3.5 h-3.5" />
+                                        <Trash className="w-3.5 h-3.5" />
                                       </button>
                                     ) : (
                                       <span className="text-[10px] font-mono text-slate-400 px-2 py-0.5 rounded-none bg-slate-100 dark:bg-white/5 uppercase">
@@ -4624,7 +4623,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 target="_blank"
                                 className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center gap-1"
                               >
-                                <ExternalLink className="w-3 h-3" />
+                                <ArrowSquareOut className="w-3 h-3" />
                                 <span>Lihat</span>
                               </Link>
                               {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) && (
@@ -4634,7 +4633,7 @@ NOTIFY pgrst, 'reload schema';`;
                                     onClick={() => handleOpenEditBerita(item)}
                                     className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center gap-1"
                                   >
-                                    <Edit3 className="w-3 h-3" />
+                                    <NotePencil className="w-3 h-3" />
                                     <span>Edit</span>
                                   </button>
                                   <button
@@ -4642,7 +4641,7 @@ NOTIFY pgrst, 'reload schema';`;
                                     onClick={() => setBeritaToDelete(item)}
                                     className="p-1 rounded text-rose-500 hover:bg-rose-50"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash className="w-3.5 h-3.5" />
                                   </button>
                                 </>
                               )}
@@ -4663,7 +4662,7 @@ NOTIFY pgrst, 'reload schema';`;
                 <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-[#00296E]/15 dark:border-white/10 shrink-0">
-                      <Calendar className="w-5 h-5" />
+                      <CalendarBlank className="w-5 h-5" />
                     </div>
                     <div>
                       <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -4686,14 +4685,14 @@ NOTIFY pgrst, 'reload schema';`;
                       className="p-2.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors shadow-none"
                       title="Segarkan Data Kalender"
                     >
-                      <RefreshCw className={`w-4 h-4 ${loadingAgenda ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
+                      <ArrowsClockwise className={`w-4 h-4 ${loadingAgenda ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
                     </button>
                     <Link
                       href="/kalender"
                       target="_blank"
                       className="px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors shadow-none flex items-center gap-1.5"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                      <ArrowSquareOut className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                       <span>Halaman Publik</span>
                     </Link>
                     <button
@@ -4736,7 +4735,7 @@ NOTIFY pgrst, 'reload schema';`;
                           className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
                           title="Bulan Sebelumnya"
                         >
-                          <ChevronLeft className="w-4 h-4" />
+                          <CaretLeft className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
@@ -4744,7 +4743,7 @@ NOTIFY pgrst, 'reload schema';`;
                           className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
                           title="Bulan Selanjutnya"
                         >
-                          <ChevronRight className="w-4 h-4" />
+                          <CaretRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -4846,7 +4845,7 @@ NOTIFY pgrst, 'reload schema';`;
                     <div className="flex items-center justify-between pb-3 border-b border-[#00296E]/10 dark:border-white/10">
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
-                          <CalendarDays className="w-4 h-4" />
+                          <CalendarBlank className="w-4 h-4" />
                         </div>
                         <div>
                           <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500">Agenda Tanggal:</h4>
@@ -4870,7 +4869,7 @@ NOTIFY pgrst, 'reload schema';`;
                     {selectedDateEvents.length === 0 ? (
                       <div className="py-12 px-4 bg-[#00296E]/5 dark:bg-white/5 border border-dashed border-[#00296E]/15 dark:border-white/10 text-center flex flex-col items-center justify-center">
                         <div className="w-12 h-12 rounded-none bg-white dark:bg-[#001740] border border-[#00296E]/15 dark:border-white/10 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
-                          <Calendar className="w-6 h-6" />
+                          <CalendarBlank className="w-6 h-6" />
                         </div>
                         <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200">
                           Tidak ada agenda di tanggal ini
@@ -4934,7 +4933,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 <div className="mt-2 space-y-1 text-[11px] font-mono text-slate-500 dark:text-slate-400">
                                   {isMultiDay && (
                                     <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
-                                      <Calendar className="w-3.5 h-3.5 shrink-0" />
+                                      <CalendarBlank className="w-3.5 h-3.5 shrink-0" />
                                       <span>
                                         {event.tanggal_mulai} s/d {event.tanggal_selesai}
                                       </span>
@@ -4975,7 +4974,7 @@ NOTIFY pgrst, 'reload schema';`;
                                       onClick={() => handleOpenEditAgenda(event)}
                                       className="px-2.5 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
                                     >
-                                      <Edit3 className="w-3 h-3 text-[#00296E] dark:text-[#38BDF8]" />
+                                      <NotePencil className="w-3 h-3 text-[#00296E] dark:text-[#38BDF8]" />
                                       <span>Edit</span>
                                     </button>
                                     <button
@@ -4983,7 +4982,7 @@ NOTIFY pgrst, 'reload schema';`;
                                       onClick={() => setAgendaToDelete(event)}
                                       className="px-2.5 py-1.5 rounded-none border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
                                     >
-                                      <Trash2 className="w-3 h-3" />
+                                      <Trash className="w-3 h-3" />
                                       <span>Hapus</span>
                                     </button>
                                   </>
@@ -5031,7 +5030,7 @@ NOTIFY pgrst, 'reload schema';`;
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-none cursor-pointer"
                   >
                     <span>Buka Supabase Dashboard</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ArrowSquareOut className="w-3.5 h-3.5" />
                   </a>
                 </div>
 
@@ -5107,7 +5106,7 @@ NOTIFY pgrst, 'reload schema';`;
                         : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                     }`}
                   >
-                    <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <Medal className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span>Daftar Fitur Utama</span>
                     <span className="px-1.5 py-0.5 text-[10px] font-mono border border-emerald-500/20 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
                       Open / Closed
@@ -5144,7 +5143,7 @@ NOTIFY pgrst, 'reload schema';`;
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold uppercase tracking-wider transition-colors shadow-none cursor-pointer"
                     >
                       <span>Lihat Beranda</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ArrowSquareOut className="w-3.5 h-3.5" />
                     </a>
 
                     <button
@@ -5152,7 +5151,7 @@ NOTIFY pgrst, 'reload schema';`;
                       onClick={() => handleResetBanner()}
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" />
+                      <ArrowsClockwise className="w-3.5 h-3.5" />
                       <span>Reset Default</span>
                     </button>
                   </div>
@@ -5163,7 +5162,7 @@ NOTIFY pgrst, 'reload schema';`;
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#00296E]/10 dark:border-white/10">
                     <div>
                       <h3 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
+                        <Sparkle className="w-3.5 h-3.5 text-[#00296E] dark:text-[#38BDF8]" />
                         <span>Pratinjau Multi-Perangkat (Live Preview)</span>
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -5192,7 +5191,7 @@ NOTIFY pgrst, 'reload schema';`;
                             : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                         }`}
                       >
-                        <Monitor className="w-3.5 h-3.5" />
+                        <Desktop className="w-3.5 h-3.5" />
                         <span>Desktop</span>
                       </button>
                       <button
@@ -5204,7 +5203,7 @@ NOTIFY pgrst, 'reload schema';`;
                             : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                         }`}
                       >
-                        <Smartphone className="w-3.5 h-3.5" />
+                        <DeviceMobile className="w-3.5 h-3.5" />
                         <span>Mobile</span>
                       </button>
                     </div>
@@ -5218,7 +5217,7 @@ NOTIFY pgrst, 'reload schema';`;
                       <div className={`${previewDevice === "split" ? "lg:col-span-8" : "lg:col-span-12"} space-y-2`}>
                         <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
                           <span className="flex items-center gap-1.5 text-slate-700 font-bold">
-                            <Monitor className="w-4 h-4 text-sky-600" />
+                            <Desktop className="w-4 h-4 text-sky-600" />
                             <span>Tampilan Layar Desktop (&ge; 768px)</span>
                           </span>
                           <span className="font-mono text-[11px] bg-sky-50 text-sky-700 px-2 py-0.5 rounded border border-sky-100">
@@ -5274,7 +5273,7 @@ NOTIFY pgrst, 'reload schema';`;
                       <div className={`${previewDevice === "split" ? "lg:col-span-4" : "lg:col-span-12 max-w-xs mx-auto"} space-y-2`}>
                         <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
                           <span className="flex items-center gap-1.5 text-slate-700 font-bold">
-                            <Smartphone className="w-4 h-4 text-pink-600" />
+                            <DeviceMobile className="w-4 h-4 text-pink-600" />
                             <span>Tampilan Layar Mobile (&lt; 768px)</span>
                           </span>
                           <span className="font-mono text-[11px] bg-pink-50 text-pink-700 px-2 py-0.5 rounded border border-pink-100">
@@ -5329,7 +5328,7 @@ NOTIFY pgrst, 'reload schema';`;
                     <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none space-y-3.5">
                       <div className="flex items-center gap-2.5 pb-2.5 border-b border-[#00296E]/10 dark:border-white/10">
                         <div className="w-8 h-8 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
-                          <Monitor className="w-4 h-4" />
+                          <Desktop className="w-4 h-4" />
                         </div>
                         <div>
                           <h4 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider">Background Banner Desktop</h4>
@@ -5402,7 +5401,7 @@ NOTIFY pgrst, 'reload schema';`;
                     <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none space-y-3.5">
                       <div className="flex items-center gap-2.5 pb-2.5 border-b border-[#00296E]/10 dark:border-white/10">
                         <div className="w-8 h-8 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
-                          <Smartphone className="w-4 h-4" />
+                          <DeviceMobile className="w-4 h-4" />
                         </div>
                         <div>
                           <h4 className="font-semibold text-xs text-[#00296E] dark:text-white uppercase tracking-wider">Background Banner Mobile</h4>
@@ -5497,7 +5496,7 @@ NOTIFY pgrst, 'reload schema';`;
                 <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-none bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                      <Award className="w-4 h-4" />
+                      <Medal className="w-4 h-4" />
                     </div>
                     <div>
                       <h2 className="text-base font-semibold text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -5540,7 +5539,7 @@ NOTIFY pgrst, 'reload schema';`;
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-none bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold uppercase tracking-wider transition-colors shadow-none cursor-pointer"
                     >
                       <span>Lihat Beranda</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ArrowSquareOut className="w-3.5 h-3.5" />
                     </a>
 
                     <button
@@ -5549,7 +5548,7 @@ NOTIFY pgrst, 'reload schema';`;
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                       title="Kembalikan semua ke default"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" />
+                      <ArrowsClockwise className="w-3.5 h-3.5" />
                       <span>Reset</span>
                     </button>
                   </div>
@@ -5578,9 +5577,9 @@ NOTIFY pgrst, 'reload schema';`;
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-none bg-[#00296E] dark:bg-white/10 text-white flex items-center justify-center shrink-0 border border-[#00296E]/20 dark:border-white/10">
                                 {item.iconName === "UserPlus" && <UserPlus className="w-5 h-5 stroke-[2.2]" />}
-                                {item.iconName === "Shirt" && <Shirt className="w-5 h-5 stroke-[2.2]" />}
+                                {item.iconName === "Shirt" && <TShirt className="w-5 h-5 stroke-[2.2]" />}
                                 {item.iconName === "Trophy" && <Trophy className="w-5 h-5 stroke-[2.2]" />}
-                                {item.iconName === "Award" && <Award className="w-5 h-5 stroke-[2.2]" />}
+                                {item.iconName === "Award" && <Medal className="w-5 h-5 stroke-[2.2]" />}
                               </div>
                               <div>
                                 <h3 className="font-semibold text-sm text-[#00296E] dark:text-white leading-snug">
@@ -5622,7 +5621,7 @@ NOTIFY pgrst, 'reload schema';`;
                                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                 }`}
                               >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <CheckCircle className="w-3.5 h-3.5" />
                                 <span>OPEN (Dibuka)</span>
                               </button>
 
@@ -5698,9 +5697,9 @@ NOTIFY pgrst, 'reload schema';`;
                           >
                             <div className="flex items-center gap-3">
                               {item.iconName === "UserPlus" && <UserPlus className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
-                              {item.iconName === "Shirt" && <Shirt className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
+                              {item.iconName === "Shirt" && <TShirt className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
                               {item.iconName === "Trophy" && <Trophy className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
-                              {item.iconName === "Award" && <Award className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
+                              {item.iconName === "Award" && <Medal className="w-7 h-7 text-white stroke-[2.2] shrink-0" />}
                               <h4 className="font-semibold text-base text-white leading-snug">
                                 {item.title}
                               </h4>
@@ -5796,7 +5795,7 @@ NOTIFY pgrst, 'reload schema';`;
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-none bg-sky-100 dark:bg-sky-950/40 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-sky-200 dark:border-sky-800/40">
                   {editingPengurus ? (
-                    <Edit3 className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
+                    <NotePencil className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                   ) : (
                     <UserPlus className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                   )}
@@ -5971,7 +5970,7 @@ NOTIFY pgrst, 'reload schema';`;
                       </div>
                       {uploadingImage && (
                         <div className="absolute inset-0 bg-black/60 rounded-none flex items-center justify-center">
-                          <RefreshCw className="w-5 h-5 text-white animate-spin" />
+                          <ArrowsClockwise className="w-5 h-5 text-white animate-spin" />
                         </div>
                       )}
                     </div>
@@ -5985,7 +5984,7 @@ NOTIFY pgrst, 'reload schema';`;
                           onClick={() => fileInputRef.current?.click()}
                           className="px-4 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
                         >
-                          <Upload className="w-4 h-4 text-sky-300" />
+                          <UploadSimple className="w-4 h-4 text-sky-300" />
                           <span>{uploadingImage ? "Mengunggah..." : "Unggah Foto dari Perangkat"}</span>
                         </button>
 
@@ -6051,7 +6050,7 @@ NOTIFY pgrst, 'reload schema';`;
                 >
                   {savingPengurus ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
+                      <ArrowsClockwise className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
@@ -6078,7 +6077,7 @@ NOTIFY pgrst, 'reload schema';`;
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-6 h-6" />
+              <Trash className="w-6 h-6" />
             </div>
 
             <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
@@ -6135,12 +6134,12 @@ NOTIFY pgrst, 'reload schema';`;
               >
                 {deletingPengurus ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <ArrowsClockwise className="w-3.5 h-3.5 animate-spin" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash className="w-3.5 h-3.5" />
                     <span>Ya, Hapus</span>
                   </>
                 )}
@@ -6277,7 +6276,7 @@ NOTIFY pgrst, 'reload schema';`;
                         rel="noreferrer"
                         className="px-2.5 py-1.5 rounded-none bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1"
                       >
-                        <ExternalLink className="w-3 h-3 text-[#0094E0] dark:text-[#38BDF8]" />
+                        <ArrowSquareOut className="w-3 h-3 text-[#0094E0] dark:text-[#38BDF8]" />
                         <span>Pratinjau</span>
                       </a>
                       <button
@@ -6301,14 +6300,14 @@ NOTIFY pgrst, 'reload schema';`;
                   >
                     {uploadingPdf ? (
                       <div className="flex flex-col items-center justify-center py-2">
-                        <RefreshCw className="w-8 h-8 text-[#0094E0] dark:text-[#38BDF8] animate-spin mb-2" />
+                        <ArrowsClockwise className="w-8 h-8 text-[#0094E0] dark:text-[#38BDF8] animate-spin mb-2" />
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Mengunggah Berkas PDF...</p>
                         <p className="text-[11px] text-slate-400 mt-0.5">Menyiapkan penyimpanan berkas dokumen</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-1">
                         <div className="w-12 h-12 rounded-none bg-sky-50 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center mb-2">
-                          <Upload className="w-6 h-6" />
+                          <UploadSimple className="w-6 h-6" />
                         </div>
                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                           Klik untuk unggah berkas PDF dari perangkat
@@ -6339,7 +6338,7 @@ NOTIFY pgrst, 'reload schema';`;
                 >
                   {savingDokumen ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
+                      <ArrowsClockwise className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
@@ -6366,7 +6365,7 @@ NOTIFY pgrst, 'reload schema';`;
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-6 h-6" />
+              <Trash className="w-6 h-6" />
             </div>
 
             <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
@@ -6416,12 +6415,12 @@ NOTIFY pgrst, 'reload schema';`;
               >
                 {deletingDokumen ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <ArrowsClockwise className="w-3.5 h-3.5 animate-spin" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash className="w-3.5 h-3.5" />
                     <span>Ya, Hapus</span>
                   </>
                 )}
@@ -6445,7 +6444,7 @@ NOTIFY pgrst, 'reload schema';`;
             <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-none bg-sky-50 dark:bg-sky-950/40 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-sky-100 dark:border-sky-800/40">
-                  <Calendar className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
+                  <CalendarBlank className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-[#00296E] dark:text-white">
@@ -6626,7 +6625,7 @@ NOTIFY pgrst, 'reload schema';`;
                 >
                   {savingAgenda ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
+                      <ArrowsClockwise className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
@@ -6653,7 +6652,7 @@ NOTIFY pgrst, 'reload schema';`;
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-6 h-6" />
+              <Trash className="w-6 h-6" />
             </div>
 
             <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
@@ -6703,12 +6702,12 @@ NOTIFY pgrst, 'reload schema';`;
               >
                 {deletingAgenda ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <ArrowsClockwise className="w-3.5 h-3.5 animate-spin" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash className="w-3.5 h-3.5" />
                     <span>Ya, Hapus</span>
                   </>
                 )}
@@ -6733,7 +6732,7 @@ NOTIFY pgrst, 'reload schema';`;
             <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-none bg-sky-100 dark:bg-sky-950/40 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-sky-200 dark:border-sky-800/40">
-                  <Calendar className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
+                  <CalendarBlank className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-[#00296E] dark:text-white">
@@ -6834,7 +6833,7 @@ NOTIFY pgrst, 'reload schema';`;
           >
             <div className="flex items-center gap-3.5 pb-4 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="w-11 h-11 rounded-none bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-100 dark:border-rose-900/40">
-                <Trash2 className="w-6 h-6" />
+                <Trash className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
@@ -6878,12 +6877,12 @@ NOTIFY pgrst, 'reload schema';`;
               >
                 {deletingKegiatan ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <ArrowsClockwise className="w-4 h-4 animate-spin text-white" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4 text-rose-200" />
+                    <Trash className="w-4 h-4 text-rose-200" />
                     <span>Ya, Hapus Kegiatan</span>
                   </>
                 )}
@@ -6905,7 +6904,7 @@ NOTIFY pgrst, 'reload schema';`;
           >
             <div className="flex items-center gap-3.5 pb-4 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="w-11 h-11 rounded-none bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-100 dark:border-rose-900/40">
-                <Trash2 className="w-6 h-6" />
+                <Trash className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
@@ -6943,12 +6942,12 @@ NOTIFY pgrst, 'reload schema';`;
               >
                 {deletingAspirasi ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <ArrowsClockwise className="w-4 h-4 animate-spin text-white" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4 text-rose-200" />
+                    <Trash className="w-4 h-4 text-rose-200" />
                     <span>Ya, Hapus Aspirasi</span>
                   </>
                 )}
@@ -6973,7 +6972,7 @@ NOTIFY pgrst, 'reload schema';`;
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-none bg-slate-100 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10">
                   {editingBerita ? (
-                    <Edit3 className="w-4 h-4 text-slate-700 dark:text-[#38BDF8]" />
+                    <NotePencil className="w-4 h-4 text-slate-700 dark:text-[#38BDF8]" />
                   ) : (
                     <Newspaper className="w-4 h-4 text-slate-700 dark:text-[#38BDF8]" />
                   )}
@@ -7137,7 +7136,7 @@ NOTIFY pgrst, 'reload schema';`;
 
                       {/* Badge Status Terpasang */}
                       <div className="absolute top-3 left-3 bg-[#00296E]/90 dark:bg-[#001438]/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-none border border-white/20 shadow-none flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Foto Sampul Terpasang</span>
                       </div>
 
@@ -7149,7 +7148,7 @@ NOTIFY pgrst, 'reload schema';`;
                           onClick={() => beritaFileInputRef.current?.click()}
                           className="px-4 py-2 rounded-none bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-white text-xs font-bold shadow-none flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 border border-slate-200 dark:border-white/10"
                         >
-                          <Upload className="w-3.5 h-3.5 text-[#0094E0]" />
+                          <UploadSimple className="w-3.5 h-3.5 text-[#0094E0]" />
                           <span>Ganti Foto</span>
                         </button>
                         <button
@@ -7157,7 +7156,7 @@ NOTIFY pgrst, 'reload schema';`;
                           onClick={() => setFormBeritaImage("")}
                           className="px-4 py-2 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-none flex items-center gap-1.5 transition-all cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash className="w-3.5 h-3.5" />
                           <span>Hapus</span>
                         </button>
                       </div>
@@ -7170,7 +7169,7 @@ NOTIFY pgrst, 'reload schema';`;
                         onClick={() => beritaFileInputRef.current?.click()}
                         className="text-xs font-bold text-[#0094E0] dark:text-[#38BDF8] flex items-center gap-1 py-1 px-2 cursor-pointer"
                       >
-                        <Upload className="w-3.5 h-3.5" />
+                        <UploadSimple className="w-3.5 h-3.5" />
                         <span>Ganti Foto</span>
                       </button>
                       <button
@@ -7178,7 +7177,7 @@ NOTIFY pgrst, 'reload schema';`;
                         onClick={() => setFormBeritaImage("")}
                         className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 py-1 px-2 cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash className="w-3.5 h-3.5" />
                         <span>Hapus Foto</span>
                       </button>
                     </div>
@@ -7186,7 +7185,7 @@ NOTIFY pgrst, 'reload schema';`;
                     {/* Indikator Loading saat Unggah Ulang */}
                     {uploadingBeritaImage && (
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-bold gap-2">
-                        <RefreshCw className="w-6 h-6 animate-spin text-sky-300" />
+                        <ArrowsClockwise className="w-6 h-6 animate-spin text-sky-300" />
                         <span>Sedang mengompresi & mengunggah foto...</span>
                       </div>
                     )}
@@ -7218,7 +7217,7 @@ NOTIFY pgrst, 'reload schema';`;
                     }`}
                   >
                     <div className="w-12 h-12 rounded-none bg-sky-50 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shadow-none">
-                      <Upload className="w-6 h-6 text-[#0094E0] dark:text-[#38BDF8]" />
+                      <UploadSimple className="w-6 h-6 text-[#0094E0] dark:text-[#38BDF8]" />
                     </div>
 
                     <div>
@@ -7241,14 +7240,14 @@ NOTIFY pgrst, 'reload schema';`;
                       }}
                       className="mt-1 px-4 py-2 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      <Upload className="w-3.5 h-3.5 text-sky-300 dark:text-[#001740]" />
+                      <UploadSimple className="w-3.5 h-3.5 text-sky-300 dark:text-[#001740]" />
                       <span>{uploadingBeritaImage ? "Memproses..." : "Pilih Foto dari Perangkat"}</span>
                     </button>
 
                     {/* Loading Overlay */}
                     {uploadingBeritaImage && (
                       <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 rounded-none flex flex-col items-center justify-center gap-2">
-                        <RefreshCw className="w-6 h-6 animate-spin text-[#00296E] dark:text-[#38BDF8]" />
+                        <ArrowsClockwise className="w-6 h-6 animate-spin text-[#00296E] dark:text-[#38BDF8]" />
                         <span className="text-xs font-bold text-slate-800 dark:text-white">Mengompresi & mengunggah gambar...</span>
                       </div>
                     )}
@@ -7337,7 +7336,7 @@ NOTIFY pgrst, 'reload schema';`;
                 >
                   {savingBerita ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
+                      <ArrowsClockwise className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
                       <span>Menyimpan...</span>
                     </>
                   ) : (
@@ -7365,7 +7364,7 @@ NOTIFY pgrst, 'reload schema';`;
           >
             <div className="flex items-center gap-3 pb-3 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="w-10 h-10 rounded-none bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                <Trash className="w-5 h-5 text-rose-600 dark:text-rose-400" />
               </div>
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
@@ -7403,12 +7402,12 @@ NOTIFY pgrst, 'reload schema';`;
               >
                 {deletingBerita ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                    <ArrowsClockwise className="w-3.5 h-3.5 animate-spin text-white" />
                     <span>Menghapus...</span>
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-3.5 h-3.5 text-rose-200" />
+                    <Trash className="w-3.5 h-3.5 text-rose-200" />
                     <span>Ya, Hapus Artikel</span>
                   </>
                 )}
@@ -7430,7 +7429,7 @@ NOTIFY pgrst, 'reload schema';`;
           >
             <div className="flex items-center gap-3 pb-3 border-b border-[#00296E]/15 dark:border-white/10">
               <div className="w-10 h-10 rounded-none bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <WarningCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
@@ -7495,7 +7494,7 @@ NOTIFY pgrst, 'reload schema';`;
       {toastMessage && (
         <div className="no-print fixed bottom-6 right-6 z-[110] max-w-md animate-in slide-in-from-bottom-5 duration-300">
           <div className="bg-[#00296E] text-white px-4 py-3 rounded-2xl shadow-2xl border border-sky-400/30 flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
             <span className="text-xs font-semibold">{toastMessage}</span>
             <button
               type="button"
