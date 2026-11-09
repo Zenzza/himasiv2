@@ -95,9 +95,13 @@ import ApresiasiManager from "@/components/dashboard/apresiasi-manager";
 import UserManager from "@/components/dashboard/user-manager";
 import PersuratanManager from "@/components/dashboard/persuratan-manager";
 import ContentPlannerManager from "@/components/dashboard/content-planner-manager";
+import AuditLogManager from "@/components/dashboard/audit-log-manager";
+import { getAuditLogs, recordAuditLog } from "@/lib/supabase/audit-log";
+import type { AuditLogItem } from "@/lib/types/audit-log";
 import {
   type UserRole,
   type ContentStatus,
+  type DashboardTabKey,
   canAccessTab,
   canPublishContent,
   canEditPublishedContent,
@@ -192,9 +196,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "absensi" | "rekap-absensi" | "kartu-qr" | "dokumen" | "persuratan" | "content-planner" | "aspirasi" | "berita" | "kalender" | "database" | "banner" | "apresiasi" | "users"
-  >("overview");
+  const [activeTab, setActiveTab] = useState<DashboardTabKey>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>("humas_biskraf");
 
@@ -311,6 +313,7 @@ export default function DashboardPage() {
     null
   );
   const [authLoading, setAuthLoading] = useState(true);
+  const [currentUserName, setCurrentUserName] = useState<string>("Pengurus HIMASI");
 
   // Aspirasi State
   const [aspirasiList, setAspirasiList] = useState<AspirasiItem[]>([]);
@@ -348,6 +351,10 @@ export default function DashboardPage() {
         k.jam.toLowerCase().includes(q)
     );
   }, [kegiatanList, searchKegiatanOverview]);
+
+  // Audit Log Overview State (Limit 4)
+  const [overviewAuditLogs, setOverviewAuditLogs] = useState<AuditLogItem[]>([]);
+  const [loadingOverviewAuditLogs, setLoadingOverviewAuditLogs] = useState(false);
 
   // Modal Konfirmasi Hapus Aspirasi & Feedback Toast
   const [aspirasiToDelete, setAspirasiToDelete] = useState<AspirasiItem | null>(null);
@@ -615,6 +622,14 @@ export default function DashboardPage() {
 
       if (editingBerita) {
         await updateBerita(editingBerita.id, payload);
+        recordAuditLog({
+          modul: "berita",
+          aksi: `Memperbarui artikel warta/berita: "${payload.title}"`,
+          pengurus_nama: currentUserName,
+          pengurus_role: currentUserRole,
+          status: "berhasil",
+          detail: `Kategori: ${payload.category_label}, Status: ${payload.status}`,
+        }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log update berita:", err));
         showToast(
           isApprover
             ? "Berhasil memperbarui artikel berita!"
@@ -622,6 +637,14 @@ export default function DashboardPage() {
         );
       } else {
         await createBerita(payload);
+        recordAuditLog({
+          modul: "berita",
+          aksi: `Membuat warta/berita baru: "${payload.title}"`,
+          pengurus_nama: currentUserName,
+          pengurus_role: currentUserRole,
+          status: "berhasil",
+          detail: `Kategori: ${payload.category_label}, Status: ${payload.status}`,
+        }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log create berita:", err));
         showToast(
           isApprover
             ? "Berhasil menerbitkan artikel berita baru!"
@@ -649,6 +672,13 @@ export default function DashboardPage() {
             : b
         )
       );
+      recordAuditLog({
+        modul: "berita",
+        aksi: `Menyetujui & menerbitkan artikel warta: "${item.title}"`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log approve berita:", err));
       showToast(`Warta "${item.title}" disetujui & langsung diterbitkan!`);
     } catch (err: any) {
       console.error("Approve berita error:", err);
@@ -667,6 +697,14 @@ export default function DashboardPage() {
             : b
         )
       );
+      recordAuditLog({
+        modul: "berita",
+        aksi: `Mengembalikan warta dengan catatan revisi: "${rejectingBeritaItem.title}"`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "peringatan",
+        detail: `Catatan: ${catatanRevisiBerita.trim() || "-"}`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log reject berita:", err));
       showToast("Warta dikembalikan dengan catatan revisi untuk kontributor.");
       setRejectingBeritaItem(null);
       setCatatanRevisiBerita("");
@@ -686,6 +724,13 @@ export default function DashboardPage() {
       setBeritaList((prev) =>
         prev.map((b) => (String(b.id) === String(item.id) ? { ...b, is_published: newStatus, status: newStatus ? "published" : "draft" } : b))
       );
+      recordAuditLog({
+        modul: "berita",
+        aksi: `Mengubah status publikasi berita "${item.title}" ke ${newStatus ? "Terbit" : "Draft"}`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log toggle berita:", err));
       showToast(newStatus ? "Status diubah ke Terbit." : "Status diubah ke Draft.");
     } catch (err) {
       console.error("Toggle status error:", err);
@@ -701,10 +746,20 @@ export default function DashboardPage() {
       return;
     }
     setDeletingBerita(true);
+    const targetTitle = beritaToDelete.title;
+    const targetId = beritaToDelete.id;
     try {
-      await deleteBerita(beritaToDelete.id);
-      setBeritaList((prev) => prev.filter((b) => String(b.id) !== String(beritaToDelete.id)));
-      showToast(`Artikel "${beritaToDelete.title}" berhasil dihapus.`);
+      await deleteBerita(targetId);
+      setBeritaList((prev) => prev.filter((b) => String(b.id) !== String(targetId)));
+      recordAuditLog({
+        modul: "berita",
+        aksi: `Menghapus artikel warta/berita: "${targetTitle}"`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: `ID: ${targetId}`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log delete berita:", err));
+      showToast(`Artikel "${targetTitle}" berhasil dihapus.`);
       setBeritaToDelete(null);
     } catch (err) {
       console.error("Delete berita error:", err);
@@ -740,6 +795,13 @@ export default function DashboardPage() {
       mobilePosition: formMobilePos,
     });
     setBannerConfig(updated);
+    recordAuditLog({
+      modul: "banner",
+      aksi: "Menyimpan konfigurasi Hero Banner beranda",
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "berhasil",
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log save banner:", err));
     showToast("Berhasil menyimpan konfigurasi Hero Banner Desktop & Mobile!");
   };
 
@@ -750,6 +812,13 @@ export default function DashboardPage() {
     setFormMobileImage(def.mobileImage);
     setFormDesktopPos(def.desktopPosition || "object-[center_65%]");
     setFormMobilePos(def.mobilePosition || "object-center");
+    recordAuditLog({
+      modul: "banner",
+      aksi: "Mereset konfigurasi Hero Banner ke bawaan",
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "peringatan",
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log reset banner:", err));
     showToast("Hero Banner berhasil di-reset ke konfigurasi bawaan.");
   };
 
@@ -790,6 +859,13 @@ export default function DashboardPage() {
   const handleSaveAllFitur = async () => {
     setSavingFitur(true);
     saveFiturUtamaConfig(fiturConfig);
+    recordAuditLog({
+      modul: "banner",
+      aksi: "Menyimpan & menyinkronkan seluruh pengaturan Fitur Utama beranda",
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "berhasil",
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log save fitur:", err));
     showToast("Pengaturan Fitur Utama berhasil disimpan & tersinkronisasi!");
     setSavingFitur(false);
   };
@@ -797,6 +873,13 @@ export default function DashboardPage() {
   const handleResetFitur = () => {
     const def = resetFiturUtamaConfig();
     setFiturConfig(def);
+    recordAuditLog({
+      modul: "banner",
+      aksi: "Mereset pengaturan Fitur Utama ke pengaturan bawaan",
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "peringatan",
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log reset fitur:", err));
     showToast("Fitur Utama berhasil di-reset ke pengaturan bawaan.");
   };
 
@@ -918,10 +1001,18 @@ export default function DashboardPage() {
           const profile = await getCurrentUserProfile(basicUser);
           if (profile) {
             setCurrentUserRole(profile.role);
+            if (profile.nama_lengkap) {
+              setCurrentUserName(profile.nama_lengkap);
+            } else {
+              setCurrentUserName(basicUser.full_name);
+            }
+          } else {
+            setCurrentUserName(basicUser.full_name);
           }
         } else {
           setUser(null);
           setCurrentUserRole("humas_biskraf");
+          setCurrentUserName("Pengurus HIMASI");
         }
       } catch (err) {
         console.warn("Gagal mengambil sesi:", err);
@@ -949,10 +1040,18 @@ export default function DashboardPage() {
         const profile = await getCurrentUserProfile(basicUser);
         if (profile) {
           setCurrentUserRole(profile.role);
+          if (profile.nama_lengkap) {
+            setCurrentUserName(profile.nama_lengkap);
+          } else {
+            setCurrentUserName(basicUser.full_name);
+          }
+        } else {
+          setCurrentUserName(basicUser.full_name);
         }
       } else {
         setUser(null);
         setCurrentUserRole("humas_biskraf");
+        setCurrentUserName("Pengurus HIMASI");
       }
     });
 
@@ -1007,6 +1106,29 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchAspirasi();
   }, [fetchAspirasi]);
+
+  // Fetch Audit Log untuk Widget Overview (Limit 4 entri terkini)
+  const fetchOverviewAuditLogs = useCallback(async () => {
+    setLoadingOverviewAuditLogs(true);
+    try {
+      const logs = await getAuditLogs({ limit: 4 });
+      setOverviewAuditLogs(logs);
+    } catch (err) {
+      console.warn("Gagal mengambil audit log overview:", err);
+    } finally {
+      setLoadingOverviewAuditLogs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOverviewAuditLogs();
+  }, [fetchOverviewAuditLogs]);
+
+  useEffect(() => {
+    if (activeTab === "overview") {
+      fetchOverviewAuditLogs();
+    }
+  }, [activeTab, fetchOverviewAuditLogs]);
 
   // 3. Ambil Kegiatan Absensi dari Supabase Cloud (dengan sinkronisasi Realtime & Deduplikasi)
   const fetchKegiatan = useCallback(async () => {
@@ -1338,6 +1460,15 @@ export default function DashboardPage() {
     } else {
       showToast(`Kegiatan "${namaTrim}" berhasil dibuat.`);
     }
+
+    recordAuditLog({
+      modul: "absensi",
+      aksi: `Membuat kegiatan presensi baru: "${namaTrim}"`,
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "berhasil",
+      detail: `Tanggal: ${tglVal}, Jam: ${jamVal}, DB: ${isDbSaved ? "Cloud" : "Lokal"}`,
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log buat kegiatan:", err));
   };
 
   // 7. Request & Konfirmasi Hapus Kegiatan (Modal Interaktif Tanpa window.confirm)
@@ -1411,6 +1542,15 @@ export default function DashboardPage() {
       setKegiatanToDelete(null);
       showToast(`Kegiatan "${targetNama}" berhasil dihapus.`);
     }
+
+    recordAuditLog({
+      modul: "absensi",
+      aksi: `Menghapus kegiatan presensi: "${targetNama}"`,
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "berhasil",
+      detail: `ID: ${targetId}`,
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log hapus kegiatan:", err));
   };
 
   // 8. Hapus / Reset Presensi Log Tertentu atau Seluruh Presensi Kegiatan
@@ -1434,6 +1574,15 @@ export default function DashboardPage() {
       console.warn("Gagal hapus log dari Supabase:", err);
     }
 
+    recordAuditLog({
+      modul: "absensi",
+      aksi: `Mereset riwayat presensi pengurus NIM ${nim}`,
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "berhasil",
+      detail: `Kegiatan: ${namaKegiatan}`,
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log reset presensi pengurus:", err));
+
     showToast(`Presensi pengurus NIM ${nim} berhasil direset.`);
   };
 
@@ -1451,6 +1600,14 @@ export default function DashboardPage() {
     } catch (err) {
       console.warn("Gagal reset log dari Supabase:", err);
     }
+
+    recordAuditLog({
+      modul: "absensi",
+      aksi: `Mereset seluruh data presensi untuk kegiatan "${namaKegiatan}"`,
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "berhasil",
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log reset all presensi:", err));
 
     showToast(`Seluruh presensi kegiatan "${namaKegiatan}" berhasil dikosongkan.`);
   };
@@ -1477,6 +1634,15 @@ export default function DashboardPage() {
         setSelectedAspirasi((prev) => (prev ? { ...prev, status: newStatus } : null));
       }
       showToast(`Status aspirasi berhasil diubah ke ${newStatus}.`);
+
+      recordAuditLog({
+        modul: "aspirasi",
+        aksi: `Memperbarui status aspirasi mahasiswa menjadi "${newStatus}"`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: `ID: ${id}`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log update status aspirasi:", err));
     } catch (err) {
       showToast("Gagal memperbarui status: " + (err as Error).message);
     }
@@ -1504,6 +1670,15 @@ export default function DashboardPage() {
         setSelectedAspirasi(null);
       }
       showToast("Catatan aspirasi mahasiswa berhasil dihapus.");
+
+      recordAuditLog({
+        modul: "aspirasi",
+        aksi: `Menghapus aspirasi mahasiswa (ID: ${id})`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: `Pengirim: ${aspirasiToDelete.email || "Anonim"} (Angkatan ${aspirasiToDelete.angkatan || "-"})`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log hapus aspirasi:", err));
     } catch (err) {
       showToast("Gagal menghapus aspirasi: " + (err as Error).message);
     } finally {
@@ -1733,6 +1908,14 @@ export default function DashboardPage() {
         } else {
           showToast(`Data pengurus "${cleanNama}" berhasil diperbarui!`);
         }
+        recordAuditLog({
+          modul: "kartu-qr",
+          aksi: `Memperbarui profil & QR token anggota: ${cleanNama} (${cleanNim})`,
+          pengurus_nama: currentUserName,
+          pengurus_role: currentUserRole,
+          status: "berhasil",
+          detail: `Jabatan: ${cleanJabatan}, Divisi: ${cleanDivisi}, Email: ${cleanEmail}`,
+        }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log update pengurus:", err));
       } catch (err) {
         console.warn("Supabase update pengurus error:", err);
         showToast(`Data pengurus "${cleanNama}" berhasil diperbarui!`);
@@ -1796,6 +1979,15 @@ export default function DashboardPage() {
 
       setPengurusList(sortPengurusMembers([newMember, ...pengurusList]));
 
+      recordAuditLog({
+        modul: "kartu-qr",
+        aksi: `Menambahkan anggota pengurus & menerbitkan kartu QR: ${cleanNama} (${cleanNim})`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: `Jabatan: ${cleanJabatan}, Divisi: ${cleanDivisi}, Email: ${cleanEmail}`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log create pengurus:", err));
+
       if (isDbSaved) {
         showToast(`Anggota "${cleanNama}" berhasil ditambahkan & tersimpan ke Cloud!`);
       } else {
@@ -1821,6 +2013,15 @@ export default function DashboardPage() {
     const targetNama = pengurusToDelete.nama;
 
     setPengurusList((prev) => prev.filter((p) => p.id !== targetId));
+
+    recordAuditLog({
+      modul: "kartu-qr",
+      aksi: `Menghapus data anggota pengurus: ${targetNama} (${targetNim})`,
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "berhasil",
+      detail: `ID: ${targetId}, NIM: ${targetNim}`,
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log delete pengurus:", err));
 
     if (selectedPengurusCard?.id === targetId) {
       setSelectedPengurusCard(null);
@@ -1924,6 +2125,15 @@ export default function DashboardPage() {
         showToast(`Dokumen "${formDokumenJudul}" berhasil diperbarui di Supabase!`);
       }
 
+      recordAuditLog({
+        modul: "dokumen",
+        aksi: `Memperbarui dokumen organisasi: "${formDokumenJudul}"`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: `Berkas: ${formDokumenFileName || "-"}, Ukuran: ${formDokumenFileSize || "-"}`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log update dokumen:", err));
+
       setDokumenList((prev) =>
         prev
           .map((d) =>
@@ -1971,6 +2181,15 @@ export default function DashboardPage() {
         );
         showToast("Peringatan: Tersimpan lokal di browser. Tabel 'dokumen_organisasi' belum dibuat di Supabase!");
       }
+
+      recordAuditLog({
+        modul: "dokumen",
+        aksi: `Mengunggah & menerbitkan dokumen organisasi: "${formDokumenJudul}"`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: `Berkas: ${formDokumenFileName || "-"}, Ukuran: ${formDokumenFileSize || "-"}`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log create dokumen:", err));
     }
 
     setSavingDokumen(false);
@@ -1989,6 +2208,15 @@ export default function DashboardPage() {
     } else {
       showToast(`Dokumen "${targetJudul}" berhasil dihapus dari Supabase.`);
     }
+
+    recordAuditLog({
+      modul: "dokumen",
+      aksi: `Menghapus dokumen organisasi: "${targetJudul}"`,
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: "berhasil",
+      detail: `ID: ${targetId}`,
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log delete dokumen:", err));
 
     setDokumenList((prev) => prev.filter((d) => d.id !== targetId));
     setDeletingDokumen(false);
@@ -2196,6 +2424,15 @@ export default function DashboardPage() {
         );
         showToast("Peringatan: Gagal sinkron ke database Supabase! Pastikan tabel 'agenda_kalender' telah dibuat di SQL Editor.");
       }
+
+      recordAuditLog({
+        modul: "kalender",
+        aksi: `Memperbarui agenda kegiatan: "${formAgendaJudul}"`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: updated ? "berhasil" : "gagal",
+        detail: `Tanggal: ${formAgendaTanggalMulai}${finalTanggalSelesai ? ` s.d ${finalTanggalSelesai}` : ""}, Kategori: ${formAgendaKategori}`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log update agenda:", err));
     } else {
       const created = await createAgenda({
         tanggal_mulai: formAgendaTanggalMulai,
@@ -2230,6 +2467,15 @@ export default function DashboardPage() {
         setAgendaList((prev) => [...prev, localItem]);
         showToast("Peringatan: Tersimpan lokal di browser. Tabel 'agenda_kalender' belum dibuat di Supabase!");
       }
+
+      recordAuditLog({
+        modul: "kalender",
+        aksi: `Menambahkan agenda kegiatan: "${formAgendaJudul}"`,
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        status: created ? "berhasil" : "gagal",
+        detail: `Tanggal: ${formAgendaTanggalMulai}, Kategori: ${formAgendaKategori}, Status: ${targetStatus}`,
+      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log create agenda:", err));
     }
 
     setSavingAgenda(false);
@@ -2244,6 +2490,15 @@ export default function DashboardPage() {
           prev.map((a) => (a.id === agenda.id ? { ...a, status: "published" } : a))
         );
         showToast(`Agenda "${agenda.judul}" disetujui & dipublikasikan ke kalender publik!`);
+
+        recordAuditLog({
+          modul: "kalender",
+          aksi: `Menyetujui & mempublikasikan agenda kegiatan: "${agenda.judul}"`,
+          pengurus_nama: currentUserName,
+          pengurus_role: currentUserRole,
+          status: "berhasil",
+          detail: `ID: ${agenda.id}, Tanggal: ${agenda.tanggal_mulai}`,
+        }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log approve agenda:", err));
       }
     } catch (err) {
       console.error("Approve agenda error:", err);
@@ -2266,6 +2521,15 @@ export default function DashboardPage() {
     } else {
       showToast(`Agenda "${agendaToDelete.judul}" berhasil dihapus dari Supabase.`);
     }
+
+    recordAuditLog({
+      modul: "kalender",
+      aksi: `Menghapus agenda kegiatan: "${agendaToDelete.judul}"`,
+      pengurus_nama: currentUserName,
+      pengurus_role: currentUserRole,
+      status: deleted ? "berhasil" : "gagal",
+      detail: `ID: ${agendaToDelete.id}, Tanggal: ${agendaToDelete.tanggal_mulai}`,
+    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log delete agenda:", err));
 
     setAgendaList((prev) => prev.filter((a) => a.id !== agendaToDelete.id));
     setDeletingAgenda(false);
@@ -2738,7 +3002,7 @@ NOTIFY pgrst, 'reload schema';`;
             type="button"
             onClick={() => setActiveTab("banner")}
             className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
-              ["banner", "database", "users"].includes(activeTab)
+              ["banner", "database", "users", "audit-log"].includes(activeTab)
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
             }`}
@@ -3119,21 +3383,23 @@ NOTIFY pgrst, 'reload schema';`;
               )}
 
               {/* Audit Log Aktivitas */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("overview");
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
-                  activeTab === "overview"
-                    ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
-                    : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
-                }`}
-              >
-                <span>Audit Log Aktivitas</span>
-                {activeTab === "overview" && <span className="font-mono text-sm leading-none">&rarr;</span>}
-              </button>
+              {(currentUserRole === "super_admin" || currentUserRole === "bph") && canAccessTab(currentUserRole, "audit-log") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("audit-log");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "audit-log"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Audit Log Aktivitas</span>
+                  {activeTab === "audit-log" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
             </nav>
           </div>
 
@@ -3273,6 +3539,20 @@ NOTIFY pgrst, 'reload schema';`;
 
                 {/* Swiss Hairline Audit Log Table (Sesuai Gambar Mockup) */}
                 <div className="border border-[#00296E]/20 dark:border-white/10 bg-white dark:bg-[#001438] overflow-hidden">
+                  <div className="flex items-center justify-between px-6 py-3 border-b border-[#00296E]/20 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233]">
+                    <span className="text-[10px] font-extrabold text-[#00296E] dark:text-slate-200 uppercase tracking-wider">
+                      Audit Log Aktivitas Terkini
+                    </span>
+                    {(currentUserRole === "super_admin" || currentUserRole === "bph") && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("audit-log")}
+                        className="text-xs font-bold text-[#0094E0] dark:text-[#38BDF8] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Lihat Seluruh Log &rarr;</span>
+                      </button>
+                    )}
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
@@ -3284,27 +3564,107 @@ NOTIFY pgrst, 'reload schema';`;
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#00296E]/15 dark:divide-white/5 font-medium">
-                        <tr className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3.5 px-6 font-mono text-slate-600 dark:text-slate-400">15:42</td>
-                          <td className="py-3.5 px-6 font-bold text-slate-900 dark:text-white">Super Admin</td>
-                          <td className="py-3.5 px-6 text-slate-700 dark:text-slate-300">Toggle Maintenance Mode Sync</td>
-                          <td className="py-3.5 px-6 text-right font-extrabold text-[#00296E] dark:text-[#38BDF8]">SYNCED</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3.5 px-6 font-mono text-slate-600 dark:text-slate-400">14:10</td>
-                          <td className="py-3.5 px-6 font-bold text-slate-900 dark:text-white">Divisi Medkom</td>
-                          <td className="py-3.5 px-6 text-slate-700 dark:text-slate-300">Publish: Berita Seminar Tech 2026</td>
-                          <td className="py-3.5 px-6 text-right font-extrabold text-[#00296E] dark:text-[#38BDF8]">LIVE</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3.5 px-6 font-mono text-slate-600 dark:text-slate-400">11:05</td>
-                          <td className="py-3.5 px-6 font-bold text-slate-900 dark:text-white">BPH Presensi</td>
-                          <td className="py-3.5 px-6 text-slate-700 dark:text-slate-300">Rekap QR Rapat Kerja Semester Genap</td>
-                          <td className="py-3.5 px-6 text-right font-extrabold text-[#00296E] dark:text-[#38BDF8]">VERIFIED</td>
-                        </tr>
+                        {loadingOverviewAuditLogs ? (
+                          <tr>
+                            <td colSpan={4} className="py-6 text-center text-slate-400 font-mono text-xs">
+                              Memuat data audit log...
+                            </td>
+                          </tr>
+                        ) : overviewAuditLogs.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="py-6 text-center text-slate-400 font-mono text-xs">
+                              Belum ada catatan aktivitas.
+                            </td>
+                          </tr>
+                        ) : (
+                          overviewAuditLogs.map((log) => {
+                            const timeStr = (() => {
+                              try {
+                                const d = new Date(log.created_at);
+                                return isNaN(d.getTime())
+                                  ? log.created_at
+                                  : d.toLocaleTimeString("id-ID", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: false,
+                                      timeZone: "Asia/Jakarta",
+                                    });
+                              } catch {
+                                return log.created_at;
+                              }
+                            })();
+
+                            const roleLabel =
+                              (log.pengurus_role && ROLE_LABELS[log.pengurus_role as UserRole]) ||
+                              log.pengurus_role ||
+                              "Pengurus";
+
+                            return (
+                              <tr
+                                key={log.id}
+                                className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors"
+                              >
+                                <td className="py-3.5 px-6 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                  {timeStr}
+                                </td>
+                                <td className="py-3.5 px-6">
+                                  <div className="font-bold text-slate-900 dark:text-white">
+                                    {log.pengurus_nama}
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                    {roleLabel}
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-6 text-slate-700 dark:text-slate-300">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-1.5 py-0.5 text-[9px] font-mono uppercase bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] border border-[#00296E]/10 dark:border-white/10 shrink-0">
+                                      {log.modul}
+                                    </span>
+                                    <span className="truncate">{log.aksi}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-6 text-right font-extrabold">
+                                  {log.status === "berhasil" && (
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[11px] uppercase">
+                                      BERHASIL
+                                    </span>
+                                  )}
+                                  {log.status === "peringatan" && (
+                                    <span className="text-amber-600 dark:text-amber-400 font-mono text-[11px] uppercase">
+                                      PERINGATAN
+                                    </span>
+                                  )}
+                                  {log.status === "gagal" && (
+                                    <span className="text-rose-600 dark:text-rose-400 font-mono text-[11px] uppercase">
+                                      GAGAL
+                                    </span>
+                                  )}
+                                  {log.status !== "berhasil" &&
+                                    log.status !== "peringatan" &&
+                                    log.status !== "gagal" && (
+                                      <span className="text-slate-600 dark:text-slate-400 font-mono text-[11px] uppercase">
+                                        {log.status}
+                                      </span>
+                                    )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>
+                  {(currentUserRole === "super_admin" || currentUserRole === "bph") && (
+                    <div className="px-6 py-2.5 border-t border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC]/60 dark:bg-[#001233]/60 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("audit-log")}
+                        className="text-xs font-bold text-[#0094E0] dark:text-[#38BDF8] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Lihat Seluruh Log &rarr;</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tombol Aksi Cepat & Modal */}
@@ -3809,6 +4169,8 @@ NOTIFY pgrst, 'reload schema';`;
                       kegiatanJam={activeKegiatan.jam}
                       onAttendanceSuccess={handleAttendanceSuccess}
                       pengurusList={studentPengurusList}
+                      currentUserName={currentUserName}
+                      currentUserRole={currentUserRole}
                     />
                   </>
                 )}
@@ -4178,22 +4540,22 @@ NOTIFY pgrst, 'reload schema';`;
 
             {/* TAB PERSURATAN & PENOMORAN OTOMATIS */}
             {activeTab === "persuratan" && (
-              <PersuratanManager currentUserRole={currentUserRole} />
+              <PersuratanManager currentUserRole={currentUserRole} currentUserName={currentUserName} />
             )}
 
             {/* TAB CONTENT PLANNER */}
             {activeTab === "content-planner" && (
-              <ContentPlannerManager currentUserRole={currentUserRole} />
+              <ContentPlannerManager currentUserRole={currentUserRole} currentUserName={currentUserName} />
             )}
 
             {/* TAB 5: ASPIRASI MAHASISWA */}
             {activeTab === "aspirasi" && (
-              <AspirasiManager currentUserRole={currentUserRole} />
+              <AspirasiManager currentUserRole={currentUserRole} currentUserName={currentUserName} />
             )}
 
             {/* TAB APRESIA-SI (KARYA, PRESTASI & SUBMISI MAHASISWA) */}
             {activeTab === "apresiasi" && (
-              <ApresiasiManager currentUserRole={currentUserRole} />
+              <ApresiasiManager currentUserRole={currentUserRole} currentUserName={currentUserName} />
             )}
 
             {/* TAB 6: BERITA CRUD MANAGEMENT */}
@@ -5075,7 +5437,14 @@ NOTIFY pgrst, 'reload schema';`;
             {/* TAB 10: MANAJEMEN PENGGUNA & HAK AKSES (KHUSUS SUPER ADMIN) */}
             {activeTab === "users" && canAccessTab(currentUserRole, "users") && (
               <div className="space-y-5 animate-in fade-in duration-200">
-                <UserManager currentUserEmail={user?.email} />
+                <UserManager currentUserEmail={user?.email} currentUserName={currentUserName} />
+              </div>
+            )}
+
+            {/* TAB 11: AUDIT LOG AKTIVITAS (KHUSUS SUPER ADMIN & BPH) */}
+            {activeTab === "audit-log" && (currentUserRole === "super_admin" || currentUserRole === "bph") && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                <AuditLogManager currentUserRole={currentUserRole} />
               </div>
             )}
 

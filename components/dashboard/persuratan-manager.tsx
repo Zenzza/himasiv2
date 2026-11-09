@@ -55,16 +55,20 @@ import {
   deleteSurat,
   uploadBerkasSurat,
 } from "@/lib/supabase/persuratan";
+import { recordAuditLog } from "@/lib/supabase/audit-log";
 import { type UserRole, ROLE_LABELS } from "@/lib/types/auth";
 
 export interface PersuratanManagerProps {
   currentUserRole?: UserRole;
+  currentUserName?: string;
 }
 
 export default function PersuratanManager({
   currentUserRole = "bph",
+  currentUserName = "Pengurus HIMASI",
 }: PersuratanManagerProps) {
   const isBphOrAdmin = currentUserRole === "bph" || currentUserRole === "super_admin";
+  const actorName = currentUserName || (currentUserRole === "super_admin" ? "Super Admin" : "Sekretaris HIMASI");
 
   // Data utama persuratan
   const [suratList, setSuratList] = useState<SuratArsipItem[]>([]);
@@ -353,6 +357,17 @@ export default function PersuratanManager({
         file_size: fileData?.fileSize || null,
       });
 
+      recordAuditLog({
+        pengurus_nama: actorName,
+        pengurus_role: currentUserRole,
+        modul: "persuratan",
+        aksi: asDraft
+          ? `Membuat surat draf keluar: ${created.perihal}`
+          : `Membuat surat keluar resmi No. ${created.nomor_surat}`,
+        status: "berhasil",
+        detail: `Perihal: ${created.perihal}, Tujuan: ${created.tujuan_pengirim}`,
+      }).catch((err) => console.warn("[PersuratanManager] Gagal mencatat audit log surat keluar:", err));
+
       showToast(
         asDraft
           ? "Draf surat keluar tersimpan (tanpa memakan nomor urut)."
@@ -395,7 +410,7 @@ export default function PersuratanManager({
 
       const kategoriLabel = KODE_JENIS_SURAT_MAP[masukKodeJenis]?.label || "Lainnya";
 
-      await createSurat({
+      const createdMasuk = await createSurat({
         jenis_surat: "masuk",
         kode_jenis: masukKodeJenis,
         kategori_label: kategoriLabel,
@@ -410,6 +425,15 @@ export default function PersuratanManager({
         file_name: fileData?.fileName || null,
         file_size: fileData?.fileSize || null,
       });
+
+      recordAuditLog({
+        pengurus_nama: actorName,
+        pengurus_role: currentUserRole,
+        modul: "persuratan",
+        aksi: `Membuat surat masuk / mencatat agenda dari ${masukPengirim.trim()}`,
+        status: "berhasil",
+        detail: `No. Surat: ${masukNomorAsal.trim() || "—"}, Perihal: ${masukPerihal.trim()}`,
+      }).catch((err) => console.warn("[PersuratanManager] Gagal mencatat audit log surat masuk:", err));
 
       showToast("Surat masuk berhasil dicatat ke dalam buku agenda.");
 
@@ -437,6 +461,14 @@ export default function PersuratanManager({
       const updated = await updateStatusSurat(item.id, "terkirim");
       if (updated) {
         setSelectedSurat(updated);
+        recordAuditLog({
+          pengurus_nama: actorName,
+          pengurus_role: currentUserRole,
+          modul: "persuratan",
+          aksi: `Menyetujui tanda tangan surat keluar: ${updated.nomor_surat}`,
+          status: "berhasil",
+          detail: `Status berubah menjadi terkirim. Perihal: ${updated.perihal}`,
+        }).catch((err) => console.warn("[PersuratanManager] Gagal mencatat audit log approve ttd:", err));
         showToast(`Tanda tangan disetujui. Status surat kini Terkirim (${updated.nomor_surat}).`);
       }
       await loadData();
@@ -455,6 +487,14 @@ export default function PersuratanManager({
       const reverted = await revertSuratToDraft(item.id);
       if (reverted) {
         setSelectedSurat(reverted);
+        recordAuditLog({
+          pengurus_nama: actorName,
+          pengurus_role: currentUserRole,
+          modul: "persuratan",
+          aksi: `Mengembalikan status surat ${reverted.nomor_surat || reverted.id} ke draf`,
+          status: "berhasil",
+          detail: `Nomor surat ditarik kembali (recycling). Perihal: ${reverted.perihal}`,
+        }).catch((err) => console.warn("[PersuratanManager] Gagal mencatat audit log revert draft:", err));
         showToast(
           "Nomor surat berhasil ditarik kembali ke antrean (Number Recycling aktif) & surat kembali ke status Draf."
         );
@@ -475,6 +515,14 @@ export default function PersuratanManager({
       const updated = await updateStatusSurat(item.id, "menunggu_ttd");
       if (updated) {
         setSelectedSurat(updated);
+        recordAuditLog({
+          pengurus_nama: currentUserRole === "super_admin" ? "Super Admin" : "Sekretaris HIMASI",
+          pengurus_role: currentUserRole,
+          modul: "persuratan",
+          aksi: `Mengajukan status draf surat ke menunggu tanda tangan: ${updated.nomor_surat}`,
+          status: "berhasil",
+          detail: `Perihal: ${updated.perihal}`,
+        }).catch((err) => console.warn("[PersuratanManager] Gagal mencatat audit log promote draft:", err));
         showToast(`Nomor resmi diterbitkan: ${updated.nomor_surat}. Menunggu TTD Ketua.`);
       }
       await loadData();
@@ -497,6 +545,14 @@ export default function PersuratanManager({
       });
       if (updated) {
         setSelectedSurat(updated);
+        recordAuditLog({
+          pengurus_nama: actorName,
+          pengurus_role: currentUserRole,
+          modul: "persuratan",
+          aksi: `Memperbarui status disposisi surat masuk: ${selectedSurat.nomor_surat}`,
+          status: "berhasil",
+          detail: `Status baru: ${editDisposisiStatus}, Catatan: ${editDisposisiNotes.trim() || "-"}`,
+        }).catch((err) => console.warn("[PersuratanManager] Gagal mencatat audit log disposisi:", err));
         showToast("Catatan disposisi & status surat masuk berhasil diperbarui.");
       }
       await loadData();
@@ -541,6 +597,15 @@ export default function PersuratanManager({
     setIsProcessingAction(true);
     try {
       await deleteSurat(suratToDelete.id);
+      recordAuditLog({
+        pengurus_nama: actorName,
+        pengurus_role: currentUserRole,
+        modul: "persuratan",
+        aksi: `Menghapus arsip surat ${suratToDelete.nomor_surat || suratToDelete.id}`,
+        status: "berhasil",
+        detail: `Jenis: ${suratToDelete.jenis_surat}, Perihal: ${suratToDelete.perihal}`,
+      }).catch((err) => console.warn("[PersuratanManager] Gagal mencatat audit log delete surat:", err));
+
       showToast("Arsip surat berhasil dihapus dari sistem.");
       if (selectedSurat?.id === suratToDelete.id) {
         setSelectedSurat(null);

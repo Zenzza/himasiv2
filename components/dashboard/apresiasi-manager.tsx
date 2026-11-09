@@ -53,13 +53,16 @@ import {
   deleteApresiasiShowcase,
   approveAndPublishSubmisi,
 } from "@/lib/supabase/apresiasi";
+import { recordAuditLog } from "@/lib/supabase/audit-log";
 
 interface ApresiasiManagerProps {
   currentUserRole?: UserRole;
+  currentUserName?: string;
 }
 
 export default function ApresiasiManager({
   currentUserRole = "humas_biskraf",
+  currentUserName = "Pengurus HIMASI",
 }: ApresiasiManagerProps) {
   const canPublish = canPublishContent(currentUserRole);
   const canEdit = canEditPublishedContent(currentUserRole);
@@ -172,9 +175,24 @@ export default function ApresiasiManager({
   const handleConfirmRejectSubmisi = async () => {
     if (!submisiToReject) return;
     setIsProcessing(true);
+    const rejectedItem = submisiToReject;
     try {
-      const res = await updateApresiasiSubmisiStatus(submisiToReject.id, "rejected");
+      const res = await updateApresiasiSubmisiStatus(rejectedItem.id, "rejected");
       showToast(res.message);
+      recordAuditLog({
+        modul: "apresiasi",
+        aksi: `Menolak pengajuan apresiasi mahasiswa: "${rejectedItem.title}" (${rejectedItem.studentName})`,
+        pengurus_nama: currentUserName || "Pengurus HIMASI",
+        pengurus_role: currentUserRole,
+        status: "peringatan",
+        detail: JSON.stringify({
+          submisiId: rejectedItem.id,
+          mahasiswa: rejectedItem.studentName,
+          nim: rejectedItem.nim,
+          kategori: rejectedItem.category,
+        }),
+      }).catch((err) => console.warn("[apresiasi] Gagal mencatat audit log:", err));
+
       setSubmisiToReject(null);
       setSelectedSubmisi(null);
       fetchSubmisi();
@@ -189,9 +207,23 @@ export default function ApresiasiManager({
   const handleConfirmDeleteSubmisi = async () => {
     if (!submisiToDelete) return;
     setIsProcessing(true);
+    const deletedItem = submisiToDelete;
     try {
-      const res = await deleteApresiasiSubmisi(submisiToDelete.id);
+      const res = await deleteApresiasiSubmisi(deletedItem.id);
       showToast(res.message);
+      recordAuditLog({
+        modul: "apresiasi",
+        aksi: `Menghapus berkas pengajuan apresiasi: "${deletedItem.title}" (${deletedItem.studentName})`,
+        pengurus_nama: currentUserName || "Pengurus HIMASI",
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: JSON.stringify({
+          submisiId: deletedItem.id,
+          mahasiswa: deletedItem.studentName,
+          nim: deletedItem.nim,
+        }),
+      }).catch((err) => console.warn("[apresiasi] Gagal mencatat audit log:", err));
+
       setSubmisiToDelete(null);
       setSelectedSubmisi(null);
       fetchSubmisi();
@@ -221,18 +253,34 @@ export default function ApresiasiManager({
     );
   };
 
-  // Jalankan Approve & Publish
+  // Jalankan Approve & Publish (ACC Submisi Mahasiswa)
   const handleConfirmApproveAndPublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!approveModalSubmisi) return;
 
     setIsProcessing(true);
+    const approvedItem = approveModalSubmisi;
     try {
-      const res = await approveAndPublishSubmisi(approveModalSubmisi, {
+      const res = await approveAndPublishSubmisi(approvedItem, {
         badge: approveCustomBadge.trim(),
         image: approveCustomImage.trim(),
       });
       showToast(res.message);
+      recordAuditLog({
+        modul: "apresiasi",
+        aksi: `Menyetujui (ACC) & menerbitkan karya apresiasi: "${approvedItem.title}" (${approvedItem.studentName} - ${approvedItem.nim})`,
+        pengurus_nama: currentUserName || "Pengurus HIMASI",
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: JSON.stringify({
+          submisiId: approvedItem.id,
+          mahasiswa: approvedItem.studentName,
+          nim: approvedItem.nim,
+          kategori: approvedItem.category,
+          badge: approveCustomBadge.trim(),
+        }),
+      }).catch((err) => console.warn("[apresiasi] Gagal mencatat audit log:", err));
+
       setApproveModalSubmisi(null);
       setSelectedSubmisi(null);
       fetchSubmisi();
@@ -248,9 +296,22 @@ export default function ApresiasiManager({
   const handleConfirmDeleteShowcase = async () => {
     if (!showcaseToDelete) return;
     setIsProcessing(true);
+    const deletedShowcase = showcaseToDelete;
     try {
-      const res = await deleteApresiasiShowcase(showcaseToDelete.id);
+      const res = await deleteApresiasiShowcase(deletedShowcase.id);
       showToast(res.message);
+      recordAuditLog({
+        modul: "apresiasi",
+        aksi: `Menghapus karya prestasi dari etalase showcase: "${deletedShowcase.title}" (${deletedShowcase.studentName})`,
+        pengurus_nama: currentUserName || "Pengurus HIMASI",
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+        detail: JSON.stringify({
+          showcaseId: deletedShowcase.id,
+          mahasiswa: deletedShowcase.studentName,
+        }),
+      }).catch((err) => console.warn("[apresiasi] Gagal mencatat audit log:", err));
+
       setShowcaseToDelete(null);
       fetchShowcase();
     } catch (err) {
@@ -266,6 +327,14 @@ export default function ApresiasiManager({
     try {
       const res = await updateApresiasiShowcase(item.id, { featured: !item.featured });
       showToast(res.message);
+      recordAuditLog({
+        modul: "apresiasi",
+        aksi: `${!item.featured ? "Menetapkan" : "Mencabut"} karya "${item.title}" sebagai Karya Unggulan (Featured)`,
+        pengurus_nama: currentUserName || "Pengurus HIMASI",
+        pengurus_role: currentUserRole,
+        status: "berhasil",
+      }).catch((err) => console.warn("[apresiasi] Gagal mencatat audit log:", err));
+
       fetchShowcase();
     } catch (err) {
       showToast("Gagal mengubah status featured.");

@@ -5,6 +5,7 @@
  */
 
 import { supabase } from "@/lib/supabase/client";
+import { recordAuditLog } from "@/lib/supabase/audit-log";
 import {
   type AspirasiItem,
   type AspirasiStatus,
@@ -275,7 +276,9 @@ export async function getAspirasiById(id: string): Promise<AspirasiItem | null> 
  */
 export async function updateAspirasiStatus(
   id: string,
-  status: "baru" | "diproses"
+  status: "baru" | "diproses",
+  actorName?: string,
+  actorRole?: string
 ): Promise<AspirasiItem> {
   // Ambil item terkini terlebih dahulu untuk validasi status
   let currentItem: AspirasiItem | undefined;
@@ -302,6 +305,8 @@ export async function updateAspirasiStatus(
     throw new Error("Aspirasi berstatus selesai telah dikunci permanen dan tidak dapat diubah");
   }
 
+  let resultItem: AspirasiItem | null = null;
+
   // Update Supabase jika online
   if (isSupabaseConfigured()) {
     try {
@@ -317,22 +322,36 @@ export async function updateAspirasiStatus(
         const mapped = mapRowToItem(data);
         const local = getLocalAspirasi();
         saveLocalAspirasi(local.map((item) => (item.id === id ? mapped : item)));
-        return mapped;
+        resultItem = mapped;
+      } else {
+        console.warn("[aspirasi] Supabase status update error, fallback local:", error?.message);
       }
-      console.warn("[aspirasi] Supabase status update error, fallback local:", error?.message);
     } catch (err) {
       console.warn("[aspirasi] Supabase status update failed, fallback local:", err);
     }
   }
 
   // Fallback offline update
-  const local = getLocalAspirasi();
-  const updatedItem: AspirasiItem = {
-    ...currentItem,
-    status,
-  };
-  saveLocalAspirasi(local.map((item) => (item.id === id ? updatedItem : item)));
-  return updatedItem;
+  if (!resultItem) {
+    const local = getLocalAspirasi();
+    const updatedItem: AspirasiItem = {
+      ...currentItem,
+      status,
+    };
+    saveLocalAspirasi(local.map((item) => (item.id === id ? updatedItem : item)));
+    resultItem = updatedItem;
+  }
+
+  recordAuditLog({
+    pengurus_nama: actorName || "Pengurus HIMASI",
+    pengurus_role: actorRole || "bph",
+    modul: "aspirasi",
+    aksi: `Mengubah status aspirasi ${resultItem.nomor_tiket || id} ke ${status}`,
+    status: "berhasil",
+    detail: `Status baru: ${status}`,
+  }).catch((err) => console.warn("[aspirasi] Gagal mencatat audit log status:", err));
+
+  return resultItem;
 }
 
 /**
@@ -378,6 +397,8 @@ export async function selesaikanAspirasi(
   const dijawabPada = new Date().toISOString();
   const statusEmail: AspirasiEmailStatus = input.status_email || "simulasi_terkirim";
 
+  let resultItem: AspirasiItem | null = null;
+
   if (isSupabaseConfigured()) {
     try {
       let res = await supabase
@@ -419,27 +440,41 @@ export async function selesaikanAspirasi(
         const mapped = mapRowToItem(res.data);
         const local = getLocalAspirasi();
         saveLocalAspirasi(local.map((item) => (item.id === id ? mapped : item)));
-        return mapped;
+        resultItem = mapped;
+      } else {
+        console.warn("[aspirasi] Supabase selesaikan error, fallback local:", res.error?.message);
       }
-      console.warn("[aspirasi] Supabase selesaikan error, fallback local:", res.error?.message);
     } catch (err) {
       console.warn("[aspirasi] Supabase selesaikan failed, fallback local:", err);
     }
   }
 
   // Fallback offline
-  const local = getLocalAspirasi();
-  const resolvedItem: AspirasiItem = {
-    ...currentItem,
-    status: "selesai",
-    jawaban_admin: cleanedJawaban,
-    catatan_pengurus: cleanedJawaban,
-    dijawab_pada: dijawabPada,
-    dijawab_oleh: dijawabOleh,
-    status_email: statusEmail,
-  };
-  saveLocalAspirasi(local.map((item) => (item.id === id ? resolvedItem : item)));
-  return resolvedItem;
+  if (!resultItem) {
+    const local = getLocalAspirasi();
+    const resolvedItem: AspirasiItem = {
+      ...currentItem,
+      status: "selesai",
+      jawaban_admin: cleanedJawaban,
+      catatan_pengurus: cleanedJawaban,
+      dijawab_pada: dijawabPada,
+      dijawab_oleh: dijawabOleh,
+      status_email: statusEmail,
+    };
+    saveLocalAspirasi(local.map((item) => (item.id === id ? resolvedItem : item)));
+    resultItem = resolvedItem;
+  }
+
+  recordAuditLog({
+    pengurus_nama: dijawabOleh,
+    pengurus_role: "pengurus",
+    modul: "aspirasi",
+    aksi: `Menyelesaikan aspirasi tiket ${resultItem.nomor_tiket || id} dengan tanggapan resmi`,
+    status: "berhasil",
+    detail: `Tanggapan: ${cleanedJawaban.slice(0, 100)}`,
+  }).catch((err) => console.warn("[aspirasi] Gagal mencatat audit log selesaikan:", err));
+
+  return resultItem;
 }
 
 /**
@@ -492,7 +527,14 @@ export async function updateAspirasiEmailStatus(
 /**
  * Menghapus entri aspirasi dari database Supabase dan storage lokal
  */
-export async function deleteAspirasi(id: string): Promise<boolean> {
+export async function deleteAspirasi(
+  id: string,
+  actorName?: string,
+  actorRole?: string
+): Promise<boolean> {
+  const currentLocal = getLocalAspirasi();
+  const targetItem = currentLocal.find((item) => item.id === id);
+
   if (isSupabaseConfigured()) {
     try {
       const { error } = await supabase.from("aspirasi").delete().eq("id", id);
@@ -504,8 +546,17 @@ export async function deleteAspirasi(id: string): Promise<boolean> {
     }
   }
 
-  const currentLocal = getLocalAspirasi();
   saveLocalAspirasi(currentLocal.filter((item) => item.id !== id));
+
+  recordAuditLog({
+    pengurus_nama: actorName || "Pengurus HIMASI",
+    pengurus_role: actorRole || "bph",
+    modul: "aspirasi",
+    aksi: `Menghapus rekaman aspirasi ${targetItem?.nomor_tiket ? targetItem.nomor_tiket : id}`,
+    status: "berhasil",
+    detail: targetItem ? `Email: ${targetItem.email}, Angkatan: ${targetItem.angkatan}` : `ID: ${id}`,
+  }).catch((err) => console.warn("[aspirasi] Gagal mencatat audit log delete:", err));
+
   return true;
 }
 
@@ -528,6 +579,8 @@ export async function createAspirasi(input: {
     status_email: "belum_dikirim",
     created_at: new Date().toISOString(),
   };
+
+  let resultItem: AspirasiItem | null = null;
 
   if (isSupabaseConfigured()) {
     try {
@@ -571,10 +624,8 @@ export async function createAspirasi(input: {
         const mapped = mapRowToItem(res.data);
         const local = getLocalAspirasi();
         saveLocalAspirasi([mapped, ...local]);
-        return mapped;
-      }
-
-      if (res.error) {
+        resultItem = mapped;
+      } else if (res.error) {
         console.error("[aspirasi] Supabase insert failed:", res.error);
       }
     } catch (err) {
@@ -582,9 +633,22 @@ export async function createAspirasi(input: {
     }
   }
 
-  const local = getLocalAspirasi();
-  saveLocalAspirasi([newItem, ...local]);
-  return newItem;
+  if (!resultItem) {
+    const local = getLocalAspirasi();
+    saveLocalAspirasi([newItem, ...local]);
+    resultItem = newItem;
+  }
+
+  recordAuditLog({
+    pengurus_nama: "Publik / Mahasiswa",
+    pengurus_role: "mahasiswa",
+    modul: "aspirasi",
+    aksi: `Menerima aspirasi baru dari mahasiswa angkatan ${resultItem.angkatan || "-"} (${resultItem.nomor_tiket})`,
+    status: "berhasil",
+    detail: `Email: ${resultItem.email}, Pesan: ${resultItem.pesan.slice(0, 100)}`,
+  }).catch((err) => console.warn("[aspirasi] Gagal mencatat audit log create:", err));
+
+  return resultItem;
 }
 
 /**

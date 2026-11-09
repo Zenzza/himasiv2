@@ -31,9 +31,11 @@ import {
 } from "@/lib/types/auth";
 import { getAllUserProfiles, updateUserRole } from "@/lib/supabase/users";
 import { getMaintenanceMode, setMaintenanceMode } from "@/lib/supabase/system-settings";
+import { recordAuditLog } from "@/lib/supabase/audit-log";
 
 interface UserManagerProps {
   currentUserEmail?: string;
+  currentUserName?: string;
 }
 
 const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
@@ -46,7 +48,8 @@ const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
     "Kontributor Konten: Membuat draf konten berita, agenda, dan showcase (membutuhkan persetujuan Medkominfo sebelum tayang).",
 };
 
-export default function UserManager({ currentUserEmail }: UserManagerProps) {
+export default function UserManager({ currentUserEmail, currentUserName }: UserManagerProps) {
+  const actorName = currentUserName || currentUserEmail || "Super Admin";
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,6 +92,17 @@ export default function UserManager({ currentUserEmail }: UserManagerProps) {
           ? "Mode pemeliharaan sistem AKTIF. Pengunjung umum kini dialihkan ke /error/503."
           : "Mode pemeliharaan sistem DINONAKTIFKAN. Seluruh halaman web dapat diakses normal."
       );
+      recordAuditLog({
+        pengurus_nama: actorName,
+        pengurus_role: "super_admin",
+        modul: "sistem",
+        aksi: nextState
+          ? "Mengaktifkan Mode Pemeliharaan Sistem (503)"
+          : "Menonaktifkan Mode Pemeliharaan Sistem",
+        status: "berhasil",
+        detail: `Estimasi: ${maintenanceEstimated}. Akses publik dialihkan/dipulihkan.`,
+      }).catch((err) => console.warn("[UserManager] Gagal mencatat audit log maintenance:", err));
+
       setTimeout(() => setMaintenanceToast(null), 4000);
     } catch (err) {
       console.error("Gagal mengubah mode maintenance:", err);
@@ -176,6 +190,16 @@ export default function UserManager({ currentUserEmail }: UserManagerProps) {
         setProfiles((prev) =>
           prev.map((p) => (p.id === selectedUser.id ? { ...p, role: targetRole } : p))
         );
+
+        recordAuditLog({
+          pengurus_nama: actorName,
+          pengurus_role: "super_admin",
+          modul: "users",
+          aksi: `Mengubah peran akun ${selectedUser.nama_lengkap || selectedUser.email} menjadi ${ROLE_LABELS[targetRole] || targetRole}`,
+          status: "berhasil",
+          detail: `User ID: ${selectedUser.id}, Email: ${selectedUser.email}, Peran lama: ${selectedUser.role}, Peran baru: ${targetRole}`,
+        }).catch((err) => console.warn("[UserManager] Gagal mencatat audit log role:", err));
+
         setTimeout(() => {
           setSelectedUser(null);
           setActionSuccess(null);

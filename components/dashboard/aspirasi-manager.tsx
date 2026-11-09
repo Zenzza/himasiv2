@@ -40,10 +40,12 @@ import { type UserRole } from "@/lib/types/auth";
 
 export interface AspirasiManagerProps {
   currentUserRole?: UserRole | string;
+  currentUserName?: string;
 }
 
 export default function AspirasiManager({
   currentUserRole = "medkominfo",
+  currentUserName = "Pengurus HIMASI",
 }: AspirasiManagerProps) {
   // Otoritas pimpinan / admin untuk aksi destruktif (hapus)
   const canDelete =
@@ -68,7 +70,7 @@ export default function AspirasiManager({
   // Modal Selesaikan Aspirasi state
   const [resolvingItem, setResolvingItem] = useState<AspirasiItem | null>(null);
   const [jawabanAdmin, setJawabanAdmin] = useState<string>("");
-  const [dijawabOleh, setDijawabOleh] = useState<string>("Pengurus HIMASI");
+  const [dijawabOleh, setDijawabOleh] = useState<string>(currentUserName || "Pengurus HIMASI");
   const [isSubmittingResolution, setIsSubmittingResolution] = useState<boolean>(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
 
@@ -169,7 +171,7 @@ export default function AspirasiManager({
   // Handler: Proses Aspirasi (status: baru -> diproses)
   const handleProses = async (id: string) => {
     try {
-      const updated = await updateAspirasiStatus(id, "diproses");
+      const updated = await updateAspirasiStatus(id, "diproses", currentUserName, currentUserRole);
       setAspirasiList((prev) => prev.map((item) => (item.id === id ? updated : item)));
       showToast(`Tiket ${updated.nomor_tiket} sedang diproses.`);
     } catch (err: any) {
@@ -255,7 +257,7 @@ export default function AspirasiManager({
     if (!deleteCandidate) return;
     setIsDeleting(true);
     try {
-      await deleteAspirasi(deleteCandidate.id);
+      await deleteAspirasi(deleteCandidate.id, currentUserName, currentUserRole);
       setAspirasiList((prev) => prev.filter((item) => item.id !== deleteCandidate.id));
       showToast(`Aspirasi ${deleteCandidate.nomor_tiket} berhasil dihapus.`);
       setDeleteCandidate(null);

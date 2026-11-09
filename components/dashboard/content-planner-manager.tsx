@@ -37,6 +37,7 @@ import {
   isSupabaseConfigured,
   resetContentPlansStorageToDefault,
 } from "@/lib/supabase/content-planner";
+import { recordAuditLog } from "@/lib/supabase/audit-log";
 import {
   getCalendarWeekNumber,
   getCalendarWeekDetailsForMonth,
@@ -48,11 +49,14 @@ import { ContentModal } from "@/components/dashboard/content-planner/content-mod
 
 export interface ContentPlannerManagerProps {
   currentUserRole?: UserRole;
+  currentUserName?: string;
 }
 
 export default function ContentPlannerManager({
   currentUserRole = "medkominfo",
+  currentUserName = "Tim Medkominfo",
 }: ContentPlannerManagerProps) {
+  const actorName = currentUserName || (currentUserRole === "super_admin" ? "Super Admin" : "Tim Medkominfo");
   // Wewenang role: Seluruh pengurus aktif di dashboard memiliki akses kolaborasi penuh secara realtime
   const canManage =
     currentUserRole === "super_admin" ||
@@ -180,9 +184,25 @@ export default function ContentPlannerManager({
       if (id) {
         const updated = await updateContentPlan(id, input);
         setPlans((prev) => prev.map((p) => (p.id === id ? updated : p)));
+        recordAuditLog({
+          pengurus_nama: actorName,
+          pengurus_role: currentUserRole,
+          modul: "content-planner",
+          aksi: `Memperbarui rencana konten: ${updated.topik}`,
+          status: "berhasil",
+          detail: `Status: ${updated.status}, Progress: ${updated.progress}%, Tanggal: ${updated.tanggal}`,
+        }).catch((err) => console.warn("[content-planner] Gagal mencatat audit log update:", err));
         showToast("Rencana konten berhasil diperbarui.");
       } else {
         const created = await createContentPlan(input);
+        recordAuditLog({
+          pengurus_nama: actorName,
+          pengurus_role: currentUserRole,
+          modul: "content-planner",
+          aksi: `Membuat rencana konten: ${created.topik}`,
+          status: "berhasil",
+          detail: `Platform: ${created.platform}, Tipe: ${created.tipe_konten}, Tanggal: ${created.tanggal}`,
+        }).catch((err) => console.warn("[content-planner] Gagal mencatat audit log create:", err));
         setPlans((prev) =>
           [...prev.filter((p) => p.id !== created.id), created].sort((a, b) =>
             a.tanggal.localeCompare(b.tanggal)
@@ -224,6 +244,14 @@ export default function ContentPlannerManager({
     try {
       const updated = await updateContentPlan(id, finalUpdates);
       setPlans((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      recordAuditLog({
+        pengurus_nama: actorName,
+        pengurus_role: currentUserRole,
+        modul: "content-planner",
+        aksi: `Memperbarui status/progres konten: ${updated.topik}`,
+        status: "berhasil",
+        detail: `Status: ${updated.status}, Progres: ${updated.progress}%`,
+      }).catch((err) => console.warn("[content-planner] Gagal mencatat audit log quick update:", err));
       showToast("Data konten berhasil diperbarui.");
     } catch (err) {
       console.error("[content-planner] Quick update error:", err);
@@ -245,6 +273,16 @@ export default function ContentPlannerManager({
     try {
       const updated = await toggleContentPlanDone(id, isDone);
       setPlans((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      recordAuditLog({
+        pengurus_nama: actorName,
+        pengurus_role: currentUserRole,
+        modul: "content-planner",
+        aksi: isDone
+          ? `Menyelesaikan publikasi konten: ${updated.topik}`
+          : `Membatalkan status selesai konten: ${updated.topik}`,
+        status: "berhasil",
+        detail: `Status: ${updated.status}, Progress: ${updated.progress}%`,
+      }).catch((err) => console.warn("[content-planner] Gagal mencatat audit log toggle done:", err));
       showToast(
         isDone
           ? "Konten ditandai Selesai (100% Publish)."
@@ -258,8 +296,19 @@ export default function ContentPlannerManager({
 
   // 7. Hapus Konten
   const confirmDelete = async (id: string) => {
+    const targetItem = plans.find((p) => p.id === id);
     try {
       await deleteContentPlan(id);
+      recordAuditLog({
+        pengurus_nama: actorName,
+        pengurus_role: currentUserRole,
+        modul: "content-planner",
+        aksi: `Menghapus rencana konten: ${targetItem?.topik || id}`,
+        status: "berhasil",
+        detail: targetItem
+          ? `Platform: ${targetItem.platform}, Tanggal: ${targetItem.tanggal}`
+          : `ID: ${id}`,
+      }).catch((err) => console.warn("[content-planner] Gagal mencatat audit log delete:", err));
       setPlans((prev) => prev.filter((p) => p.id !== id));
       showToast("Rencana konten berhasil dihapus.");
       setDeleteCandidate(null);

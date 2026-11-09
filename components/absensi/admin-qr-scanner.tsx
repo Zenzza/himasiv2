@@ -18,6 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import { DAFTAR_PENGURUS_HIMASI, type PengurusMember } from "@/lib/data/pengurus";
 import { supabase } from "@/lib/supabase/client";
+import { recordAuditLog } from "@/lib/supabase/audit-log";
 
 interface AdminQrScannerProps {
   kegiatanAktif: string;
@@ -25,6 +26,8 @@ interface AdminQrScannerProps {
   kegiatanJam?: string;
   onAttendanceSuccess?: (log: AbsensiRecord) => void;
   pengurusList?: PengurusMember[];
+  currentUserName?: string;
+  currentUserRole?: string;
 }
 
 export interface AbsensiRecord {
@@ -47,6 +50,8 @@ export default function AdminQrScanner({
   kegiatanJam,
   onAttendanceSuccess,
   pengurusList,
+  currentUserName,
+  currentUserRole = "bph",
 }: AdminQrScannerProps) {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isStartingCamera, setIsStartingCamera] = useState(false);
@@ -220,6 +225,16 @@ export default function AdminQrScanner({
         };
 
         setLastScannedResult(newRecord);
+
+        // Catat entri ke Audit Log
+        recordAuditLog({
+          pengurus_nama: currentUserName || "Admin Presensi",
+          pengurus_role: currentUserRole || "bph",
+          modul: "absensi",
+          aksi: `Mencatat kehadiran QR: ${foundMember.nama} (${foundMember.nim})`,
+          status: "berhasil",
+          detail: `Peserta: ${foundMember.nama} (${foundMember.nim}), Jabatan: ${foundMember.jabatan}, Kegiatan: ${kegiatanAktif}, Status: ${statusMode}, Waktu: ${waktuFormat}`,
+        }).catch((err) => console.warn("[AdminQrScanner] Gagal mencatat audit log absensi:", err));
 
         // Simpan ke database Supabase
         try {
