@@ -63,7 +63,7 @@ export function generateAspirasiEmailHtml(params: SendAspirasiEmailParams): stri
 <body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #0F172A; line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
   
   <!-- Outer Wrapper (Light Clean Slate Backdrop) -->
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F1F5F9; padding: 32px 12px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #FFFFFF; padding: 32px 12px;">
     <tr>
       <td align="center">
         
@@ -167,7 +167,7 @@ export function generateAspirasiEmailHtml(params: SendAspirasiEmailParams): stri
           <!-- FOOTER -->
           <tr>
             <td style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 24px 32px; text-align: center; color: #64748B; font-size: 11px;">
-              <div style="font-weight: 700; color: #00296E; font-size: 12px; margin-bottom: 4px;">
+              <div style="font-weight: 700; color: #00296E; font-size: 12px;">
                 Himpunan Mahasiswa Sistem Informasi (HIMASI)
               </div>
               <div style="margin-bottom: 8px;">

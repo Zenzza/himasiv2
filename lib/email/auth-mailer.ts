@@ -60,7 +60,7 @@ function getActionMeta(actionType: AuthEmailActionType, fullName?: string): Acti
           "Anda telah ditambahkan sebagai pengurus di sistem portal manajemen terpadu HIMASI ISB Atma Luhur. Silakan klik tombol di bawah untuk mengaktifkan akun Anda dan membuat kata sandi pertama Anda.",
         ctaText: "Aktivasi Akun & Buat Kata Sandi →",
         securityNotice:
-          "Tautan aktivasi ini bersifat rahasia, berlaku selama 24 jam, dan hanya dapat digunakan 1 kali. Jangan bagikan tautan ini kepada siapa pun.",
+          "Tautan aktivasi ini bersifat rahasia, berlaku selama 60 menit, dan hanya dapat digunakan 1 kali. Jangan bagikan tautan ini kepada siapa pun.",
         subject: "[HIMASI] Undangan Aktivasi Akun Portal Pengurus",
       };
 
@@ -74,7 +74,7 @@ function getActionMeta(actionType: AuthEmailActionType, fullName?: string): Acti
           "Kami menerima permintaan untuk mengatur ulang kata sandi akun portal pengurus Anda. Jika Anda yang mengajukan permintaan ini, silakan klik tombol di bawah untuk membuat kata sandi baru.",
         ctaText: "Atur Ulang Kata Sandi Sekarang →",
         securityNotice:
-          "Tautan pemulihan ini berlaku selama 24 jam. Jika Anda tidak merasa meminta reset kata sandi, abaikan email ini dengan aman. Kata sandi lama Anda tidak akan berubah.",
+          "Tautan pemulihan ini berlaku selama 60 menit. Jika Anda tidak merasa meminta reset kata sandi, abaikan email ini dengan aman. Kata sandi lama Anda tidak akan berubah.",
         subject: "[HIMASI] Permintaan Atur Ulang Kata Sandi Akun",
       };
 
@@ -88,7 +88,7 @@ function getActionMeta(actionType: AuthEmailActionType, fullName?: string): Acti
           "Terima kasih telah mendaftar di sistem informasi HIMASI ISB Atma Luhur. Silakan verifikasi alamat email Anda untuk mulai menggunakan layanan portal.",
         ctaText: "Konfirmasi Email Sekarang →",
         securityNotice:
-          "Tautan verifikasi ini berlaku selama 24 jam. Jangan berikan tautan ini kepada pihak yang tidak berwenang.",
+          "Tautan verifikasi ini berlaku selama 60 menit. Jangan berikan tautan ini kepada pihak yang tidak berwenang.",
         subject: "[HIMASI] Konfirmasi Pendaftaran Akun",
       };
 
@@ -154,10 +154,10 @@ export function generateAuthEmailHtml(params: SendAuthEmailParams): string {
   <meta name="supported-color-schemes" content="light">
   <title>${meta.title} - HIMASI ISB Atma Luhur</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #0F172A; line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+<body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #0F172A; line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
   
   <!-- Outer Wrapper (Light Clean Slate Backdrop) -->
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F1F5F9; padding: 32px 12px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #FFFFFF; padding: 32px 12px;">
     <tr>
       <td align="center">
         

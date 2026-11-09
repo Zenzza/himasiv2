@@ -55,10 +55,20 @@ function generateUuidV4(): string {
 }
 
 /**
- * Helper pembuat nomor tiket fallback lokal dengan format ASP-YYYY-XXXX
+ * Helper pembuat nomor tiket fallback lokal dengan format ASP-YYYY-XXXX.
+ * Mendukung seed (misal UUID) agar deterministik dan tidak berubah saat re-render.
  */
-export function generateNomorTiket(year?: number): string {
+export function generateNomorTiket(year?: number, seed?: string): string {
   const y = year || new Date().getFullYear();
+  if (seed) {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash << 5) - hash + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    const num = Math.abs(hash % 9000) + 1000;
+    return `ASP-${y}-${num}`;
+  }
   const rand = Math.floor(1000 + Math.random() * 9000);
   return `ASP-${y}-${rand}`;
 }
@@ -69,9 +79,12 @@ export function generateNomorTiket(year?: number): string {
 export function mapRowToItem(row: Record<string, unknown>): AspirasiItem {
   const r = row as Record<string, any>;
   const jawaban = r.jawaban_admin ?? r.catatan_pengurus ?? null;
+  const createdYear = r.created_at ? new Date(r.created_at).getFullYear() : undefined;
   return {
     id: String(r.id),
-    nomor_tiket: r.nomor_tiket ? String(r.nomor_tiket) : generateNomorTiket(),
+    nomor_tiket: r.nomor_tiket
+      ? String(r.nomor_tiket)
+      : generateNomorTiket(createdYear, String(r.id)),
     email: String(r.email || ""),
     angkatan: String(r.angkatan || ""),
     pesan: String(r.pesan || ""),
@@ -157,20 +170,49 @@ export async function getAspirasiList(filter?: AspirasiFilter): Promise<Aspirasi
       if (filter?.search && filter.search.trim()) {
         const sanitized = filter.search.trim().replace(/[,()]/g, " ");
         const term = `%${sanitized}%`;
-        query = query.or(
+
+        // 1. Coba pencarian dengan kolom lengkap
+        let res = await query.or(
           `pesan.ilike.${term},email.ilike.${term},nomor_tiket.ilike.${term},angkatan.ilike.${term}`
         );
-      }
 
-      const { data, error } = await query;
-      if (!error && Array.isArray(data)) {
-        const mapped = data.map(mapRowToItem);
-        if (!filter?.status && !filter?.search) {
-          saveLocalAspirasi(mapped);
+        // 2. Jika kolom nomor_tiket belum ada di skema database (code 42703 / PGRST204)
+        if (
+          res.error &&
+          (res.error.code === "42703" ||
+            res.error.code === "PGRST204" ||
+            res.error.message?.includes("nomor_tiket"))
+        ) {
+          const fallbackQuery = supabase
+            .from("aspirasi")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+          if (filter?.status && filter.status !== "semua" && filter.status !== "all") {
+            fallbackQuery.eq("status", filter.status);
+          }
+
+          res = await fallbackQuery.or(
+            `pesan.ilike.${term},email.ilike.${term},angkatan.ilike.${term}`
+          );
         }
-        return mapped;
+
+        if (!res.error && Array.isArray(res.data)) {
+          const mapped = res.data.map(mapRowToItem);
+          return mapped;
+        }
+        console.warn("[aspirasi] Supabase search error, fallback offline:", res.error?.message);
+      } else {
+        const { data, error } = await query;
+        if (!error && Array.isArray(data)) {
+          const mapped = data.map(mapRowToItem);
+          if (!filter?.status) {
+            saveLocalAspirasi(mapped);
+          }
+          return mapped;
+        }
+        console.warn("[aspirasi] Supabase fetch error, fallback offline:", error?.message);
       }
-      console.warn("[aspirasi] Supabase fetch error, fallback offline:", error?.message);
     } catch (err) {
       console.warn("[aspirasi] Supabase query failed, fallback offline:", err);
     }
@@ -338,7 +380,7 @@ export async function selesaikanAspirasi(
 
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase
+      let res = await supabase
         .from("aspirasi")
         .update({
           status: "selesai",
@@ -353,13 +395,33 @@ export async function selesaikanAspirasi(
         .select()
         .single();
 
-      if (!error && data) {
-        const mapped = mapRowToItem(data);
+      // Jika skema live belum memiliki kolom jawaban_admin / status_email (PGRST204 / 42703)
+      if (
+        res.error &&
+        (res.error.code === "PGRST204" ||
+          res.error.code === "42703" ||
+          res.error.message?.includes("column"))
+      ) {
+        console.warn("[aspirasi] Kolom baru belum ada di Supabase, update ke catatan_pengurus...");
+        res = await supabase
+          .from("aspirasi")
+          .update({
+            status: "selesai",
+            catatan_pengurus: cleanedJawaban,
+          })
+          .eq("id", id)
+          .neq("status", "selesai")
+          .select()
+          .single();
+      }
+
+      if (!res.error && res.data) {
+        const mapped = mapRowToItem(res.data);
         const local = getLocalAspirasi();
         saveLocalAspirasi(local.map((item) => (item.id === id ? mapped : item)));
         return mapped;
       }
-      console.warn("[aspirasi] Supabase selesaikan error, fallback local:", error?.message);
+      console.warn("[aspirasi] Supabase selesaikan error, fallback local:", res.error?.message);
     } catch (err) {
       console.warn("[aspirasi] Supabase selesaikan failed, fallback local:", err);
     }
@@ -402,7 +464,16 @@ export async function updateAspirasiEmailStatus(
         saveLocalAspirasi(local.map((item) => (item.id === id ? mapped : item)));
         return mapped;
       }
-      console.warn("[aspirasi] Supabase update email status error, fallback local:", error?.message);
+      if (
+        error &&
+        (error.code === "PGRST204" ||
+          error.code === "42703" ||
+          error.message?.includes("status_email"))
+      ) {
+        console.warn("[aspirasi] status_email belum ada di database live, disimpan di cache lokal");
+      } else if (error) {
+        console.warn("[aspirasi] Supabase update email status error, fallback local:", error.message);
+      }
     } catch (err) {
       console.warn("[aspirasi] Supabase update email status failed, fallback local:", err);
     }
@@ -446,9 +517,10 @@ export async function createAspirasi(input: {
   angkatan: string;
   pesan: string;
 }): Promise<AspirasiItem> {
+  const generatedTicket = generateNomorTiket();
   const newItem: AspirasiItem = {
     id: generateUuidV4(),
-    nomor_tiket: generateNomorTiket(),
+    nomor_tiket: generatedTicket,
     email: input.email.trim(),
     angkatan: input.angkatan.trim(),
     pesan: input.pesan.trim(),
@@ -459,23 +531,51 @@ export async function createAspirasi(input: {
 
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase
+      // 1. Coba insert dengan field lengkap terlebih dahulu (jika migrasi sudah dijalankan)
+      let res = await supabase
         .from("aspirasi")
         .insert({
           email: newItem.email,
           angkatan: newItem.angkatan,
           pesan: newItem.pesan,
           status: "baru",
+          nomor_tiket: generatedTicket,
           status_email: "belum_dikirim",
         })
         .select()
         .single();
 
-      if (!error && data) {
-        const mapped = mapRowToItem(data);
+      // 2. Jika skema di Supabase belum memiliki kolom nomor_tiket atau status_email (PGRST204 / 42703)
+      if (
+        res.error &&
+        (res.error.code === "PGRST204" ||
+          res.error.code === "42703" ||
+          res.error.message?.includes("column"))
+      ) {
+        console.warn(
+          "[aspirasi] Kolom lanjutan belum ada di Supabase, melakukan insert dengan kolom kompatibel..."
+        );
+        res = await supabase
+          .from("aspirasi")
+          .insert({
+            email: newItem.email,
+            angkatan: newItem.angkatan,
+            pesan: newItem.pesan,
+            status: "baru",
+          })
+          .select()
+          .single();
+      }
+
+      if (!res.error && res.data) {
+        const mapped = mapRowToItem(res.data);
         const local = getLocalAspirasi();
         saveLocalAspirasi([mapped, ...local]);
         return mapped;
+      }
+
+      if (res.error) {
+        console.error("[aspirasi] Supabase insert failed:", res.error);
       }
     } catch (err) {
       console.warn("[aspirasi] Supabase insert failed, fallback offline:", err);
