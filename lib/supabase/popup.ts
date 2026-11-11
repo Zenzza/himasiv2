@@ -3,21 +3,20 @@ import {
   type PopupItem,
   type CreatePopupPayload,
   type UpdatePopupPayload,
-  DEFAULT_POPUPS,
 } from "@/lib/types/popup";
 
 const STORAGE_KEY = "himasi_homepage_popups_fallback";
 
 // In-memory cache untuk fallback jika browser localStorage belum tersedia (SSR / Node test)
-let memoryPopups: PopupItem[] = DEFAULT_POPUPS.map((item) => ({ ...item }));
+let memoryPopups: PopupItem[] = [];
 
 function getStoredFallbackPopups(): PopupItem[] {
   if (typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
+      if (raw !== null) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           return parsed;
         }
       }
@@ -35,19 +34,19 @@ function saveStoredFallbackPopups(items: PopupItem[]): void {
   }
 }
 
-function mapRowToPopupItem(row: any): PopupItem {
+function mapRowToPopupItem(row: Record<string, unknown>): PopupItem {
   return {
     id: String(row.id),
-    created_at: row.created_at || new Date().toISOString(),
-    updated_at: row.updated_at || new Date().toISOString(),
-    title: row.title || "",
-    tag: row.tag || "PENGUMUMAN",
-    content: row.content || "",
-    image_url: row.image_url || null,
-    cta_text: row.cta_text || null,
-    cta_url: row.cta_url || null,
+    created_at: (row.created_at as string) || new Date().toISOString(),
+    updated_at: (row.updated_at as string) || new Date().toISOString(),
+    title: (row.title as string) || "",
+    tag: (row.tag as string) || "PENGUMUMAN",
+    content: (row.content as string) || "",
+    image_url: (row.image_url as string) || null,
+    cta_text: (row.cta_text as string) || null,
+    cta_url: (row.cta_url as string) || null,
     is_active: Boolean(row.is_active),
-    created_by: row.created_by || "Pengurus HIMASI",
+    created_by: (row.created_by as string) || "Pengurus HIMASI",
   };
 }
 
@@ -90,15 +89,23 @@ export async function getActivePopup(): Promise<PopupItem | null> {
       .limit(1)
       .maybeSingle();
 
-    if (!error && data) {
+    if (error) {
+      // Fallback lokal HANYA jika query error (koneksi terputus atau tabel belum dibuat)
+      console.warn("[HIMASI Popup] Gagal mengambil popup aktif dari Supabase, beralih ke fallback:", error.message);
+      const local = getStoredFallbackPopups();
+      const activeLocal = local.find((p) => p.is_active);
+      return activeLocal || null;
+    }
+
+    // Jika database normal dan query berhasil:
+    // Kembalikan popup aktif jika ada, atau null jika memang tidak ada popup yang aktif
+    if (data) {
       return mapRowToPopupItem(data);
     }
 
-    // Fallback lokal jika database belum tersedia / offline
-    const local = getStoredFallbackPopups();
-    const activeLocal = local.find((p) => p.is_active);
-    return activeLocal || null;
-  } catch {
+    return null;
+  } catch (err) {
+    console.warn("[HIMASI Popup] Exception saat mengambil popup aktif, beralih ke fallback:", err);
     const local = getStoredFallbackPopups();
     return local.find((p) => p.is_active) || null;
   }
@@ -196,7 +203,7 @@ export async function updatePopup(
         .eq("is_active", true);
     }
 
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
     if (payload.title !== undefined) updateData.title = payload.title.trim();

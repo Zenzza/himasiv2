@@ -3,21 +3,20 @@ import {
   type ShortLinkItem,
   type CreateShortLinkPayload,
   type UpdateShortLinkPayload,
-  DEFAULT_SHORT_LINKS,
 } from "@/lib/types/shortlink";
 
 const STORAGE_KEY = "himasi_short_links_fallback";
 
 // In-memory cache untuk fallback jika browser localStorage belum tersedia (misal SSR/Node test)
-let memoryShortLinks: ShortLinkItem[] = [...DEFAULT_SHORT_LINKS];
+let memoryShortLinks: ShortLinkItem[] = [];
 
 function getStoredFallbackLinks(): ShortLinkItem[] {
   if (typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
+      if (raw !== null) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           return parsed;
         }
       }
@@ -51,18 +50,18 @@ export async function getAllShortLinks(): Promise<ShortLinkItem[]> {
     }
 
     if (data && Array.isArray(data)) {
-      const mapped: ShortLinkItem[] = data.map((row: any) => ({
+      const mapped: ShortLinkItem[] = data.map((row: Record<string, unknown>) => ({
         id: String(row.id),
-        created_at: row.created_at || new Date().toISOString(),
-        updated_at: row.updated_at || new Date().toISOString(),
-        title: row.title || "",
+        created_at: (row.created_at as string) || new Date().toISOString(),
+        updated_at: (row.updated_at as string) || new Date().toISOString(),
+        title: (row.title as string) || "",
         slug: String(row.slug || "").toLowerCase().trim(),
-        original_url: row.original_url || "",
+        original_url: (row.original_url as string) || "",
         clicks_count: Number(row.clicks_count) || 0,
         is_active: Boolean(row.is_active),
-        divisi: row.divisi || "BPH",
-        created_by: row.created_by || "Pengurus HIMASI",
-        description: row.description || null,
+        divisi: (row.divisi as string) || "BPH",
+        created_by: (row.created_by as string) || "Pengurus HIMASI",
+        description: (row.description as string) || null,
       }));
       // Sinkronkan ke memory cache
       saveStoredFallbackLinks(mapped);
@@ -90,7 +89,14 @@ export async function getShortLinkBySlug(slug: string): Promise<ShortLinkItem | 
       .eq("slug", cleanSlug)
       .maybeSingle();
 
-    if (!error && data) {
+    if (error) {
+      console.warn("[shortlink] Query slug Supabase gagal, memeriksa fallback lokal:", error.message);
+      const localList = getStoredFallbackLinks();
+      const found = localList.find((item) => item.slug.toLowerCase().trim() === cleanSlug);
+      return found || null;
+    }
+
+    if (data) {
       return {
         id: String(data.id),
         created_at: data.created_at,
@@ -105,14 +111,16 @@ export async function getShortLinkBySlug(slug: string): Promise<ShortLinkItem | 
         description: data.description || null,
       };
     }
-  } catch (err) {
-    console.warn("[shortlink] Query slug Supabase gagal, memeriksa fallback lokal:", err);
-  }
 
-  // Fallback lokal jika database belum terhubung
-  const localList = getStoredFallbackLinks();
-  const found = localList.find((item) => item.slug.toLowerCase().trim() === cleanSlug);
-  return found || null;
+    // Jika database normal dan query berhasil tapi tidak ada data,
+    // berarti slug ini memang tidak ada (atau sudah dihapus)
+    return null;
+  } catch (err) {
+    console.warn("[shortlink] Exception saat query slug Supabase:", err);
+    const localList = getStoredFallbackLinks();
+    const found = localList.find((item) => item.slug.toLowerCase().trim() === cleanSlug);
+    return found || null;
+  }
 }
 
 /**
@@ -183,7 +191,7 @@ export async function updateShortLink(
   id: string,
   payload: UpdateShortLinkPayload
 ): Promise<ShortLinkItem | null> {
-  const updateFields: Record<string, any> = {
+  const updateFields: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
 
@@ -219,7 +227,7 @@ export async function updateShortLink(
     if (item.id === id || (payload.slug && item.slug === payload.slug)) {
       updatedItem = {
         ...item,
-        ...updateFields,
+        ...(updateFields as Partial<ShortLinkItem>),
       };
       return updatedItem;
     }
@@ -247,14 +255,22 @@ export async function deleteShortLink(id: string): Promise<boolean> {
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (isUuid) {
-      await supabase.from("short_links").delete().eq("id", id);
+      const { error } = await supabase.from("short_links").delete().eq("id", id);
+      if (error) {
+        console.warn("[shortlink] Catatan gagal delete dari Supabase by ID:", error.message);
+      }
+    } else {
+      const { error } = await supabase.from("short_links").delete().or(`id.eq.${id},slug.eq.${id}`);
+      if (error) {
+        console.warn("[shortlink] Catatan gagal delete dari Supabase by slug/id:", error.message);
+      }
     }
   } catch (err) {
-    console.warn("[shortlink] Gagal delete dari Supabase:", err);
+    console.warn("[shortlink] Exception saat delete dari Supabase:", err);
   }
 
   const localList = getStoredFallbackLinks();
-  const filtered = localList.filter((item) => item.id !== id);
+  const filtered = localList.filter((item) => item.id !== id && item.slug !== id);
   saveStoredFallbackLinks(filtered);
   return true;
 }

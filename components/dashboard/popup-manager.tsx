@@ -18,7 +18,6 @@ import {
   ToggleLeft,
   ToggleRight,
   MagnifyingGlass,
-  Funnel,
   Image as ImageIcon,
 } from "@phosphor-icons/react";
 import {
@@ -79,7 +78,7 @@ export default function PopupManager({
     try {
       const data = await getAllPopups();
       setPopups(data);
-    } catch (err: any) {
+    } catch (err) {
       console.warn("[PopupManager] Gagal memuat data popup:", err);
       showToast("Gagal memuat data pengumuman popup");
     } finally {
@@ -88,8 +87,26 @@ export default function PopupManager({
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let isMounted = true;
+    getAllPopups()
+      .then((data) => {
+        if (isMounted) {
+          setPopups(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.warn("[PopupManager] Gagal memuat data popup:", err);
+        if (isMounted) {
+          showToast("Gagal memuat data pengumuman popup");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Cari popup yang sedang aktif saat ini
   const activePopup = useMemo(() => {
@@ -205,7 +222,7 @@ export default function PopupManager({
 
       await loadData();
       setIsModalOpen(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error("[PopupManager] Gagal menyimpan:", err);
       showToast("Gagal menyimpan pengumuman popup");
     } finally {
@@ -243,7 +260,7 @@ export default function PopupManager({
         }).catch((err) => console.warn("[AuditLog] Gagal mencatat:", err));
       }
       await loadData();
-    } catch (err: any) {
+    } catch (err) {
       console.error("[PopupManager] Gagal mengubah status aktif:", err);
       showToast("Gagal mengubah status aktif popup");
     }
@@ -271,7 +288,7 @@ export default function PopupManager({
       await loadData();
       setDeleteModalOpen(false);
       setItemToDelete(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("[PopupManager] Gagal menghapus:", err);
       showToast("Gagal menghapus popup");
     } finally {
@@ -292,15 +309,27 @@ export default function PopupManager({
       {/* Header Info & Action Card */}
       <div className="bg-white dark:bg-[#001438] p-5 border border-[#00296E]/15 dark:border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+          <div
+            className={`w-10 h-10 flex items-center justify-center shrink-0 border ${
+              activePopup
+                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                : "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-white/10"
+            }`}
+          >
             <MegaphoneSimple size={22} weight="regular" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-base font-bold text-[#00296E] dark:text-white uppercase tracking-wider flex flex-wrap items-center gap-2">
               <span>Manajemen Popup Pengumuman Beranda</span>
-              <span className="px-2 py-0.5 text-[10px] font-mono border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                1 Popup Aktif
-              </span>
+              {activePopup ? (
+                <span className="px-2 py-0.5 text-[10px] font-mono border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                  1 POPUP AKTIF
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 text-[10px] font-mono border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400">
+                  0 POPUP AKTIF
+                </span>
+              )}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Kelola flyer poster &amp; pengumuman khusus yang tampil pertama kali saat pengunjung membuka web HIMASI.
@@ -417,7 +446,7 @@ export default function PopupManager({
               Saat ini tidak ada popup yang sedang aktif. Pengunjung beranda tidak akan melihat pengumuman pembuka.
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
-              Klik sakelar status "Aktifkan" pada salah satu daftar pengumuman di bawah untuk menayangkannya.
+              Klik sakelar status &quot;Aktifkan&quot; pada salah satu daftar pengumuman di bawah untuk menayangkannya.
             </p>
           </div>
         )}

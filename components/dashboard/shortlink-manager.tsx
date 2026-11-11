@@ -11,20 +11,15 @@ import {
   DownloadSimple,
   Trash,
   NotePencil,
-  Eye,
   ArrowsClockwise,
-  ArrowSquareOut,
   Funnel,
   TrendUp,
   Globe,
-  Sparkle,
   X,
   FileCode,
   CheckCircle,
   XCircle,
   WarningCircle,
-  ToggleLeft,
-  ToggleRight,
 } from "@phosphor-icons/react";
 import { type ShortLinkItem } from "@/lib/types/shortlink";
 import {
@@ -98,12 +93,9 @@ export default function ShortlinkManager({
   const [deleting, setDeleting] = useState(false);
 
   // Base host for full shortlink URL
-  const [originUrl, setOriginUrl] = useState("https://himasi.atmaluhur.ac.id");
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setOriginUrl(window.location.origin);
-    }
-  }, []);
+  const [originUrl] = useState(() =>
+    typeof window !== "undefined" ? window.location.origin : "https://himasi.atmaluhur.ac.id"
+  );
 
   // 1. Muat Data Shortlink
   const loadLinks = useCallback(async () => {
@@ -120,8 +112,26 @@ export default function ShortlinkManager({
   }, [showToast]);
 
   useEffect(() => {
-    loadLinks();
-  }, [loadLinks]);
+    let isMounted = true;
+    getAllShortLinks()
+      .then((data) => {
+        if (isMounted) {
+          setLinks(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("[shortlink] Gagal memuat data:", err);
+        if (isMounted) {
+          showToast("Gagal memuat daftar tautan.");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showToast]);
 
   // 2. Real-time Live QR Preview di dalam Form Modal
   useEffect(() => {
@@ -251,9 +261,10 @@ export default function ShortlinkManager({
       }
 
       setIsFormModalOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[shortlink] Gagal menyimpan form:", err);
-      setFormError(err.message || "Terjadi kesalahan saat menyimpan tautan.");
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan tautan.";
+      setFormError(msg);
     } finally {
       setSaving(false);
     }
@@ -302,6 +313,9 @@ export default function ShortlinkManager({
         status: "berhasil",
         detail: `Judul: ${target.title}, ID: ${target.id}`,
       }).catch((err) => console.warn("[shortlink] Gagal mencatat audit log delete:", err));
+
+      // Muat ulang daftar shortlink dari database agar sinkron
+      await loadLinks();
     } catch (err) {
       console.error("[shortlink] Gagal menghapus:", err);
       showToast("Gagal menghapus tautan.");
@@ -524,7 +538,7 @@ export default function ShortlinkManager({
           {/* Status Filter */}
           <select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value as any)}
+            onChange={(e) => setSelectedStatus(e.target.value as "all" | "active" | "inactive")}
             className="px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer w-full md:w-auto"
           >
             <option value="all">Semua Status</option>
