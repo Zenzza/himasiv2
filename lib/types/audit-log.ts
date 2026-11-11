@@ -16,7 +16,8 @@ export type AuditLogModul =
   | "banner"
   | "users"
   | "sistem"
-  | "auth";
+  | "auth"
+  | "tautan";
 
 export type AuditLogStatus = "berhasil" | "gagal" | "peringatan";
 
@@ -55,6 +56,7 @@ export const AUDIT_LOG_MODULS: readonly AuditLogModul[] = [
   "users",
   "sistem",
   "auth",
+  "tautan",
 ] as const;
 
 export const AUDIT_LOG_STATUSES: readonly AuditLogStatus[] = [
@@ -77,6 +79,7 @@ export const AUDIT_LOG_MODUL_LABELS: Record<AuditLogModul, string> = {
   users: "Manajemen Pengurus",
   sistem: "Konfigurasi Sistem",
   auth: "Autentikasi & Keamanan",
+  tautan: "Tautan & QR",
 };
 
 export const AUDIT_LOG_STATUS_LABELS: Record<AuditLogStatus, string> = {

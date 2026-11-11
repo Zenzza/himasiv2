@@ -62,6 +62,7 @@ import {
   LockOpen,
   Sun,
   Moon,
+  MegaphoneSimple,
 } from "@phosphor-icons/react";
 import {
   DEFAULT_HERO_BANNER,
@@ -96,6 +97,8 @@ import UserManager from "@/components/dashboard/user-manager";
 import PersuratanManager from "@/components/dashboard/persuratan-manager";
 import ContentPlannerManager from "@/components/dashboard/content-planner-manager";
 import AuditLogManager from "@/components/dashboard/audit-log-manager";
+import ShortlinkManager from "@/components/dashboard/shortlink-manager";
+import PopupManager from "@/components/dashboard/popup-manager";
 import { getAuditLogs, recordAuditLog } from "@/lib/supabase/audit-log";
 import type { AuditLogItem } from "@/lib/types/audit-log";
 import {
@@ -269,8 +272,8 @@ export default function DashboardPage() {
     setFormMobilePos(loaded.mobilePosition || "object-center");
   }, []);
 
-  // Sub-tab Home Page di Dashboard: "banner" | "fitur"
-  const [homeSubTab, setHomeSubTab] = useState<"banner" | "fitur">("banner");
+  // Sub-tab Home Page di Dashboard: "banner" | "fitur" | "popup"
+  const [homeSubTab, setHomeSubTab] = useState<"banner" | "fitur" | "popup">("banner");
 
   // State Pengaturan Fitur Utama Beranda (Open / Closed Toggle)
   const [fiturConfig, setFiturConfig] = useState<FiturUtamaSectionConfig>(DEFAULT_FITUR_UTAMA);
@@ -2839,11 +2842,96 @@ CREATE POLICY "Mahasiswa dapat mengajukan apresiasi" ON public.apresiasi_submisi
 DROP POLICY IF EXISTS "Pengurus dapat mengelola submisi apresiasi" ON public.apresiasi_submisi;
 CREATE POLICY "Pengurus dapat mengelola submisi apresiasi" ON public.apresiasi_submisi FOR ALL USING (true) WITH CHECK (true);
 
--- 11. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
+-- 11. TABEL SHORT LINKS & QR GENERATOR
+CREATE TABLE IF NOT EXISTS public.short_links (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    title TEXT NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    original_url TEXT NOT NULL,
+    clicks_count INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    divisi TEXT NOT NULL DEFAULT 'BPH',
+    created_by TEXT NOT NULL DEFAULT 'Pengurus HIMASI',
+    description TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_short_links_slug ON public.short_links(slug);
+CREATE INDEX IF NOT EXISTS idx_short_links_created_at ON public.short_links(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_short_links_is_active ON public.short_links(is_active);
+
+ALTER TABLE public.short_links ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.short_links TO anon, authenticated, service_role;
+
+DROP POLICY IF EXISTS "short_links_select_all" ON public.short_links;
+CREATE POLICY "short_links_select_all" ON public.short_links FOR SELECT USING (true);
+DROP POLICY IF EXISTS "short_links_insert_all" ON public.short_links;
+CREATE POLICY "short_links_insert_all" ON public.short_links FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "short_links_update_all" ON public.short_links;
+CREATE POLICY "short_links_update_all" ON public.short_links FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "short_links_delete_all" ON public.short_links;
+CREATE POLICY "short_links_delete_all" ON public.short_links FOR DELETE USING (true);
+
+CREATE OR REPLACE FUNCTION increment_short_link_clicks(link_slug TEXT)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.short_links
+    SET clicks_count = clicks_count + 1,
+        updated_at = NOW()
+    WHERE slug = link_slug;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 12. TABEL: homepage_popups (Popup Pengumuman Beranda HIMASI)
+CREATE TABLE IF NOT EXISTS public.homepage_popups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    title TEXT NOT NULL,
+    tag TEXT NOT NULL DEFAULT 'PENGUMUMAN',
+    content TEXT NOT NULL,
+    image_url TEXT,
+    cta_text TEXT,
+    cta_url TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT false,
+    created_by TEXT NOT NULL DEFAULT 'Pengurus HIMASI'
+);
+
+CREATE INDEX IF NOT EXISTS idx_homepage_popups_is_active ON public.homepage_popups(is_active);
+CREATE INDEX IF NOT EXISTS idx_homepage_popups_updated_at ON public.homepage_popups(updated_at DESC);
+
+ALTER TABLE public.homepage_popups ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.homepage_popups TO anon, authenticated, service_role;
+
+DROP POLICY IF EXISTS "homepage_popups_select_all" ON public.homepage_popups;
+CREATE POLICY "homepage_popups_select_all" ON public.homepage_popups FOR SELECT USING (true);
+DROP POLICY IF EXISTS "homepage_popups_insert_all" ON public.homepage_popups;
+CREATE POLICY "homepage_popups_insert_all" ON public.homepage_popups FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "homepage_popups_update_all" ON public.homepage_popups;
+CREATE POLICY "homepage_popups_update_all" ON public.homepage_popups FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "homepage_popups_delete_all" ON public.homepage_popups;
+CREATE POLICY "homepage_popups_delete_all" ON public.homepage_popups FOR DELETE USING (true);
+
+CREATE OR REPLACE FUNCTION set_active_homepage_popup(target_id UUID)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.homepage_popups
+    SET is_active = false
+    WHERE id <> target_id;
+
+    UPDATE public.homepage_popups
+    SET is_active = true,
+        updated_at = NOW()
+    WHERE id = target_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 13. REFRESH SCHEMA CACHE & REALTIME PUBLICATION
 DO $$
 BEGIN
   BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus, public.dokumen_organisasi, public.agenda_kalender, public.apresiasi_showcase, public.apresiasi_submisi;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_absensi, public.absensi_log, public.aspirasi, public.pengurus, public.dokumen_organisasi, public.agenda_kalender, public.apresiasi_showcase, public.apresiasi_submisi, public.short_links, public.homepage_popups;
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
@@ -2976,7 +3064,7 @@ NOTIFY pgrst, 'reload schema';`;
             type="button"
             onClick={() => setActiveTab("kartu-qr")}
             className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
-              ["kartu-qr", "kalender", "dokumen", "persuratan", "content-planner"].includes(activeTab)
+              ["kartu-qr", "kalender", "dokumen", "persuratan", "content-planner", "shortlink"].includes(activeTab)
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
             }`}
@@ -3269,6 +3357,25 @@ NOTIFY pgrst, 'reload schema';`;
                 >
                   <span>Content Planner</span>
                   {activeTab === "content-planner" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* Tautan Singkat & QR Hub */}
+              {canAccessTab(currentUserRole, "shortlink") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("shortlink");
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "shortlink"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>Tautan &amp; QR</span>
+                  {activeTab === "shortlink" && <span className="font-mono text-sm leading-none">&rarr;</span>}
                 </button>
               )}
             </nav>
@@ -5448,6 +5555,13 @@ NOTIFY pgrst, 'reload schema';`;
               </div>
             )}
 
+            {/* TAB 12: TAUTAN SINGKAT & QR HUB */}
+            {activeTab === "shortlink" && canAccessTab(currentUserRole, "shortlink") && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                <ShortlinkManager currentUserName={currentUserName} currentUserRole={currentUserRole} />
+              </div>
+            )}
+
             {/* TAB 9: HERO BANNER & FITUR UTAMA BERANDA */}
             {activeTab === "banner" && (
               <div className="space-y-5 animate-in fade-in duration-200">
@@ -5480,6 +5594,19 @@ NOTIFY pgrst, 'reload schema';`;
                     <span className="px-1.5 py-0.5 text-[10px] font-mono border border-emerald-500/20 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
                       Open / Closed
                     </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHomeSubTab("popup")}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-none text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
+                      homeSubTab === "popup"
+                        ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
+                    }`}
+                  >
+                    <MegaphoneSimple className="w-4 h-4 text-amber-500" />
+                    <span>Popup Pengumuman</span>
                   </button>
                 </div>
 
@@ -6111,6 +6238,16 @@ NOTIFY pgrst, 'reload schema';`;
                     <span>Simpan Pengaturan Fitur</span>
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* PANEL SUB-TAB: MANAJEMEN POPUP PENGUMUMAN BERANDA */}
+            {homeSubTab === "popup" && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                <PopupManager
+                  currentUserName={currentUserName}
+                  currentUserRole={currentUserRole}
+                />
               </div>
             )}
               </div>

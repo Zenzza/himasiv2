@@ -28,7 +28,8 @@ export type DashboardTabKey =
   | "rekap-absensi"
   | "database"
   | "users"
-  | "audit-log";
+  | "audit-log"
+  | "shortlink";
 
 export type TabKey = DashboardTabKey;
 

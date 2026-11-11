@@ -31,6 +31,7 @@ import Footer from "@/components/footer";
 import FormAspirasi from "@/components/form-aspirasi";
 import ScrollReveal from "@/components/scroll-reveal";
 import HeroBannerImage from "@/components/hero-banner-image";
+import HomepagePopup from "@/components/homepage-popup";
 import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
 import { getPublishedBerita } from "@/lib/supabase/berita";
 import { formatBeritaDate } from "@/lib/utils/slug";
@@ -505,6 +506,8 @@ export default function Home() {
 
   return (
     <div className="flex flex-col w-full max-w-full overflow-x-clip bg-white text-[#091e42] min-h-screen">
+      {/* 0. Popup Pengumuman Beranda (Muncul saat pertama kali dibuka) */}
+      <HomepagePopup />
       
       <section className="relative w-full overflow-hidden h-[calc(100dvh-64px)] min-h-[calc(100dvh-64px)] sm:h-auto sm:min-h-[92vh] flex flex-col justify-center items-center">
         
