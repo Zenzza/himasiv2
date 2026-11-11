@@ -15,11 +15,10 @@ import {
   X,
   CaretLeft,
   CaretRight,
-  Pulse,
   Database,
   CalendarBlank,
-  Broadcast,
   ListDashes,
+  FileXls,
 } from "@phosphor-icons/react";
 import type {
   AuditLogItem,
@@ -38,6 +37,8 @@ import {
   subscribeToAuditLogs,
   isSupabaseConfigured,
 } from "@/lib/supabase/audit-log";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 
 export interface AuditLogManagerProps {
   currentUserRole?: string;
@@ -85,7 +86,7 @@ function formatWaktuIndo(isoString: string): string {
 export default function AuditLogManager({ currentUserRole }: AuditLogManagerProps) {
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [isLiveConnected, setIsLiveConnected] = useState(() => isSupabaseConfigured());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedModul, setSelectedModul] = useState<AuditLogModul | "semua">("semua");
   const [selectedStatus, setSelectedStatus] = useState<AuditLogStatus | "semua">("semua");
@@ -114,12 +115,15 @@ export default function AuditLogManager({ currentUserRole }: AuditLogManagerProp
 
   // 2. Realtime WebSocket subscription & sinkronisasi
   useEffect(() => {
-    loadLogs();
-
-    const configured = isSupabaseConfigured();
-    setIsLiveConnected(configured);
+    let isMounted = true;
+    void Promise.resolve().then(async () => {
+      if (isMounted) {
+        await loadLogs();
+      }
+    });
 
     const unsubscribe = subscribeToAuditLogs((newLog: AuditLogItem) => {
+      if (!isMounted) return;
       setIsLiveConnected(true);
       setLogs((prev) => {
         if (prev.some((item) => item.id === newLog.id)) return prev;
@@ -128,6 +132,7 @@ export default function AuditLogManager({ currentUserRole }: AuditLogManagerProp
     });
 
     return () => {
+      isMounted = false;
       unsubscribe();
     };
   }, [loadLogs]);
@@ -145,7 +150,15 @@ export default function AuditLogManager({ currentUserRole }: AuditLogManagerProp
 
   // 3. Reset ke halaman pertama saat filter berubah
   useEffect(() => {
-    setCurrentPage(1);
+    let isMounted = true;
+    void Promise.resolve().then(() => {
+      if (isMounted) {
+        setCurrentPage(1);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [searchQuery, selectedModul, selectedStatus]);
 
   // 4. Perhitungan statistik metrik
@@ -236,6 +249,38 @@ export default function AuditLogManager({ currentUserRole }: AuditLogManagerProp
     return filteredLogs.slice(startIndex, endIndex);
   }, [filteredLogs, startIndex, endIndex]);
 
+  const berhasilCount = useMemo(() => {
+    return logs.filter((l) => l.status === "berhasil").length;
+  }, [logs]);
+
+  const alertCount = useMemo(() => {
+    return logs.filter((l) => l.status !== "berhasil").length;
+  }, [logs]);
+
+  const handleExportCSV = useCallback(() => {
+    if (filteredLogs.length === 0) return;
+    const headers = ["Waktu", "Pengurus", "Role", "Modul", "Aksi", "Status", "Detail"];
+    const rows = filteredLogs.map((log) => [
+      `"${formatWaktuIndo(log.created_at)}"`,
+      `"${log.pengurus_nama}"`,
+      `"${log.pengurus_role}"`,
+      `"${log.modul}"`,
+      `"${(log.aksi || "").replace(/"/g, '""')}"`,
+      `"${log.status}"`,
+      `"${(log.detail || "").replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `audit-log-himasi-${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [filteredLogs]);
+
   // Helper render status semantik
   const renderStatusBadge = (status: AuditLogStatus) => {
     switch (status) {
@@ -274,167 +319,78 @@ export default function AuditLogManager({ currentUserRole }: AuditLogManagerProp
       {/* =================================================================== */}
       {/* 1. HEADER SECTION & REALTIME STATUS */}
       {/* =================================================================== */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#001438] p-5 sm:p-6 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-[#00296E] dark:text-[#38BDF8] uppercase tracking-wider mb-1">
-            <ShieldCheck className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" weight="regular" />
-            <span>Audit Trail &amp; Integritas Data</span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">
-            Audit Log Aktivitas
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Rekam jejak seluruh mutasi data, tindakan pengurus, dan riwayat operasional sistem HIMASI.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 self-stretch sm:self-auto">
-          {/* Live Indicator Badge */}
-          <div
-            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-none border text-xs font-mono font-semibold transition-colors ${
+      <DashboardPageHeader
+        title="Log Audit Aktivitas Pengurus"
+        subtitle="Rekam jejak transparan seluruh aksi perubahan data, publikasi konten, dan aktivitas administrasi."
+        badge={
+          <span
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider border rounded-none ${
               isLiveConnected
-                ? "border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300"
-                : "border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400"
+                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/50"
+                : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-white/10"
             }`}
           >
-            <span className="relative flex h-2 w-2">
-              {isLiveConnected && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              )}
-              <span
-                className={`relative inline-flex rounded-full h-2 w-2 ${
-                  isLiveConnected ? "bg-emerald-500" : "bg-slate-400"
-                }`}
-              ></span>
-            </span>
-            <Broadcast
-              className={`w-3.5 h-3.5 ${
-                isLiveConnected
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-slate-400"
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isLiveConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
               }`}
-              weight="regular"
             />
-            <span className="uppercase tracking-wider text-[11px]">
-              {isLiveConnected ? "Live Realtime" : "Mode Offline / Standby"}
-            </span>
-          </div>
-
-          {/* Tombol Refresh Manual */}
-          <button
-            type="button"
-            onClick={loadLogs}
-            disabled={isLoading}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-none text-xs font-bold bg-[#00296E] text-white hover:bg-[#001f54] transition-colors cursor-pointer shadow-none disabled:opacity-50 uppercase tracking-wider font-mono"
-            title="Segarkan Log Aktivitas"
-          >
-            <ArrowsClockwise className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} weight="regular" />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
+            {isLiveConnected ? "Live Realtime" : "Standby"}
+          </span>
+        }
+        onRefresh={loadLogs}
+        refreshLoading={isLoading}
+        secondaryAction={{
+          label: "Ekspor Log CSV",
+          onClick: handleExportCSV,
+          icon: <FileXls className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />,
+        }}
+      />
 
       {/* =================================================================== */}
-      {/* 2. GRID STATISTIK METRIK */}
+      {/* 2. GRID STATISTIK METRIK (SWISS HAIRLINE STRIP) */}
       {/* =================================================================== */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Metrik 1: Total Aktivitas */}
-        <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/20 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">
-              Total Aktivitas
-            </span>
-            <Database className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" weight="regular" />
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white">
-              {isLoading ? "—" : metrics.total}
-            </span>
-            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
-              seluruh riwayat terekam
-            </span>
-          </div>
-        </div>
-
-        {/* Metrik 2: Hari Ini */}
-        <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/20 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">
-              Hari Ini
-            </span>
-            <CalendarBlank className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" weight="regular" />
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-[#00296E] dark:text-[#38BDF8]">
-              {isLoading ? "—" : metrics.today}
-            </span>
-            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
-              aktivitas sejak 00:00 WIB
-            </span>
-          </div>
-        </div>
-
-        {/* Metrik 3: Modul Teraktif */}
-        <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/20 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">
-              Modul Teraktif
-            </span>
-            <Pulse className="w-4 h-4 text-purple-600 dark:text-purple-400" weight="regular" />
-          </div>
-          <div className="mt-3">
-            <span className="text-lg sm:text-xl font-bold font-mono text-slate-900 dark:text-white truncate block">
-              {isLoading ? "—" : metrics.topModul}
-            </span>
-            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
-              {metrics.topModulCount > 0 ? `${metrics.topModulCount} mutasi terekam` : "belum ada mutasi"}
-            </span>
-          </div>
-        </div>
-
-        {/* Metrik 4: Status Realtime */}
-        <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/20 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">
-              Status Realtime
-            </span>
-            <Broadcast
-              className={`w-4 h-4 ${
-                isLiveConnected ? "text-emerald-500" : "text-slate-400"
-              }`}
-              weight="regular"
-            />
-          </div>
-          <div className="mt-3">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                {isLiveConnected && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                )}
-                <span
-                  className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                    isLiveConnected ? "bg-emerald-500" : "bg-slate-400"
-                  }`}
-                ></span>
-              </span>
-              <span
-                className={`text-lg sm:text-xl font-bold font-mono ${
-                  isLiveConnected
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                {isLiveConnected ? "Aktif Sinkron" : "Lokal / Standby"}
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
-              {isLiveConnected
-                ? "saluran postgres_changes siap"
-                : "penyimpanan lokal aktif"}
-            </span>
-          </div>
-        </div>
-      </div>
+      <DashboardMetricStrip
+        columns={4}
+        metrics={[
+          {
+            order: "01.",
+            label: "TOTAL AKTIVITAS",
+            value: logs.length,
+            sublabel: "Seluruh Riwayat",
+            variant: "default",
+            icon: <Database className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "02.",
+            label: "LOG HARI INI",
+            value: metrics.today,
+            sublabel: "Aktivitas Sejak 00:00",
+            variant: "info",
+            icon: <CalendarBlank className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "03.",
+            label: "AKSI BERHASIL",
+            value: berhasilCount,
+            sublabel: "Sukses Tereksekusi",
+            variant: "success",
+            icon: <CheckCircle className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "04.",
+            label: "PERINGATAN / GAGAL",
+            value: alertCount,
+            sublabel: "Perlu Tinjauan",
+            variant: alertCount > 0 ? "danger" : "default",
+            icon: <WarningCircle className="w-4 h-4" />,
+            loading: isLoading,
+          },
+        ]}
+      />
 
       {/* =================================================================== */}
       {/* 3. TOOLBAR PENCARIAN & FILTER DROPDOWN */}
@@ -523,7 +479,8 @@ export default function AuditLogManager({ currentUserRole }: AuditLogManagerProp
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 dark:bg-[#001740] border-b border-[#00296E]/20 dark:border-white/10 font-mono text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <tr className="bg-[#FAFBFC] dark:bg-[#001233] border-b border-[#00296E]/20 dark:border-white/10 font-mono text-[10px] uppercase tracking-wider text-[#00296E] dark:text-slate-200 font-bold">
+                <th className="py-3 px-4 font-bold text-center w-12">NO</th>
                 <th className="py-3 px-4 font-bold whitespace-nowrap">WAKTU</th>
                 <th className="py-3 px-4 font-bold whitespace-nowrap">PENGURUS &amp; ROLE</th>
                 <th className="py-3 px-4 font-bold whitespace-nowrap">MODUL</th>
@@ -535,24 +492,29 @@ export default function AuditLogManager({ currentUserRole }: AuditLogManagerProp
             <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-14 text-center text-slate-400 font-mono">
+                  <td colSpan={7} className="py-14 text-center text-slate-400 font-mono">
                     <ArrowsClockwise className="w-6 h-6 animate-spin mx-auto mb-2.5 text-[#0094E0]" weight="regular" />
                     Memuat catatan riwayat audit log aktivitas...
                   </td>
                 </tr>
               ) : paginatedLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-14 text-center text-slate-400 font-mono">
+                  <td colSpan={7} className="py-14 text-center text-slate-400 font-mono">
                     <ListDashes className="w-6 h-6 mx-auto mb-2 text-slate-300 dark:text-slate-600" weight="regular" />
                     Tidak ada entri log yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
               ) : (
-                paginatedLogs.map((item) => (
+                paginatedLogs.map((item, idx) => (
                   <tr
                     key={item.id}
                     className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors"
                   >
+                    {/* NO */}
+                    <td className="py-3 px-4 text-center font-mono text-slate-400 dark:text-slate-500 font-bold">
+                      {startIndex + idx + 1}
+                    </td>
+
                     {/* WAKTU */}
                     <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">

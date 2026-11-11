@@ -54,6 +54,8 @@ import {
   approveAndPublishSubmisi,
 } from "@/lib/supabase/apresiasi";
 import { recordAuditLog } from "@/lib/supabase/audit-log";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 
 interface ApresiasiManagerProps {
   currentUserRole?: UserRole;
@@ -131,9 +133,28 @@ export default function ApresiasiManager({
   }, []);
 
   useEffect(() => {
-    fetchSubmisi();
-    fetchShowcase();
-  }, [fetchSubmisi, fetchShowcase]);
+    let isMounted = true;
+    Promise.all([getAllApresiasiSubmisi(), getAllApresiasiShowcaseAdmin()])
+      .then(([submisi, showcase]) => {
+        if (isMounted) {
+          setSubmisiList(submisi.data);
+          setShowcaseList(showcase.data);
+          setLoadingSubmisi(false);
+          setLoadingShowcase(false);
+        }
+      })
+      .catch((err) => {
+        console.warn("[ApresiasiManager] Load error:", err);
+        if (isMounted) {
+          setLoadingSubmisi(false);
+          setLoadingShowcase(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Hitung jumlah pending
   const pendingCount = useMemo(() => {
@@ -354,59 +375,60 @@ export default function ApresiasiManager({
       )}
 
       {/* Header Utama Manajemen Apresia-SI */}
-      <div className="bg-white dark:bg-[#001438] p-5 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] font-bold uppercase tracking-wider mb-1.5">
-            <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>Panggung Prestasi Mahasiswa SI</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">
-            Manajemen Apresia-SI
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Kurasi formulir pengajuan mandiri mahasiswa, setujui prestasi, dan kelola galeri karya yang tampil di halaman publik.
-          </p>
-        </div>
+      <DashboardPageHeader
+        title="Manajemen Apresia-SI & Prestasi"
+        subtitle="Kurasi formulir pengajuan mandiri mahasiswa, setujui prestasi, dan kelola galeri karya yang tampil di halaman publik."
+        publicUrl="/apresiasi"
+        publicLabel="Lihat Halaman Publik"
+        onRefresh={() => {
+          fetchSubmisi();
+          fetchShowcase();
+        }}
+        refreshLoading={loadingSubmisi || loadingShowcase}
+        primaryAction={
+          canPublish
+            ? {
+                label: "+ Tambah Prestasi Baru",
+                onClick: () => {
+                  setActiveSubTab("showcase");
+                  setIsAddShowcaseOpen(true);
+                },
+              }
+            : undefined
+        }
+      />
 
-        {/* Quick Action Buttons */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              fetchSubmisi();
-              fetchShowcase();
-            }}
-            className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-            title="Muat Ulang Data"
-          >
-            <ArrowsClockwise className={`w-4 h-4 ${loadingSubmisi || loadingShowcase ? "animate-spin" : ""}`} />
-          </button>
-
-          <Link
-            href="/apresiasi"
-            target="_blank"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-[#00296E] dark:text-[#38BDF8] text-xs font-bold transition-colors cursor-pointer shadow-none uppercase tracking-wider"
-          >
-            <Eye className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
-            <span>Lihat Halaman Publik</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
-          </Link>
-
-          {canPublish && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSubTab("showcase");
-                setIsAddShowcaseOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f52] text-white text-xs font-bold transition-all shadow-none active:scale-95 cursor-pointer uppercase tracking-wider"
-            >
-              <Plus className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
-              <span>+ Tambah Prestasi Baru</span>
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Grid Statistik Metrik (Swiss Hairline Strip) */}
+      <DashboardMetricStrip
+        metrics={[
+          {
+            order: "01.",
+            label: "TOTAL SUBMISI MASUK",
+            value: submisiList.length,
+            sublabel: "Pengajuan",
+            icon: <FileText className="w-4 h-4" />,
+            loading: loadingSubmisi,
+          },
+          {
+            order: "02.",
+            label: "SUBMISI MENUNGGU",
+            value: pendingCount,
+            sublabel: pendingCount > 0 ? "Perlu Review" : "Selesai",
+            variant: pendingCount > 0 ? "warning" : "default",
+            icon: <Clock className="w-4 h-4" />,
+            loading: loadingSubmisi,
+          },
+          {
+            order: "03.",
+            label: "GALERI SHOWCASE",
+            value: showcaseList.length,
+            sublabel: "Publikasi",
+            variant: "success",
+            icon: <Trophy className="w-4 h-4" />,
+            loading: loadingShowcase,
+          },
+        ]}
+      />
 
       {/* Navigasi Sub-Tab: "Submisi Mahasiswa" & "Galeri Showcase" */}
       <div className="flex border-b border-[#00296E]/20 dark:border-white/10 gap-6 text-xs sm:text-sm font-bold">
@@ -1397,7 +1419,7 @@ function ShowcaseFormModal({
   const [batch, setBatch] = useState(initialItem?.batch || "2024");
   const [organizerOrCompany, setOrganizerOrCompany] = useState(initialItem?.organizerOrCompany || "");
   const [level, setLevel] = useState<"Kampus" | "Regional" | "Nasional" | "Internasional">(
-    (initialItem?.level as any) || "Nasional"
+    (initialItem?.level as "Kampus" | "Regional" | "Nasional" | "Internasional") || "Nasional"
   );
   const [description, setDescription] = useState(initialItem?.description || "");
   const [fullStory, setFullStory] = useState(initialItem?.fullStory || "");
@@ -1648,7 +1670,7 @@ function ShowcaseFormModal({
               <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Tingkat Prestasi</label>
               <select
                 value={level}
-                onChange={(e) => setLevel(e.target.value as any)}
+                onChange={(e) => setLevel(e.target.value as "Kampus" | "Regional" | "Nasional" | "Internasional")}
                 className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
               >
                 <option value="Kampus">Kampus</option>

@@ -17,8 +17,6 @@ import {
   Lock,
   PaperPlaneTilt,
   X,
-  ShieldCheck,
-  Funnel,
   Sparkle,
   EnvelopeSimple,
   ArrowClockwise,
@@ -26,7 +24,6 @@ import {
 } from "@phosphor-icons/react";
 import {
   type AspirasiItem,
-  type AspirasiStatus,
 } from "@/lib/types/aspirasi";
 import {
   getAspirasiList,
@@ -37,6 +34,8 @@ import {
 } from "@/lib/supabase/aspirasi";
 import { maskEmail } from "@/lib/utils/mask-email";
 import { type UserRole } from "@/lib/types/auth";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 
 export interface AspirasiManagerProps {
   currentUserRole?: UserRole | string;
@@ -57,7 +56,6 @@ export default function AspirasiManager({
   // Data utama & Loading state
   const [aspirasiList, setAspirasiList] = useState<AspirasiItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSubscribing, setIsSubscribing] = useState<boolean>(false);
 
   // Filter & Search state
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -116,10 +114,20 @@ export default function AspirasiManager({
 
   // 2. Inisialisasi awal dan sinkronisasi Real-time WebSocket
   useEffect(() => {
-    loadAspirasi();
+    let isMounted = true;
+    getAspirasiList()
+      .then((data) => {
+        if (isMounted) {
+          setAspirasiList(data);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Gagal load aspirasi:", err);
+        if (isMounted) setIsLoading(false);
+      });
 
     const unsubscribe = subscribeToAspirasi((payload) => {
-      setIsSubscribing(true);
       if (payload.eventType === "INSERT" && payload.new) {
         const newItem = payload.new;
         setAspirasiList((prev) => {
@@ -138,9 +146,10 @@ export default function AspirasiManager({
     });
 
     return () => {
+      isMounted = false;
       unsubscribe();
     };
-  }, [loadAspirasi]);
+  }, []);
 
   // 3. Statistik Metrik
   const metrics = useMemo(() => {
@@ -174,8 +183,9 @@ export default function AspirasiManager({
       const updated = await updateAspirasiStatus(id, "diproses", currentUserName, currentUserRole);
       setAspirasiList((prev) => prev.map((item) => (item.id === id ? updated : item)));
       showToast(`Tiket ${updated.nomor_tiket} sedang diproses.`);
-    } catch (err: any) {
-      showToast(err.message || "Gagal mengubah status aspirasi.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Gagal mengubah status aspirasi.";
+      showToast(msg);
     }
   };
 
@@ -230,7 +240,7 @@ export default function AspirasiManager({
       showToast(`Tiket ${updatedItem.nomor_tiket} berhasil diselesaikan dan tanggapan dikunci permanen.`);
       setResolvingItem(null);
       setJawabanAdmin("");
-    } catch (err: any) {
+    } catch (err) {
       console.warn("[AspirasiManager] API error, fallback ke service layer:", err);
       // Fallback service layer jika fetch gagal (misal server offline)
       try {
@@ -244,8 +254,9 @@ export default function AspirasiManager({
         showToast(`Tiket ${updated.nomor_tiket} berhasil diselesaikan (fallback offline).`);
         setResolvingItem(null);
         setJawabanAdmin("");
-      } catch (fallbackErr: any) {
-        setResolutionError(fallbackErr.message || err.message || "Gagal menyimpan tanggapan.");
+      } catch (fallbackErr) {
+        const fallbackMsg = fallbackErr instanceof Error ? fallbackErr.message : "Gagal menyimpan tanggapan.";
+        setResolutionError(fallbackMsg);
       }
     } finally {
       setIsSubmittingResolution(false);
@@ -261,8 +272,9 @@ export default function AspirasiManager({
       setAspirasiList((prev) => prev.filter((item) => item.id !== deleteCandidate.id));
       showToast(`Aspirasi ${deleteCandidate.nomor_tiket} berhasil dihapus.`);
       setDeleteCandidate(null);
-    } catch (err: any) {
-      showToast(err.message || "Gagal menghapus catatan aspirasi.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Gagal menghapus catatan aspirasi.";
+      showToast(msg);
     } finally {
       setIsDeleting(false);
     }
@@ -321,112 +333,57 @@ export default function AspirasiManager({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* 1. Header Swiss Minimalist & Actions */}
-      <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#00296E] dark:text-[#38BDF8] px-1.5 py-0.5 border border-[#00296E]/20 dark:border-[#38BDF8]/20 bg-[#00296E]/5 dark:bg-[#38BDF8]/5 rounded-none font-bold">
-              SYS-ASPIRASI
-            </span>
-            <span className="text-slate-400 dark:text-slate-500 text-xs font-mono">/</span>
-            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              MAHASISWA &amp; ALUMNI
-            </span>
-          </div>
-          <h2 className="text-lg sm:text-xl font-bold text-[#00296E] dark:text-white uppercase tracking-wider font-mono">
-            Kotak Aspirasi Mahasiswa
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-            Pusat penanganan aspirasi, kritik, dan saran konstruktif dari sivitas akademika HIMASI ISB Atma Luhur.
-          </p>
-        </div>
+      {/* 1. Header Info & Actions */}
+      <DashboardPageHeader
+        title="Kotak Aspirasi Mahasiswa"
+        subtitle="Pusat penanganan aspirasi, kritik, dan saran konstruktif dari sivitas akademika HIMASI ISB Atma Luhur."
+        publicUrl="/aspirasi"
+        publicLabel="Lihat Formulir Publik"
+        onRefresh={loadAspirasi}
+        refreshLoading={isLoading}
+      />
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={loadAspirasi}
-            disabled={isLoading}
-            className="flex-1 sm:flex-none px-3.5 py-2 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-mono uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            <ArrowsClockwise className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
-            <span>Segarkan</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Grid Statistik Metrik */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Total Aspirasi */}
-        <div className="bg-white dark:bg-[#001438] p-4 border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-medium">Total Aspirasi</span>
-            <ChatTeardropText className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white">
-              {metrics.total}
-            </span>
-            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">tiket terekam</span>
-          </div>
-        </div>
-
-        {/* Status Baru (High Contrast Alert) */}
-        <div
-          className={`p-4 border rounded-none shadow-none flex flex-col justify-between transition-colors ${
-            metrics.baru > 0
-              ? "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200"
-              : "bg-white dark:bg-[#001438] border-[#00296E]/15 dark:border-white/10 text-slate-900 dark:text-white"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">Baru Masuk</span>
-            {metrics.baru > 0 ? (
-              <span className="flex h-2.5 w-2.5 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-              </span>
-            ) : (
-              <Clock className="w-4 h-4 text-slate-400" />
-            )}
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-bold font-mono">
-              {metrics.baru}
-            </span>
-            <span className="text-[10px] font-mono block mt-0.5 font-medium opacity-80">
-              {metrics.baru > 0 ? "memerlukan respon" : "tidak ada tiket baru"}
-            </span>
-          </div>
-        </div>
-
-        {/* Status Diproses */}
-        <div className="bg-white dark:bg-[#001438] p-4 border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-medium">Sedang Diproses</span>
-            <Clock className="w-4 h-4 text-sky-500" />
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white">
-              {metrics.diproses}
-            </span>
-            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">dalam pembahasan divisi</span>
-          </div>
-        </div>
-
-        {/* Status Selesai */}
-        <div className="bg-white dark:bg-[#001438] p-4 border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-medium">Telah Selesai</span>
-            <CheckCircle className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white">
-              {metrics.selesai}
-            </span>
-            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">terkunci &amp; terjawab</span>
-          </div>
-        </div>
-      </div>
+      {/* 2. Grid Statistik Metrik (Swiss Hairline Strip) */}
+      <DashboardMetricStrip
+        columns={4}
+        metrics={[
+          {
+            order: "01.",
+            label: "TOTAL ASPIRASI",
+            value: metrics.total,
+            sublabel: "Tiket",
+            icon: <ChatTeardropText className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "02.",
+            label: "BARU MASUK",
+            value: metrics.baru,
+            sublabel: metrics.baru > 0 ? "Perlu Respon" : "Bersih",
+            variant: metrics.baru > 0 ? "warning" : "default",
+            icon: <Clock className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "03.",
+            label: "SEDANG DIPROSES",
+            value: metrics.diproses,
+            sublabel: "Divisi",
+            variant: "info",
+            icon: <ArrowsClockwise className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "04.",
+            label: "TELAH SELESAI",
+            value: metrics.selesai,
+            sublabel: "Terjawab",
+            variant: "success",
+            icon: <CheckCircle className="w-4 h-4" />,
+            loading: isLoading,
+          },
+        ]}
+      />
 
       {/* 3. Toolbar Pencarian & Filter Tabs */}
       <div className="bg-white dark:bg-[#001438] p-3.5 border border-[#00296E]/15 dark:border-white/10 rounded-none shadow-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">

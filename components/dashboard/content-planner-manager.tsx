@@ -18,7 +18,10 @@ import {
   Radio,
   FileXls,
   Flame,
+  Clock,
 } from "@phosphor-icons/react";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip, { type MetricItem } from "@/components/dashboard/ui/dashboard-metric-strip";
 import {
   type ContentPlanItem,
   type ContentPlanInput,
@@ -68,7 +71,7 @@ export default function ContentPlannerManager({
   // Data utama & Loading State
   const [plans, setPlans] = useState<ContentPlanItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isRealtimeActive, setIsRealtimeActive] = useState<boolean>(false);
+  const [isRealtimeActive, setIsRealtimeActive] = useState<boolean>(() => isSupabaseConfigured());
 
   // Filter State
   const [selectedPlatform, setSelectedPlatform] = useState<string>("All");
@@ -86,7 +89,8 @@ export default function ContentPlannerManager({
   // Sinkronisasi otomatis: jika CW terpilih berada di luar bulan baru, pindah ke minggu pertama bulan tersebut
   useEffect(() => {
     if (monthWeeks.length > 0 && !monthWeeks.some((w) => w.cw === selectedCw)) {
-      setSelectedCw(monthWeeks[0].cw);
+      const targetCw = monthWeeks[0].cw;
+      void Promise.resolve().then(() => setSelectedCw(targetCw));
     }
   }, [monthWeeks, selectedCw]);
 
@@ -133,14 +137,13 @@ export default function ContentPlannerManager({
 
   // Load awal saat parameter filter berubah
   useEffect(() => {
-    loadPlans();
+    void Promise.resolve().then(() => {
+      void loadPlans();
+    });
   }, [loadPlans]);
 
   // 2. Berlangganan Realtime WebSocket Supabase
   useEffect(() => {
-    const configured = isSupabaseConfigured();
-    setIsRealtimeActive(configured);
-
     const unsubscribe = subscribeToContentPlans((payload) => {
       if (payload.eventType === "INSERT" && payload.new) {
         setPlans((prev) => {
@@ -352,111 +355,128 @@ export default function ContentPlannerManager({
     { value: 12, label: "12. Desember" },
   ];
 
+  // Metrik Terhitung untuk DashboardMetricStrip
+  const totalRencana = plans.length;
+  const totalPublish = useMemo(
+    () => plans.filter((p) => p.status === "Publish" || p.is_done).length,
+    [plans]
+  );
+  const totalInProduction = useMemo(
+    () => plans.filter((p) => p.status === "On Proses" || p.status === "Revisi").length,
+    [plans]
+  );
+  const totalDraft = useMemo(
+    () => plans.filter((p) => p.status === "Planning").length,
+    [plans]
+  );
+
+  const metricItems: MetricItem[] = [
+    {
+      order: "01.",
+      label: "TOTAL RENCANA",
+      value: totalRencana,
+      sublabel: "Jadwal",
+      variant: "default",
+      icon: <CalendarBlank className="w-4 h-4" />,
+    },
+    {
+      order: "02.",
+      label: "SUDAH PUBLISH",
+      value: totalPublish,
+      sublabel: "Tayang",
+      variant: "success",
+      icon: <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+    },
+    {
+      order: "03.",
+      label: "DALAM PRODUKSI",
+      value: totalInProduction,
+      sublabel: "Proses",
+      variant: "info",
+      icon: <Clock className="w-4 h-4 text-sky-600 dark:text-sky-400" />,
+    },
+    {
+      order: "04.",
+      label: "IDE & DRAF",
+      value: totalDraft,
+      sublabel: "Rancangan",
+      variant: "warning",
+      icon: <Sparkle className="w-4 h-4 text-amber-500" />,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* ========================================================================= */}
-      {/* HEADER CONTROL BAR (SWISS MINIMALIST EDITORIAL)                            */}
-      {/* ========================================================================= */}
-      <div className="bg-white dark:bg-[#001438] border border-[#00296E]/20 dark:border-[#00296E]/40 p-5 rounded-none shadow-none space-y-4 transition-colors">
-        {/* Baris Atas: Breadcrumb & Realtime Sync Indicator */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#00296E]/15 dark:border-[#00296E]/30 pb-4">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">
-              <span>02. ORGANISASI & ARSIP</span>
-              <span>/</span>
-              <span className="text-[#00296E] dark:text-[#38BDF8] font-bold">PERENCANAAN KONTEN & STRATEGI</span>
-            </div>
-            <h1 className="text-lg sm:text-xl font-black tracking-tight text-[#00296E] dark:text-white uppercase font-mono flex items-center gap-2">
-              <CalendarBlank className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
-              <span>CONTENT PLANNING & EDITORIAL MATRIX</span>
-            </h1>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-              Papan kalender editorial Divisi Medkominfo tersinkronisasi real-time multi-pengurus.
-            </p>
-          </div>
+      {/* 1. HEADER ACUAN STANDARDISASI */}
+      <DashboardPageHeader
+        title="CONTENT PLANNING & EDITORIAL MATRIX"
+        subtitle="Papan kalender editorial Divisi Medkominfo tersinkronisasi real-time multi-pengurus."
+        badge={
+          isRealtimeActive ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-[10px] font-mono tracking-wider font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              LIVE REALTIME SYNC
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-[10px] font-mono tracking-wider font-bold">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              OFFLINE LOCAL MODE
+            </span>
+          )
+        }
+        onRefresh={loadPlans}
+        refreshLoading={isLoading}
+        secondaryAction={{
+          label: "Reset Acuan",
+          icon: <ArrowCounterClockwise className="w-3.5 h-3.5" />,
+          onClick: handleResetSeed,
+        }}
+        primaryAction={{
+          label: canManage ? "+ Tambah Jadwal Konten" : "+ Ajukan Ide Konten",
+          onClick: () => {
+            setEditingItem(null);
+            setModalDefaultDate(undefined);
+            setIsModalOpen(true);
+          },
+        }}
+      />
 
-          <div className="flex items-center gap-2">
-            {/* Indikator Realtime WebSocket */}
-            {isRealtimeActive ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-[10px] font-mono tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-                LIVE REALTIME SYNC
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-[10px] font-mono tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400" />
-                OFFLINE LOCAL MODE
-              </span>
-            )}
+      {/* 2. SWISS HAIRLINE METRIC STRIP (4 KOLOM) */}
+      <DashboardMetricStrip columns={4} metrics={metricItems} />
 
-            {/* Tombol Reset Default Seed Data */}
+      {/* 3. TOOLBAR FILTER PLATFORM & PENGATURAN TAMPILAN */}
+      <div className="bg-white dark:bg-[#001438] border border-[#00296E]/20 dark:border-white/10 p-4 sm:p-5 rounded-none shadow-none space-y-3.5 transition-colors">
+        {/* Baris Atas: Filter Platform Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+          <button
+            type="button"
+            onClick={() => setSelectedPlatform("All")}
+            className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-none border transition-all cursor-pointer ${
+              selectedPlatform === "All"
+                ? "bg-[#00296E] text-white dark:bg-[#38BDF8] dark:text-[#001740] font-bold border-[#00296E] dark:border-[#38BDF8]"
+                : "bg-slate-100 dark:bg-[#001740] text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#00296E]/40 border-slate-200 dark:border-[#00296E]/40"
+            }`}
+          >
+            Semua Platform
+          </button>
+          {PLATFORM_OPTIONS.map((plat) => (
             <button
+              key={plat}
               type="button"
-              onClick={handleResetSeed}
-              className="p-1.5 border border-[#00296E]/20 dark:border-[#00296E]/40 text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#00296E]/30 text-xs font-mono rounded-none transition-colors"
-              title="Reset data ke acuan operasional (CW 22 & CW 23)"
-            >
-              <ArrowCounterClockwise className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Baris Tengah: Filter Platform Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
-            <button
-              type="button"
-              onClick={() => setSelectedPlatform("All")}
-              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-none border transition-all ${
-                selectedPlatform === "All"
+              onClick={() => setSelectedPlatform(plat)}
+              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-none border transition-all cursor-pointer ${
+                selectedPlatform === plat
                   ? "bg-[#00296E] text-white dark:bg-[#38BDF8] dark:text-[#001740] font-bold border-[#00296E] dark:border-[#38BDF8]"
                   : "bg-slate-100 dark:bg-[#001740] text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#00296E]/40 border-slate-200 dark:border-[#00296E]/40"
               }`}
             >
-              Semua Platform
+              {plat}
             </button>
-            {PLATFORM_OPTIONS.map((plat) => (
-              <button
-                key={plat}
-                type="button"
-                onClick={() => setSelectedPlatform(plat)}
-                className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-none border transition-all ${
-                  selectedPlatform === plat
-                    ? "bg-[#00296E] text-white dark:bg-[#38BDF8] dark:text-[#001740] font-bold border-[#00296E] dark:border-[#38BDF8]"
-                    : "bg-slate-100 dark:bg-[#001740] text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#00296E]/40 border-slate-200 dark:border-[#00296E]/40"
-                }`}
-              >
-                {plat}
-              </button>
-            ))}
-          </div>
-
-          {/* Tombol Aksi Tambah Jadwal Konten / Ajukan Ide */}
-          <button
-            type="button"
-            onClick={() => {
-              setEditingItem(null);
-              setModalDefaultDate(undefined);
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2 bg-[#00296E] hover:bg-[#00296E]/90 text-white dark:bg-[#38BDF8] dark:hover:bg-[#38BDF8]/90 dark:text-[#001740] font-bold text-xs font-mono uppercase tracking-wider rounded-none transition-colors flex items-center gap-2 shadow-none cursor-pointer"
-          >
-            {canManage ? (
-              <>
-                <Plus className="w-4 h-4" />
-                <span>+ Tambah Jadwal Konten</span>
-              </>
-            ) : (
-              <>
-                <Sparkle className="w-4 h-4 text-amber-300 dark:text-[#001740]" />
-                <span>+ Ajukan Ide Konten</span>
-              </>
-            )}
-          </button>
+          ))}
         </div>
 
-        {/* Baris Bawah: Navigasi Periode (Tahun & Bulan), View Switcher, & Pencarian */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#00296E]/15 dark:border-[#00296E]/20">
+        {/* Baris Bawah: Navigasi Periode (Tahun & Bulan), Input Pencarian, & View Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#00296E]/15 dark:border-white/10">
           <div className="flex flex-wrap items-center gap-3">
             {/* Pemilih Tahun */}
             <div className="flex items-center gap-1.5">
@@ -464,7 +484,7 @@ export default function ContentPlannerManager({
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="bg-white dark:bg-[#001740] border-2 border-[#00296E]/30 dark:border-[#38BDF8]/60 text-slate-900 dark:text-white px-2.5 py-1 text-xs font-mono font-semibold rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] transition-colors cursor-pointer shadow-sm"
+                className="bg-white dark:bg-[#001740] border border-[#00296E]/30 dark:border-[#38BDF8]/60 text-slate-900 dark:text-white px-2.5 py-1 text-xs font-mono font-semibold rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] transition-colors cursor-pointer"
               >
                 <option value={2026} className="bg-white text-slate-900 dark:bg-[#001740] dark:text-white">2026</option>
                 <option value={2027} className="bg-white text-slate-900 dark:bg-[#001740] dark:text-white">2027</option>
@@ -477,7 +497,7 @@ export default function ContentPlannerManager({
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="bg-white dark:bg-[#001740] border-2 border-[#00296E]/30 dark:border-[#38BDF8]/60 text-slate-900 dark:text-white px-2.5 py-1 text-xs font-mono font-semibold rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] transition-colors cursor-pointer shadow-sm"
+                className="bg-white dark:bg-[#001740] border border-[#00296E]/30 dark:border-[#38BDF8]/60 text-slate-900 dark:text-white px-2.5 py-1 text-xs font-mono font-semibold rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] transition-colors cursor-pointer"
               >
                 {BULAN_OPTIONS.map((b) => (
                   <option key={b.value} value={b.value} className="bg-white text-slate-900 dark:bg-[#001740] dark:text-white">
@@ -494,14 +514,14 @@ export default function ContentPlannerManager({
                 placeholder="Cari topik / konsep..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-44 sm:w-56 bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-[#00296E]/40 text-slate-800 dark:text-white pl-8 pr-3 py-1 text-xs font-mono rounded-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] transition-colors"
+                className="w-44 sm:w-56 bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 text-slate-800 dark:text-white pl-8 pr-3 py-1 text-xs font-mono rounded-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] transition-colors"
               />
               <MagnifyingGlass className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                  className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -510,7 +530,7 @@ export default function ContentPlannerManager({
           </div>
 
           {/* View Switcher: Matriks Mingguan (CW Table) vs Kalender Bulanan (Calendar Grid) */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#001740] p-1 border border-[#00296E]/20 dark:border-[#00296E]/40">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#001740] p-1 border border-[#00296E]/20 dark:border-white/10">
             <button
               type="button"
               onClick={() => setActiveView("cw-table")}
@@ -617,7 +637,7 @@ export default function ContentPlannerManager({
                 {deleteCandidate.platform} • CW {deleteCandidate.calendar_week} ({deleteCandidate.tanggal})
                 <br />
                 <span className="font-bold text-slate-900 dark:text-slate-100 mt-1 block">
-                  "{deleteCandidate.topik}"
+                  &quot;{deleteCandidate.topik}&quot;
                 </span>
               </span>
             </p>

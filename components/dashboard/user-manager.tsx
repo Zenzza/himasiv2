@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Users,
   ShieldCheck,
@@ -13,8 +13,6 @@ import {
   ArrowsClockwise,
   Copy,
   Check,
-  CaretDown,
-  Info,
   X,
   Code,
   Lock,
@@ -32,6 +30,8 @@ import {
 import { getAllUserProfiles, updateUserRole } from "@/lib/supabase/users";
 import { getMaintenanceMode, setMaintenanceMode } from "@/lib/supabase/system-settings";
 import { recordAuditLog } from "@/lib/supabase/audit-log";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 
 interface UserManagerProps {
   currentUserEmail?: string;
@@ -73,12 +73,17 @@ export default function UserManager({ currentUserEmail, currentUserName }: UserM
   const [maintenanceToast, setMaintenanceToast] = useState<string | null>(null);
 
   useEffect(() => {
-    getMaintenanceMode().then((settings) => {
+    let isMounted = true;
+    void getMaintenanceMode().then((settings) => {
+      if (!isMounted) return;
       setMaintenanceEnabled(settings.enabled);
       if (settings.estimatedEnd) {
         setMaintenanceEstimated(settings.estimatedEnd);
       }
     });
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleToggleMaintenance = async () => {
@@ -118,7 +123,7 @@ export default function UserManager({ currentUserEmail, currentUserName }: UserM
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getAllUserProfiles();
@@ -128,11 +133,19 @@ export default function UserManager({ currentUserEmail, currentUserName }: UserM
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    let isMounted = true;
+    void Promise.resolve().then(async () => {
+      if (isMounted) {
+        await fetchUsers();
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchUsers]);
 
   // Filter & Search Logic
   const filteredProfiles = useMemo(() => {
@@ -207,8 +220,9 @@ export default function UserManager({ currentUserEmail, currentUserName }: UserM
       } else {
         setActionError(res.message);
       }
-    } catch (err: any) {
-      setActionError(err.message || "Terjadi kesalahan saat memperbarui peran.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat memperbarui peran.";
+      setActionError(msg);
     } finally {
       setSavingRole(false);
     }
@@ -335,41 +349,17 @@ NOTIFY pgrst, 'reload schema';`;
   return (
     <div className="space-y-6">
       {/* 1. Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#001438] p-5 sm:p-6 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-[#00296E] dark:text-[#38BDF8] uppercase tracking-wider mb-1">
-            <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <span>Hak Akses Terpusat</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">
-            Manajemen Pengguna &amp; Hak Akses
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Atur wewenang pengurus kabinet sesuai peran: Super Admin, BPH, Medkominfo, dan HUMAS/BISKRAF.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 self-stretch sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setShowSqlMigration(!showSqlMigration)}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-none text-xs font-semibold bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 border border-[#00296E]/15 dark:border-white/10 transition-colors cursor-pointer"
-          >
-            <Code className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-            <span>Skrip SQL Supabase</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={fetchUsers}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-none text-xs font-semibold bg-[#00296E] text-white hover:bg-[#001f54] transition-colors cursor-pointer shadow-none disabled:opacity-50 uppercase tracking-wider"
-          >
-            <ArrowsClockwise className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
+      <DashboardPageHeader
+        title="Manajemen Pengguna & Otorisasi Pengurus"
+        subtitle="Kelola akun pengurus HIMASI, penetapan divisi, dan pembagian hak akses fitur dashboard."
+        onRefresh={fetchUsers}
+        refreshLoading={loading}
+        secondaryAction={{
+          label: showSqlMigration ? "Tutup Skrip SQL" : "Skrip SQL Supabase",
+          onClick: () => setShowSqlMigration(!showSqlMigration),
+          icon: <Code className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />,
+        }}
+      />
 
       {/* 2. SQL Migration Helper Banner (Expandable) */}
       {showSqlMigration && (
@@ -486,52 +476,48 @@ NOTIFY pgrst, 'reload schema';`;
         )}
       </div>
 
-      {/* 3. Stat Cards Peran */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
-          <div className="flex items-center justify-between text-xs font-bold text-purple-700 dark:text-purple-400 mb-2">
-            <span>SUPER ADMIN</span>
-            <span className="w-2 h-2 rounded-full bg-purple-500" />
-          </div>
-          <span className="text-2xl sm:text-3xl font-black text-[#00296E] dark:text-white">
-            {stats.super_admin}
-          </span>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Akses penuh teknis &amp; database</p>
-        </div>
-
-        <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
-          <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2">
-            <span>BPH (PIMPINAN)</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          </div>
-          <span className="text-2xl sm:text-3xl font-black text-[#00296E] dark:text-white">
-            {stats.bph}
-          </span>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Pengawas absensi &amp; organisasi</p>
-        </div>
-
-        <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
-          <div className="flex items-center justify-between text-xs font-bold text-sky-700 dark:text-sky-400 mb-2">
-            <span>MEDKOMINFO</span>
-            <span className="w-2 h-2 rounded-full bg-sky-500" />
-          </div>
-          <span className="text-2xl sm:text-3xl font-black text-[#00296E] dark:text-white">
-            {stats.medkominfo}
-          </span>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Editor &amp; gatekeeper konten</p>
-        </div>
-
-        <div className="bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
-          <div className="flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">
-            <span>HUMAS &amp; BISKRAF</span>
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-          </div>
-          <span className="text-2xl sm:text-3xl font-black text-[#00296E] dark:text-white">
-            {stats.humas_biskraf}
-          </span>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Kontributor draf konten</p>
-        </div>
-      </div>
+      {/* 3. Stat Cards Peran (Swiss Hairline Strip) */}
+      <DashboardMetricStrip
+        columns={4}
+        metrics={[
+          {
+            order: "01.",
+            label: "TOTAL PENGGUNA",
+            value: profiles.length,
+            sublabel: "Akun Terdaftar",
+            variant: "default",
+            icon: <Users className="w-4 h-4" />,
+            loading: loading,
+          },
+          {
+            order: "02.",
+            label: "SUPER ADMIN",
+            value: stats.super_admin,
+            sublabel: "Akses Penuh",
+            variant: "info",
+            icon: <ShieldCheck className="w-4 h-4" />,
+            loading: loading,
+          },
+          {
+            order: "03.",
+            label: "PIMPINAN BPH",
+            value: stats.bph,
+            sublabel: "Pengurus Inti",
+            variant: "success",
+            icon: <UserCheck className="w-4 h-4" />,
+            loading: loading,
+          },
+          {
+            order: "04.",
+            label: "DIVISI KONTEN",
+            value: stats.medkominfo + stats.humas_biskraf,
+            sublabel: `${stats.medkominfo} Medkom, ${stats.humas_biskraf} Humas`,
+            variant: "warning",
+            icon: <ShieldWarning className="w-4 h-4" />,
+            loading: loading,
+          },
+        ]}
+      />
 
       {/* 4. Controls: Pencarian & Filter Peran */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#001438] p-4 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none">
@@ -561,7 +547,7 @@ NOTIFY pgrst, 'reload schema';`;
           <Funnel className="w-4 h-4 text-slate-400" />
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as any)}
+            onChange={(e) => setRoleFilter(e.target.value as "all" | UserRole)}
             className="px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] cursor-pointer"
           >
             <option value="all" className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">Semua Peran ({profiles.length})</option>
@@ -579,6 +565,7 @@ NOTIFY pgrst, 'reload schema';`;
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-[#FAFBFC] dark:bg-[#001233] border-b border-[#00296E]/20 dark:border-white/10 text-[10px] font-bold text-[#00296E] dark:text-slate-200 uppercase tracking-wider">
+                <th className="py-3.5 px-4 w-12 text-center font-mono">No</th>
                 <th className="py-3.5 px-4 sm:px-6">Pengurus</th>
                 <th className="py-3.5 px-4">Divisi &amp; Jabatan</th>
                 <th className="py-3.5 px-4">Hak Akses (Role)</th>
@@ -589,14 +576,14 @@ NOTIFY pgrst, 'reload schema';`;
             <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/5 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
                     <ArrowsClockwise className="w-6 h-6 animate-spin mx-auto mb-2 text-slate-300 dark:text-slate-600" />
                     <span>Memuat data pengguna &amp; hak akses...</span>
                   </td>
                 </tr>
               ) : filteredProfiles.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
                     <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                     <p className="font-semibold text-slate-600 dark:text-slate-300">Tidak ada pengurus yang cocok</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
@@ -605,12 +592,17 @@ NOTIFY pgrst, 'reload schema';`;
                   </td>
                 </tr>
               ) : (
-                filteredProfiles.map((user) => {
+                filteredProfiles.map((user, idx) => {
                   const isCurrentLoggedIn = currentUserEmail === user.email;
                   const isPrimarySuperAdmin = user.email === "himasi@atmaluhur.ac.id";
 
                   return (
                     <tr key={user.id} className="hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.03] transition-colors">
+                      {/* Kolom 0: Nomor urut */}
+                      <td className="py-3.5 px-4 text-center font-mono text-slate-400 dark:text-slate-500 font-bold">
+                        {idx + 1}
+                      </td>
+
                       {/* Kolom 1: Profil / Nama & Email */}
                       <td className="py-3.5 px-4 sm:px-6">
                         <div className="flex items-center gap-3">

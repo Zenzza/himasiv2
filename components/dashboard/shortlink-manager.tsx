@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   LinkSimpleHorizontal,
   QrCode as QrIcon,
-  Plus,
   MagnifyingGlass,
   Copy,
   Check,
@@ -37,6 +36,8 @@ import {
   HIMASI_BRAND_NAVY,
 } from "@/lib/utils/qr-generator";
 import { recordAuditLog } from "@/lib/supabase/audit-log";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 
 interface ShortlinkManagerProps {
   currentUserName?: string;
@@ -414,96 +415,58 @@ export default function ShortlinkManager({
       )}
 
       {/* Header & Quick Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-white/10">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-mono tracking-widest uppercase bg-[#00296E]/10 dark:bg-blue-900/30 text-[#00296E] dark:text-blue-400 px-2 py-0.5 font-bold">
-              PORTAL UTILITAS ORGANISASI
-            </span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <LinkSimpleHorizontal className="w-6 h-6 text-[#00296E] dark:text-blue-400" weight="regular" />
-            <span>Tautan Singkat & QR Hub</span>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-            Kelola tautan resmi ber-brand kampus <code className="text-[#00296E] dark:text-blue-400 font-mono">/s/[slug]</code> dan unduh QR Code resolusi tinggi (PNG/SVG) untuk pamflet, spanduk, serta media sosial.
-          </p>
-        </div>
+      <DashboardPageHeader
+        title="Manajemen Tautan Singkat & QR Hub"
+        subtitle="Kelola shortlink resmi himasi.org/s/[slug] dan buat QR Code resolusi tinggi (PNG/SVG) untuk media organisasi."
+        onRefresh={loadLinks}
+        refreshLoading={loading}
+        primaryAction={{
+          label: "+ Buat Tautan & QR Baru",
+          onClick: handleOpenCreateModal,
+        }}
+      />
 
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={loadLinks}
-            className="p-2.5 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-            title="Refresh Data"
-          >
-            <ArrowsClockwise className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} weight="regular" />
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#00296E] hover:bg-[#002156] text-white text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-none"
-          >
-            <Plus className="w-4 h-4" weight="regular" />
-            <span>Buat Tautan & QR Baru</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Metric Cards (Swiss Minimalist Grid) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mb-1">
-            Total Tautan
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-white">{totalLinks}</span>
-            <span className="text-xs text-slate-400 font-mono">link</span>
-          </div>
-        </div>
-
-        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mb-1">
-            Tautan Aktif
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">{activeLinks}</span>
-            <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 font-mono">
-              {totalLinks > 0 ? `${Math.round((activeLinks / totalLinks) * 100)}% aktif` : "0%"}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mb-1">
-            Total Kunjungan / Klik
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-[#00296E] dark:text-blue-400">
-              {totalClicks.toLocaleString("id-ID")}
-            </span>
-            <TrendUp className="w-4 h-4 text-[#00296E] dark:text-blue-400" weight="regular" />
-          </div>
-        </div>
-
-        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mb-1">
-            Tautan Terpopuler
-          </span>
-          {topLink ? (
-            <div>
-              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate font-mono">
-                /s/{topLink.slug}
-              </p>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                {topLink.clicks_count.toLocaleString("id-ID")} kali diklik
-              </span>
-            </div>
-          ) : (
-            <span className="text-xs text-slate-400 italic">Belum ada tautan</span>
-          )}
-        </div>
-      </div>
+      {/* Metric Cards (Swiss Hairline Strip) */}
+      <DashboardMetricStrip
+        columns={4}
+        metrics={[
+          {
+            order: "01.",
+            label: "TOTAL TAUTAN",
+            value: totalLinks,
+            sublabel: "Tautan",
+            icon: <LinkSimpleHorizontal className="w-4 h-4" weight="regular" />,
+            loading,
+          },
+          {
+            order: "02.",
+            label: "TAUTAN AKTIF",
+            value: activeLinks,
+            sublabel: totalLinks > 0 ? `${Math.round((activeLinks / totalLinks) * 100)}% aktif` : "0%",
+            variant: "success",
+            icon: <CheckCircle className="w-4 h-4" weight="regular" />,
+            loading,
+          },
+          {
+            order: "03.",
+            label: "TOTAL KLIK",
+            value: totalClicks.toLocaleString("id-ID"),
+            sublabel: "Akses",
+            variant: "info",
+            icon: <TrendUp className="w-4 h-4" weight="regular" />,
+            loading,
+          },
+          {
+            order: "04.",
+            label: "TERPOPULER",
+            value: topLink ? `/s/${topLink.slug}` : "—",
+            sublabel: topLink ? `${topLink.clicks_count}x klik` : undefined,
+            variant: "warning",
+            icon: <QrIcon className="w-4 h-4" weight="regular" />,
+            loading,
+          },
+        ]}
+      />
 
       {/* Filter & Search Bar */}
       <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center gap-3">

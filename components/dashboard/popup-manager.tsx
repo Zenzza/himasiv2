@@ -19,7 +19,10 @@ import {
   ToggleRight,
   MagnifyingGlass,
   Image as ImageIcon,
+  Clock,
 } from "@phosphor-icons/react";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 import {
   type PopupItem,
   type CreatePopupPayload,
@@ -307,56 +310,61 @@ export default function PopupManager({
       )}
 
       {/* Header Info & Action Card */}
-      <div className="bg-white dark:bg-[#001438] p-5 border border-[#00296E]/15 dark:border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-10 h-10 flex items-center justify-center shrink-0 border ${
-              activePopup
-                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                : "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-white/10"
-            }`}
-          >
-            <MegaphoneSimple size={22} weight="regular" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-[#00296E] dark:text-white uppercase tracking-wider flex flex-wrap items-center gap-2">
-              <span>Manajemen Popup Pengumuman Beranda</span>
-              {activePopup ? (
-                <span className="px-2 py-0.5 text-[10px] font-mono border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                  1 POPUP AKTIF
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 text-[10px] font-mono border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400">
-                  0 POPUP AKTIF
-                </span>
-              )}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Kelola flyer poster &amp; pengumuman khusus yang tampil pertama kali saat pengunjung membuka web HIMASI.
-            </p>
-          </div>
-        </div>
+      <DashboardPageHeader
+        title="Manajemen Popup Pengumuman Beranda"
+        subtitle="Kelola flyer poster & pengumuman khusus yang tampil pertama kali saat pengunjung membuka web HIMASI."
+        badge={
+          activePopup ? (
+            <span className="px-2 py-0.5 text-[10px] font-mono border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+              1 POPUP AKTIF
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 text-[10px] font-mono border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400">
+              0 POPUP AKTIF
+            </span>
+          )
+        }
+        onRefresh={loadData}
+        refreshLoading={loading}
+        publicUrl="/"
+        publicLabel="Lihat Beranda Publik"
+        primaryAction={{
+          label: "+ Buat Pengumuman Baru",
+          onClick: handleOpenCreateModal,
+        }}
+      />
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={loading}
-            className="p-2 border border-[#00296E]/20 dark:border-white/20 text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
-            title="Muat Ulang Data"
-          >
-            <ArrowsClockwise size={16} weight="regular" className={loading ? "animate-spin" : ""} />
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenCreateModal}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
-          >
-            <Plus size={16} weight="regular" />
-            <span>Buat Pengumuman Baru</span>
-          </button>
-        </div>
-      </div>
+      {/* 3 Metric Summary Cards - Swiss Hairline Grid Strip */}
+      <DashboardMetricStrip
+        metrics={[
+          {
+            order: "01.",
+            label: "TOTAL PENGUMUMAN",
+            value: popups.length,
+            sublabel: "Flyer",
+            icon: <MegaphoneSimple size={18} weight="regular" />,
+            loading,
+          },
+          {
+            order: "02.",
+            label: "POPUP AKTIF",
+            value: activePopup ? 1 : 0,
+            sublabel: "Tayang",
+            variant: "success",
+            icon: <CheckCircle size={18} weight="regular" />,
+            loading,
+          },
+          {
+            order: "03.",
+            label: "POPUP ARSIP / NONAKTIF",
+            value: popups.filter((p) => !p.is_active).length,
+            sublabel: "Arsip",
+            variant: "warning",
+            icon: <Clock size={18} weight="regular" />,
+            loading,
+          },
+        ]}
+      />
 
       {/* HIGHLIGHT: PENGUMUMAN AKTIF SAAT INI */}
       <div className="bg-slate-50 dark:bg-[#001740] p-5 border border-[#00296E]/15 dark:border-white/10 space-y-3">

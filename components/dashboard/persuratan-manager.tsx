@@ -57,6 +57,8 @@ import {
 } from "@/lib/supabase/persuratan";
 import { recordAuditLog } from "@/lib/supabase/audit-log";
 import { type UserRole, ROLE_LABELS } from "@/lib/types/auth";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 
 export interface PersuratanManagerProps {
   currentUserRole?: UserRole;
@@ -150,7 +152,15 @@ export default function PersuratanManager({
   }, [showToast]);
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    void Promise.resolve().then(async () => {
+      if (isMounted) {
+        await loadData();
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [loadData]);
 
   // Sinkronisasi estimasi nomor berikutnya saat kode jenis atau tanggal surat keluar berubah
@@ -174,13 +184,20 @@ export default function PersuratanManager({
 
   // Sinkronkan form disposisi saat modal detail dibuka
   useEffect(() => {
-    if (selectedSurat && selectedSurat.jenis_surat === "masuk") {
-      setEditDisposisiNotes(selectedSurat.catatan_disposisi || "");
-      setEditDisposisiStatus(
-        (selectedSurat.status as StatusSuratMasuk) || "belum_disposisi"
-      );
-    }
-    setDetailFileToUpload(null);
+    let isMounted = true;
+    void Promise.resolve().then(() => {
+      if (!isMounted) return;
+      if (selectedSurat && selectedSurat.jenis_surat === "masuk") {
+        setEditDisposisiNotes(selectedSurat.catatan_disposisi || "");
+        setEditDisposisiStatus(
+          (selectedSurat.status as StatusSuratMasuk) || "belum_disposisi"
+        );
+      }
+      setDetailFileToUpload(null);
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [selectedSurat]);
 
   // 2. Metrik Kartu Stat (Swiss Grid)
@@ -631,138 +648,71 @@ export default function PersuratanManager({
 
   return (
     <div className="space-y-6">
-      {/* =================================================================== */}
-      {/* 1. HEADER MODUL & AKSI UTAMA (SWISS GRID) */}
-      {/* =================================================================== */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-[#00296E]/20 dark:border-white/10">
-        <div>
-          <p className="text-[11px] font-mono tracking-widest uppercase text-slate-400 dark:text-slate-400 mb-1">
-            02. ORGANISASI &amp; ARSIP
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#00296E] dark:text-white">
-            Persuratan
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Penomoran otomatis, template surat, dan arsip surat masuk &amp; keluar.
-          </p>
-        </div>
+      {/* 1. HEADER MODUL & AKSI UTAMA */}
+      <DashboardPageHeader
+        title="Manajemen Persuratan & Penomoran Resmi"
+        subtitle="Penomoran otomatis, template surat, dan arsip digital surat masuk & keluar HIMASI."
+        onRefresh={loadData}
+        refreshLoading={isLoading}
+        secondaryAction={{
+          label: "Ekspor Rekap",
+          onClick: handleExportCSV,
+          icon: <FileXls className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />,
+        }}
+        primaryAction={{
+          label: activeTab === "masuk" ? "+ Catat Surat Masuk" : "+ Buat Surat",
+          onClick: () => {
+            if (activeTab === "masuk") {
+              setIsModalMasukOpen(true);
+            } else {
+              setIsModalKeluarOpen(true);
+            }
+          },
+        }}
+      />
 
-        {/* Quick Action Buttons */}
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={isLoading}
-            className="p-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer shadow-none"
-            title="Muat Ulang Data"
-          >
-            <ArrowsClockwise className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/10 text-[#00296E] dark:text-[#38BDF8] text-xs font-bold transition-colors cursor-pointer shadow-none uppercase tracking-wider"
-          >
-            <FileXls className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
-            <span>Ekspor Rekap</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (activeTab === "masuk") {
-                setIsModalMasukOpen(true);
-              } else {
-                setIsModalKeluarOpen(true);
-              }
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f52] text-white text-xs font-bold transition-all shadow-none active:scale-95 cursor-pointer uppercase tracking-wider"
-          >
-            <Plus className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
-            <span>{activeTab === "masuk" ? "+ Catat Surat Masuk" : "+ Buat Surat"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* =================================================================== */}
-      {/* 2. EMPAT KARTU METRIK OPERASIONAL (SWISS GRID) */}
-      {/* =================================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Kartu 1: Surat Keluar */}
-        <div className="bg-white dark:bg-[#001438] p-5 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none relative overflow-hidden transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono tracking-wider uppercase font-bold">
-              Surat Keluar
-            </span>
-            <PaperPlaneTilt className="w-4 h-4 text-[#00296E] dark:text-white/60" />
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold text-[#00296E] dark:text-white font-mono tracking-tight">
-              {isLoading ? "—" : totalKeluar}
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
-              periode ini
-            </p>
-          </div>
-        </div>
-
-        {/* Kartu 2: Surat Masuk */}
-        <div className="bg-white dark:bg-[#001438] p-5 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none relative overflow-hidden transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono tracking-wider uppercase font-bold">
-              Surat Masuk
-            </span>
-            <Tray className="w-4 h-4 text-[#0094E0] dark:text-[#38BDF8]" />
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold text-[#00296E] dark:text-white font-mono tracking-tight">
-              {isLoading ? "—" : totalMasuk}
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
-              {belumDisposisiCount} belum didisposisi
-            </p>
-          </div>
-        </div>
-
-        {/* Kartu 3: Menunggu Tanda Tangan */}
-        <div className="bg-white dark:bg-[#001438] p-5 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none relative overflow-hidden transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono tracking-wider uppercase font-bold">
-              Menunggu Tanda Tangan
-            </span>
-            <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold text-amber-500 dark:text-amber-400 font-mono tracking-tight">
-              {isLoading ? "—" : menungguTtdCount}
-            </div>
-            <p className="text-xs text-amber-600 dark:text-amber-300 mt-1 font-mono">
-              perlu tindakan Ketua
-            </p>
-          </div>
-        </div>
-
-        {/* Kartu 4: Nomor Berikutnya */}
-        <div className="bg-white dark:bg-[#001438] p-5 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none relative overflow-hidden transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-mono tracking-wider uppercase font-bold">
-              Nomor Berikutnya
-            </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#0094E0]/10 dark:bg-[#38BDF8]/20 text-[#0094E0] dark:text-[#38BDF8] font-bold">
-              AUTO
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold text-[#0094E0] dark:text-[#38BDF8] font-mono tracking-tight">
-              {isLoading ? "—" : nextUrutPadded}
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
-              urut otomatis per tahun
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* 2. EMPAT KARTU METRIK OPERASIONAL (SWISS HAIRLINE STRIP) */}
+      <DashboardMetricStrip
+        columns={4}
+        metrics={[
+          {
+            order: "01.",
+            label: "SURAT KELUAR",
+            value: totalKeluar,
+            sublabel: "Diterbitkan",
+            variant: "info",
+            icon: <PaperPlaneTilt className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "02.",
+            label: "SURAT MASUK",
+            value: totalMasuk,
+            sublabel: `${belumDisposisiCount} belum disposisi`,
+            variant: "default",
+            icon: <Tray className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "03.",
+            label: "MENUNGGU TTD",
+            value: menungguTtdCount,
+            sublabel: "Tindakan Ketua",
+            variant: menungguTtdCount > 0 ? "warning" : "default",
+            icon: <Clock className="w-4 h-4" />,
+            loading: isLoading,
+          },
+          {
+            order: "04.",
+            label: "NOMOR BERIKUTNYA",
+            value: isLoading ? "—" : nextUrutPadded,
+            sublabel: "Format HIMASI",
+            variant: "success",
+            icon: <CheckCircle className="w-4 h-4" />,
+            loading: isLoading,
+          },
+        ]}
+      />
 
       {/* =================================================================== */}
       {/* 3. TAB NAVIGASI UTAMA (Surat Keluar, Surat Masuk, Buat Surat Baru) */}

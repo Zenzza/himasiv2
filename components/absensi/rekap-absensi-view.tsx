@@ -10,7 +10,12 @@ import {
   CalendarBlank,
   ArrowCounterClockwise,
   Users,
+  CheckCircle,
+  Clock,
+  UserCheck,
 } from "@phosphor-icons/react";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
+import DashboardMetricStrip, { type MetricItem } from "@/components/dashboard/ui/dashboard-metric-strip";
 import type { AbsensiRecord } from "@/components/absensi/admin-qr-scanner";
 import { DAFTAR_PENGURUS_HIMASI, type PengurusMember } from "@/lib/data/pengurus";
 
@@ -141,93 +146,98 @@ export default function RekapAbsensiView({
     year: "numeric",
   });
 
-  if (!activeKegiatan || kegiatanList.length === 0) {
-    return (
-      <div className="bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-none">
-        <div className="w-16 h-16 rounded-none bg-sky-50 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center mx-auto mb-4 border border-[#00296E]/15 dark:border-white/10">
-          <CalendarBlank className="w-8 h-8 text-[#0094E0] dark:text-[#38BDF8]" />
-        </div>
-        <h3 className="text-xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">Belum Ada Kegiatan Absensi</h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-          Semua data kegiatan bersifat dinamis dan tersimpan di database. Silakan klik tombol di bawah untuk menambahkan agenda kegiatan baru dan melihat rekapitulasi presensi pengurus.
-        </p>
-        <button
-          type="button"
-          onClick={onOpenTambahModal}
-          className="mt-6 px-5 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none inline-flex items-center gap-2 cursor-pointer active:scale-95 uppercase tracking-wider"
-        >
-          <Plus className="w-4 h-4 text-sky-300" />
-          <span>Tambah Kegiatan Baru</span>
-        </button>
-      </div>
-    );
-  }
+  const metricItems: MetricItem[] = [
+    {
+      order: "01.",
+      label: "TOTAL PENGURUS",
+      value: totalPengurus,
+      sublabel: "Orang",
+      variant: "default",
+      icon: <Users className="w-4 h-4" />,
+    },
+    {
+      order: "02.",
+      label: "HADIR TEPAT WAKTU",
+      value: countHadir,
+      sublabel: "Orang",
+      variant: "success",
+      icon: <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+    },
+    {
+      order: "03.",
+      label: "TERLAMBAT",
+      value: countTerlambat,
+      sublabel: "Orang",
+      variant: "warning",
+      icon: <Clock className="w-4 h-4 text-amber-500" />,
+    },
+    {
+      order: "04.",
+      label: "PERSENTASE HADIR",
+      value: `${persentase}%`,
+      sublabel: "Kehadiran",
+      variant: "info",
+      icon: <UserCheck className="w-4 h-4 text-sky-600 dark:text-sky-400" />,
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      
-      {/* HEADER KONTROL (HANYA DITAMPILKAN DI LAYAR, DISEMBUNYIKAN SAAT PRINT PDF) */}
-      <div className="no-print bg-white dark:bg-[#001438] p-5 sm:p-6 rounded-none border border-[#00296E]/20 dark:border-white/10 shadow-none space-y-4">
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#00296E]/15 dark:border-white/10">
-          <div>
-            <h2 className="text-lg sm:text-2xl font-black text-[#00296E] dark:text-white mt-1 uppercase tracking-tight">
-              Rekapitulasi Absensi Kegiatan Pengurus
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Lihat riwayat kehadiran setiap kegiatan dan cetak dokumen resmi ber-kop surat HIMASI ke format PDF.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Segmented Control Mode: Presensi Pengurus | Lembar Kop Surat PDF */}
-            <div className="flex items-center p-1 bg-slate-100 dark:bg-white/10 rounded-none border border-[#00296E]/15 dark:border-white/10 text-xs">
-              <button
-                type="button"
-                onClick={() => setPreviewMode("table")}
-                className={`px-3 py-1.5 rounded-none font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  previewMode === "table"
-                    ? "bg-white dark:bg-[#001740] text-[#00296E] dark:text-white shadow-none"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
-                title="Tampilkan tabel kehadiran pengurus untuk kegiatan terpilih"
-              >
-                <Users className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
-                <span>Presensi Pengurus</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPreviewMode("pdf")}
-                className={`px-3 py-1.5 rounded-none font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  previewMode === "pdf"
-                    ? "bg-white dark:bg-[#001740] text-[#00296E] dark:text-white shadow-none"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
-                title="Tampilkan lembar dokumen resmi ber-kop surat HIMASI"
-              >
-                <FileText className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
-                <span>Format Kop Surat</span>
-              </button>
-            </div>
-
-            {/* Tombol Cetak PDF Resmi */}
+      {/* 1. HEADER ACUAN STANDARDISASI */}
+      <div className="no-print">
+        <DashboardPageHeader
+          title="REKAPITULASI PRESENSI KEGIATAN PENGURUS"
+          subtitle="Lihat riwayat kehadiran setiap kegiatan dan cetak dokumen resmi ber-kop surat HIMASI ke format PDF."
+          primaryAction={{
+            label: "Cetak / Unduh PDF",
+            icon: <Printer className="w-4 h-4 text-sky-300" />,
+            onClick: handlePrint,
+          }}
+        >
+          {/* Segmented Control Mode: Presensi Pengurus | Lembar Kop Surat PDF */}
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-white/10 rounded-none border border-[#00296E]/15 dark:border-white/10 text-xs">
             <button
               type="button"
-              onClick={handlePrint}
-              className="px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer active:scale-95 uppercase tracking-wider"
+              onClick={() => setPreviewMode("table")}
+              className={`px-3 py-1.5 rounded-none font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                previewMode === "table"
+                  ? "bg-[#00296E] text-white dark:bg-[#38BDF8] dark:text-[#001740] shadow-none"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+              title="Tampilkan tabel kehadiran pengurus untuk kegiatan terpilih"
             >
-              <Printer className="w-4 h-4 text-sky-300" />
-              <span>Cetak / Unduh PDF</span>
+              <Users className="w-3.5 h-3.5" />
+              <span>Presensi Pengurus</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPreviewMode("pdf")}
+              className={`px-3 py-1.5 rounded-none font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                previewMode === "pdf"
+                  ? "bg-[#00296E] text-white dark:bg-[#38BDF8] dark:text-[#001740] shadow-none"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+              title="Tampilkan lembar dokumen resmi ber-kop surat HIMASI"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Format Kop Surat</span>
             </button>
           </div>
-        </div>
+        </DashboardPageHeader>
+      </div>
 
-        {/* Filter Bar: Pemilihan Kegiatan, Divisi, dan Search */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+      {/* 2. SWISS HAIRLINE METRIC STRIP (4 KOLOM) */}
+      <div className="no-print">
+        <DashboardMetricStrip columns={4} metrics={metricItems} />
+      </div>
+
+      {/* 3. FILTER BAR KEGIATAN, DIVISI, DAN PENCARIAN */}
+      <div className="no-print bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/20 dark:border-white/10 shadow-none">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           {/* Pemilihan Kegiatan & Tombol Tambah/Hapus/Reset Kegiatan */}
           <div className="md:col-span-5">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Pilih Kegiatan:
               </label>
@@ -251,7 +261,7 @@ export default function RekapAbsensiView({
                     <span>Hapus</span>
                   </button>
                 )}
-                {onResetAllAbsensiLogs && totalPresensi > 0 && (
+                {onResetAllAbsensiLogs && totalPresensi > 0 && activeKegiatan && (
                   <button
                     type="button"
                     onClick={() => onResetAllAbsensiLogs(activeKegiatan.nama)}
@@ -259,38 +269,42 @@ export default function RekapAbsensiView({
                     title={`Kosongkan presensi untuk "${activeKegiatan.nama}"`}
                   >
                     <ArrowCounterClockwise className="w-3 h-3" />
-                    <span>Reset Presensi ({totalPresensi})</span>
+                    <span>Reset ({totalPresensi})</span>
                   </button>
                 )}
               </div>
             </div>
             <div className="relative">
               <select
-                value={activeKegiatan.id}
+                value={activeKegiatan?.id || ""}
                 onChange={(e) => {
                   const found = kegiatanList.find((k) => k.id === e.target.value);
                   if (found) onSelectKegiatan(found);
                 }}
                 className="w-full px-3 py-2 text-xs font-bold text-[#00296E] dark:text-white bg-slate-50 dark:bg-[#001740] hover:bg-white dark:hover:bg-[#001f54] rounded-none border border-[#00296E]/20 dark:border-white/20 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] cursor-pointer"
               >
-                {kegiatanList.map((k) => (
-                  <option key={k.id} value={k.id} className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">
-                    {k.nama} • {formatTanggalIndo(k.tanggal)} ({k.jam})
-                  </option>
-                ))}
+                {kegiatanList.length === 0 ? (
+                  <option value="">Belum ada kegiatan</option>
+                ) : (
+                  kegiatanList.map((k) => (
+                    <option key={k.id} value={k.id} className="bg-white dark:bg-[#001740] text-slate-900 dark:text-white">
+                      {k.nama} • {formatTanggalIndo(k.tanggal)} ({k.jam})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           </div>
 
           {/* Search Nama / NIM */}
           <div className="md:col-span-4">
-            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
               Cari Nama / NIM:
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Cari pengurus..."
+                placeholder="Cari nama atau NIM pengurus..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-slate-50 dark:bg-[#001740] hover:bg-white dark:hover:bg-[#001a4d] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
@@ -301,7 +315,7 @@ export default function RekapAbsensiView({
 
           {/* Filter Divisi */}
           <div className="md:col-span-3">
-            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
               Divisi:
             </label>
             <select
@@ -318,28 +332,29 @@ export default function RekapAbsensiView({
             </select>
           </div>
         </div>
-
-        {/* Kartu Ringkasan Metrik Presensi Kegiatan Terpilih */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div className="p-3.5 rounded-none bg-slate-50/70 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Pengurus</span>
-            <p className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{totalPengurus} Orang</p>
-          </div>
-          <div className="p-3.5 rounded-none bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/30">
-            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Hadir Tepat Waktu</span>
-            <p className="text-xl font-black text-emerald-800 dark:text-emerald-300 mt-0.5">{countHadir} Orang</p>
-          </div>
-          <div className="p-3.5 rounded-none bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/30">
-            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest">Terlambat</span>
-            <p className="text-xl font-black text-amber-800 dark:text-amber-300 mt-0.5">{countTerlambat} Orang</p>
-          </div>
-          <div className="p-3.5 rounded-none bg-blue-50/70 dark:bg-sky-950/30 border border-blue-200 dark:border-sky-500/30">
-            <span className="text-[10px] font-bold text-blue-700 dark:text-sky-400 uppercase tracking-widest">Persentase Hadir</span>
-            <p className="text-xl font-black text-[#00296E] dark:text-[#38BDF8] mt-0.5">{persentase}%</p>
-          </div>
-        </div>
-
       </div>
+
+      {/* 4. KONTEN (EMPTY STATE vs TABEL vs KOP SURAT) */}
+      {!activeKegiatan || kegiatanList.length === 0 ? (
+        <div className="no-print bg-white dark:bg-[#001438] rounded-none border border-[#00296E]/20 dark:border-white/10 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-none">
+          <div className="w-16 h-16 rounded-none bg-sky-50 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center mx-auto mb-4 border border-[#00296E]/15 dark:border-white/10">
+            <CalendarBlank className="w-8 h-8 text-[#0094E0] dark:text-[#38BDF8]" />
+          </div>
+          <h3 className="text-xl font-black text-[#00296E] dark:text-white uppercase tracking-tight">Belum Ada Kegiatan Absensi</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+            Semua data kegiatan bersifat dinamis dan tersimpan di database. Silakan klik tombol di bawah untuk menambahkan agenda kegiatan baru dan melihat rekapitulasi presensi pengurus.
+          </p>
+          <button
+            type="button"
+            onClick={onOpenTambahModal}
+            className="mt-6 px-5 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-bold transition-all shadow-none inline-flex items-center gap-2 cursor-pointer active:scale-95 uppercase tracking-wider"
+          >
+            <Plus className="w-4 h-4 text-sky-300" />
+            <span>Tambah Kegiatan Baru</span>
+          </button>
+        </div>
+      ) : (
+        <>
 
 
 
@@ -528,6 +543,8 @@ export default function RekapAbsensiView({
         </div>
 
       </div>
+        </>
+      )}
 
     </div>
   );
