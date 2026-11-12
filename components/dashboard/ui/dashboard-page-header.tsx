@@ -38,8 +38,8 @@ export default function DashboardPageHeader({
   children,
 }: DashboardPageHeaderProps) {
   return (
-    <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div>
+    <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="min-w-0 flex-1">
         <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider flex flex-wrap items-center gap-2.5">
           <span>{title}</span>
           {badge}
@@ -49,7 +49,7 @@ export default function DashboardPageHeader({
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {onRefresh && (
           <button
             type="button"

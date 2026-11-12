@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Printer,
   MagnifyingGlass,
@@ -86,6 +86,19 @@ export default function RekapAbsensiView({
   const [previewMode, setPreviewMode] = useState<"table" | "pdf">("table");
 
   const masterPengurus = pengurusList && pengurusList.length > 0 ? pengurusList : DAFTAR_PENGURUS_HIMASI;
+
+  // Selalu pastikan posisi tampilan berada di paling atas saat komponen mount atau mode/kegiatan berubah
+  useEffect(() => {
+    const mainEl = document.querySelector("main");
+    if (mainEl) mainEl.scrollTop = 0;
+    if (typeof window !== "undefined") {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      } catch {
+        window.scrollTo(0, 0);
+      }
+    }
+  }, [previewMode, activeKegiatan?.id]);
 
   // Filter Log berdasarkan Kegiatan Terpilih
   const logsForKegiatan = useMemo(() => {

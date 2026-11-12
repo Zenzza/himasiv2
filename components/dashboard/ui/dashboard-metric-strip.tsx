@@ -90,19 +90,20 @@ export default function DashboardMetricStrip({
           <div
             key={index}
             onClick={item.onClick}
-            className={`p-4 flex items-center justify-between gap-3 ${
+            className={`p-3 xl:p-4 flex items-center justify-between gap-2.5 sm:gap-3 min-w-0 ${
               item.onClick
                 ? "cursor-pointer hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors"
                 : ""
             }`}
           >
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p
-                className={`text-[10px] font-mono uppercase tracking-widest ${styles.label}`}
+                className={`text-[9px] xl:text-[10px] font-mono uppercase tracking-wider truncate ${styles.label}`}
+                title={`${item.order} ${item.label}`}
               >
                 {item.order} {item.label}
               </p>
-              <div className={`text-2xl font-light mt-1 ${styles.value}`}>
+              <div className={`text-xl xl:text-2xl font-light mt-0.5 xl:mt-1 truncate ${styles.value}`}>
                 {item.loading ? (
                   <span
                     className={`inline-block w-14 h-5 animate-pulse ${styles.pulse}`}
@@ -111,7 +112,7 @@ export default function DashboardMetricStrip({
                   <span className="font-mono">
                     {item.value}{" "}
                     {item.sublabel && (
-                      <span className={`text-xs ml-1 ${styles.sublabel}`}>
+                      <span className={`text-[11px] xl:text-xs ml-1 ${styles.sublabel}`}>
                         {item.sublabel}
                       </span>
                     )}
@@ -121,7 +122,7 @@ export default function DashboardMetricStrip({
             </div>
 
             <div
-              className={`w-8 h-8 rounded-none border shrink-0 flex items-center justify-center ${styles.iconBox}`}
+              className={`w-7 h-7 xl:w-8 xl:h-8 rounded-none border shrink-0 flex items-center justify-center text-sm xl:text-base ${styles.iconBox}`}
             >
               {item.icon}
             </div>

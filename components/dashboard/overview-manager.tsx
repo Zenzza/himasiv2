@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Newspaper,
@@ -86,6 +86,19 @@ export default function OverviewManager({
   submisiList = [],
 }: OverviewManagerProps) {
   const [searchKegiatan, setSearchKegiatan] = useState("");
+
+  // Selalu pastikan posisi tampilan Overview berada di paling atas saat komponen mount
+  useEffect(() => {
+    const mainEl = document.querySelector("main");
+    if (mainEl) mainEl.scrollTop = 0;
+    if (typeof window !== "undefined") {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      } catch {
+        window.scrollTo(0, 0);
+      }
+    }
+  }, []);
 
   // Metrik terhitung
   const totalBeritaTerbit = useMemo(() => {
@@ -210,30 +223,30 @@ export default function OverviewManager({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 xl:gap-3.5">
           {/* Card 1: Surat Menunggu Disposisi */}
           <div
             onClick={() => onNavigateTab("persuratan")}
-            className="p-4 border border-[#00296E]/15 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer group flex flex-col justify-between"
+            className="p-3 xl:p-4 border border-[#00296E]/15 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer group flex flex-col justify-between min-w-0"
           >
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+              <div className="flex items-center justify-between mb-1.5 xl:mb-2">
+                <span className="text-[9px] xl:text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold truncate">
                   PERSURATAN
                 </span>
-                <EnvelopeSimple className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
+                <EnvelopeSimple className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-[#00296E] dark:text-[#38BDF8] shrink-0" />
               </div>
-              <div className="text-2xl font-extrabold text-[#00296E] dark:text-white font-poppins">
+              <div className="text-xl xl:text-2xl font-extrabold text-[#00296E] dark:text-white font-poppins">
                 {totalSuratPending > 0 ? totalSuratPending : 0}
               </div>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1">
+              <p className="text-[11px] xl:text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5 xl:mt-1 truncate">
                 Surat Butuh Verifikasi
               </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[10px] xl:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                 Draf atau menunggu tanda tangan BPH
               </p>
             </div>
-            <div className="mt-3 pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
+            <div className="mt-2.5 xl:mt-3 pt-2 xl:pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[10px] xl:text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
               <span>BUKA PERSURATAN</span>
               <span>&rarr;</span>
             </div>
@@ -242,26 +255,26 @@ export default function OverviewManager({
           {/* Card 2: Draf Berita Belum Terbit */}
           <div
             onClick={() => onNavigateTab("berita")}
-            className="p-4 border border-[#00296E]/15 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer group flex flex-col justify-between"
+            className="p-3 xl:p-4 border border-[#00296E]/15 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer group flex flex-col justify-between min-w-0"
           >
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+              <div className="flex items-center justify-between mb-1.5 xl:mb-2">
+                <span className="text-[9px] xl:text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold truncate">
                   Berita KABINET
                 </span>
-                <Newspaper className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
+                <Newspaper className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-[#00296E] dark:text-[#38BDF8] shrink-0" />
               </div>
-              <div className="text-2xl font-extrabold text-[#00296E] dark:text-white font-poppins">
+              <div className="text-xl xl:text-2xl font-extrabold text-[#00296E] dark:text-white font-poppins">
                 {totalDrafBerita}
               </div>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1">
+              <p className="text-[11px] xl:text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5 xl:mt-1 truncate">
                 Draf Berita Belum Terbit
               </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[10px] xl:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                 Siap dikurasi & dipublikasikan
               </p>
             </div>
-            <div className="mt-3 pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
+            <div className="mt-2.5 xl:mt-3 pt-2 xl:pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[10px] xl:text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
               <span>KELOLA Berita</span>
               <span>&rarr;</span>
             </div>
@@ -270,26 +283,26 @@ export default function OverviewManager({
           {/* Card 3: Submisi Mahasiswa Pending */}
           <div
             onClick={() => onNavigateTab("apresiasi")}
-            className="p-4 border border-[#00296E]/15 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer group flex flex-col justify-between"
+            className="p-3 xl:p-4 border border-[#00296E]/15 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer group flex flex-col justify-between min-w-0"
           >
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+              <div className="flex items-center justify-between mb-1.5 xl:mb-2">
+                <span className="text-[9px] xl:text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold truncate">
                   KARYA APRESIASI
                 </span>
-                <SealCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <SealCheck className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               </div>
-              <div className="text-2xl font-extrabold text-[#00296E] dark:text-white font-poppins">
+              <div className="text-xl xl:text-2xl font-extrabold text-[#00296E] dark:text-white font-poppins">
                 {totalSubmisiPending}
               </div>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1">
+              <p className="text-[11px] xl:text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5 xl:mt-1 truncate">
                 Submisi Menunggu Kurasi
               </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[10px] xl:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                 Pengajuan prestasi mahasiswa
               </p>
             </div>
-            <div className="mt-3 pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
+            <div className="mt-2.5 xl:mt-3 pt-2 xl:pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[10px] xl:text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
               <span>KURASI KARYA</span>
               <span>&rarr;</span>
             </div>
@@ -298,26 +311,26 @@ export default function OverviewManager({
           {/* Card 4: Sesi Absensi Terpilih */}
           <div
             onClick={() => onNavigateTab("absensi")}
-            className="p-4 border border-[#00296E]/15 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer group flex flex-col justify-between"
+            className="p-3 xl:p-4 border border-[#00296E]/15 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 hover:border-[#00296E] dark:hover:border-[#38BDF8] transition-colors cursor-pointer group flex flex-col justify-between min-w-0"
           >
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+              <div className="flex items-center justify-between mb-1.5 xl:mb-2">
+                <span className="text-[9px] xl:text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold truncate">
                   OPERASIONAL PRESENSI
                 </span>
-                <Scan className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                <Scan className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-sky-600 dark:text-sky-400 shrink-0" />
               </div>
-              <div className="text-2xl font-extrabold text-[#00296E] dark:text-white font-poppins">
+              <div className="text-xl xl:text-2xl font-extrabold text-[#00296E] dark:text-white font-poppins">
                 {activeKegiatan ? "AKTIF" : "STANDBY"}
               </div>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1 truncate">
+              <p className="text-[11px] xl:text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5 xl:mt-1 truncate">
                 {activeKegiatan ? activeKegiatan.nama : "Belum Ada Sesi Dipilih"}
               </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[10px] xl:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                 {activeKegiatan ? `${formatTanggalIndo(activeKegiatan.tanggal)}` : "Pilih kegiatan untuk scan QR"}
               </p>
             </div>
-            <div className="mt-3 pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
+            <div className="mt-2.5 xl:mt-3 pt-2 xl:pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[10px] xl:text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
               <span>BUKA SCANNER</span>
               <span>&rarr;</span>
             </div>
@@ -326,10 +339,10 @@ export default function OverviewManager({
       </div>
 
       {/* 4. SWISS HAIRLINE AUDIT LOG TABLE & PINTASAN AKSI CEPAT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
         {/* Kolom Kiri (8/12): Tabel Audit Log Aktivitas Terkini */}
         <div className="lg:col-span-8 border border-[#00296E]/20 dark:border-white/10 bg-white dark:bg-[#001438] overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233]">
+          <div className="flex items-center justify-between px-4 xl:px-6 py-3 xl:py-3.5 border-b border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233]">
             <span className="text-[11px] font-bold text-[#00296E] dark:text-slate-200 uppercase tracking-wider font-poppins flex items-center gap-2">
               <Clock className="w-3.5 h-3.5" />
               <span>Audit Log Aktivitas Terkini</span>
@@ -349,10 +362,10 @@ export default function OverviewManager({
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-[#00296E]/15 dark:border-white/10 bg-[#FAFBFC] dark:bg-[#001233] text-[10px] font-extrabold text-[#00296E] dark:text-slate-200 uppercase tracking-wider">
-                  <th className="py-3 px-6 font-bold">WAKTU</th>
-                  <th className="py-3 px-6 font-bold">PENGURUS</th>
-                  <th className="py-3 px-6 font-bold">AKSI MODUL</th>
-                  <th className="py-3 px-6 font-bold text-right">STATUS</th>
+                  <th className="py-3 px-3.5 xl:px-6 font-bold">WAKTU</th>
+                  <th className="py-3 px-3.5 xl:px-6 font-bold">PENGURUS</th>
+                  <th className="py-3 px-3.5 xl:px-6 font-bold">AKSI MODUL</th>
+                  <th className="py-3 px-3.5 xl:px-6 font-bold text-right">STATUS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/5 font-medium">
@@ -391,10 +404,10 @@ export default function OverviewManager({
                         key={log.id}
                         className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors"
                       >
-                        <td className="py-3.5 px-6 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                        <td className="py-3 px-3.5 xl:px-6 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">
                           {timeStr}
                         </td>
-                        <td className="py-3.5 px-6">
+                        <td className="py-3 px-3.5 xl:px-6">
                           <div className="font-bold text-slate-900 dark:text-white">
                             {log.pengurus_nama}
                           </div>
@@ -402,7 +415,7 @@ export default function OverviewManager({
                             {log.pengurus_role}
                           </div>
                         </td>
-                        <td className="py-3.5 px-6 text-slate-700 dark:text-slate-300">
+                        <td className="py-3 px-3.5 xl:px-6 text-slate-700 dark:text-slate-300">
                           <div className="flex items-center gap-2">
                             <span className="px-1.5 py-0.5 text-[9px] font-mono uppercase bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] border border-[#00296E]/10 dark:border-white/10 shrink-0">
                               {log.modul}
@@ -410,7 +423,7 @@ export default function OverviewManager({
                             <span className="truncate">{log.aksi}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-6 text-right font-extrabold">
+                        <td className="py-3 px-3.5 xl:px-6 text-right font-extrabold">
                           {log.status === "berhasil" && (
                             <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[11px] uppercase">
                               BERHASIL
@@ -444,7 +457,7 @@ export default function OverviewManager({
         </div>
 
         {/* Kolom Kanan (4/12): Pintasan Akses Cepat Front-End & Eksekutif */}
-        <div className="lg:col-span-4 border border-[#00296E]/20 dark:border-white/10 bg-white dark:bg-[#001438] p-5 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-4 border border-[#00296E]/20 dark:border-white/10 bg-white dark:bg-[#001438] p-4 xl:p-5 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-[#00296E]/15 dark:border-white/10 mb-3">
               <h3 className="font-bold text-xs uppercase tracking-tight text-[#00296E] dark:text-white font-poppins">

@@ -279,6 +279,69 @@ export default function DashboardPage() {
   // Sub-tab Home Page di Dashboard: "banner" | "fitur" | "popup"
   const [homeSubTab, setHomeSubTab] = useState<"banner" | "fitur" | "popup">("banner");
 
+  const mainContentRef = useRef<HTMLElement | null>(null);
+
+  const forceScrollTop = useCallback(() => {
+    // 1. Reset container scroll utama (<main>)
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0;
+      try {
+        mainContentRef.current.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      } catch {
+        // Fallback
+      }
+    }
+
+    // 2. Fallback querySelector & document roots
+    if (typeof document !== "undefined") {
+      const mainEl = document.querySelector("main");
+      if (mainEl) {
+        mainEl.scrollTop = 0;
+      }
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+      }
+      if (document.body) {
+        document.body.scrollTop = 0;
+      }
+    }
+
+    // 3. Reset window scroll
+    if (typeof window !== "undefined") {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      } catch {
+        window.scrollTo(0, 0);
+      }
+    }
+  }, []);
+
+  // Handler pergantian tab yang secara proaktif langsung me-reset posisi scroll
+  const handleTabChange = useCallback((tab: DashboardTabKey) => {
+    setActiveTab(tab);
+    setSidebarOpen(false);
+    forceScrollTop();
+    requestAnimationFrame(forceScrollTop);
+    setTimeout(forceScrollTop, 50);
+    setTimeout(forceScrollTop, 150);
+  }, [forceScrollTop]);
+
+  // Auto-scroll ke posisi paling atas setiap perpindahan tab / sub-halaman admin
+  useEffect(() => {
+    forceScrollTop();
+    const rafId = requestAnimationFrame(forceScrollTop);
+    const rafId2 = requestAnimationFrame(() => requestAnimationFrame(forceScrollTop));
+    const timer1 = setTimeout(forceScrollTop, 50);
+    const timer2 = setTimeout(forceScrollTop, 150);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(rafId2);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [activeTab, homeSubTab, forceScrollTop]);
+
   // State Pengaturan Fitur Utama Beranda (Open / Closed Toggle)
   const [fiturConfig, setFiturConfig] = useState<FiturUtamaSectionConfig>(DEFAULT_FITUR_UTAMA);
   const [savingFitur, setSavingFitur] = useState(false);
@@ -3020,11 +3083,15 @@ NOTIFY pgrst, 'reload schema';`;
       <header className="no-print w-full h-14 bg-white dark:bg-[#001438] border-b border-[#00296E]/20 dark:border-white/10 sticky top-0 z-50 flex items-stretch select-none">
         {/* Kolom Brand: HIMASI/ADMIN (Lebar w-64 sejajar lurus dengan Sidebar) */}
         <div className="w-64 min-w-[16rem] shrink-0 border-r border-[#00296E]/20 dark:border-white/10 px-5 flex items-center justify-between bg-white dark:bg-[#001438]">
-          <Link href="/dashboard" className="flex items-center gap-2 group">
+          <button
+            type="button"
+            onClick={() => handleTabChange("overview")}
+            className="flex items-center gap-2 group cursor-pointer text-left"
+          >
             <span className="font-extrabold text-sm sm:text-base tracking-tight text-[#00296E] dark:text-white uppercase font-poppins">
               HIMASI/ADMIN
             </span>
-          </Link>
+          </button>
           <button
             type="button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -3040,8 +3107,8 @@ NOTIFY pgrst, 'reload schema';`;
           {/* 01. Ringkasan / Overview */}
           <button
             type="button"
-            onClick={() => setActiveTab("overview")}
-            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+            onClick={() => handleTabChange("overview")}
+            className={`px-3.5 xl:px-5 2xl:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none shrink-0 ${
               activeTab === "overview"
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
@@ -3053,8 +3120,8 @@ NOTIFY pgrst, 'reload schema';`;
           {/* 02. Berita & Aspirasi -> Menuju ke Berita & Berita */}
           <button
             type="button"
-            onClick={() => setActiveTab("berita")}
-            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+            onClick={() => handleTabChange("berita")}
+            className={`px-3.5 xl:px-5 2xl:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none shrink-0 ${
               ["berita", "apresiasi", "aspirasi"].includes(activeTab)
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
@@ -3066,8 +3133,8 @@ NOTIFY pgrst, 'reload schema';`;
           {/* 03. Organisasi & Arsip -> Menuju ke Kartu QR & Profil */}
           <button
             type="button"
-            onClick={() => setActiveTab("kartu-qr")}
-            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+            onClick={() => handleTabChange("kartu-qr")}
+            className={`px-3.5 xl:px-5 2xl:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none shrink-0 ${
               ["kartu-qr", "kalender", "dokumen", "persuratan", "content-planner", "shortlink"].includes(activeTab)
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
@@ -3079,8 +3146,8 @@ NOTIFY pgrst, 'reload schema';`;
           {/* 04. Operasional Presensi -> Menuju ke Absensi Kegiatan QR */}
           <button
             type="button"
-            onClick={() => setActiveTab("absensi")}
-            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+            onClick={() => handleTabChange("absensi")}
+            className={`px-3.5 xl:px-5 2xl:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none shrink-0 ${
               ["absensi", "rekap-absensi"].includes(activeTab)
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
@@ -3092,8 +3159,8 @@ NOTIFY pgrst, 'reload schema';`;
           {/* 05. Sistem & Keamanan -> Menuju ke Pengaturan & Mode */}
           <button
             type="button"
-            onClick={() => setActiveTab("banner")}
-            className={`px-5 sm:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
+            onClick={() => handleTabChange("banner")}
+            className={`px-3.5 xl:px-5 2xl:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none shrink-0 ${
               ["banner", "database", "users", "audit-log"].includes(activeTab)
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
@@ -3171,10 +3238,7 @@ NOTIFY pgrst, 'reload schema';`;
             <nav className="space-y-0.5 px-3">
               <button
                 type="button"
-                onClick={() => {
-                  setActiveTab("overview");
-                  setSidebarOpen(false);
-                }}
+                onClick={() => handleTabChange("overview")}
                 className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                   activeTab === "overview"
                     ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3195,10 +3259,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "berita") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("berita");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("berita")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "berita"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3219,10 +3280,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "apresiasi") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("apresiasi");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("apresiasi")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "apresiasi"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3238,10 +3296,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "aspirasi") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("aspirasi");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("aspirasi")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "aspirasi"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3268,10 +3323,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "kartu-qr") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("kartu-qr");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("kartu-qr")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "kartu-qr"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3287,10 +3339,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "kalender") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("kalender");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("kalender")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "kalender"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3306,10 +3355,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "dokumen") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("dokumen");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("dokumen")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "dokumen"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3325,10 +3371,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "persuratan") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("persuratan");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("persuratan")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "persuratan"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3344,10 +3387,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "content-planner") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("content-planner");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("content-planner")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "content-planner"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3363,10 +3403,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "shortlink") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("shortlink");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("shortlink")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "shortlink"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3388,10 +3425,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "absensi") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("absensi");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("absensi")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "absensi"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3407,10 +3441,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "rekap-absensi") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("rekap-absensi");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("rekap-absensi")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "rekap-absensi"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3432,10 +3463,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "banner") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("banner");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("banner")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "banner"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3451,10 +3479,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "database") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("database");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("database")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "database"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3473,10 +3498,7 @@ NOTIFY pgrst, 'reload schema';`;
               {canAccessTab(currentUserRole, "users") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("users");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("users")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "users"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3492,10 +3514,7 @@ NOTIFY pgrst, 'reload schema';`;
               {(currentUserRole === "super_admin" || currentUserRole === "bph") && canAccessTab(currentUserRole, "audit-log") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTab("audit-log");
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange("audit-log")}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
                     activeTab === "audit-log"
                       ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
@@ -3568,10 +3587,13 @@ NOTIFY pgrst, 'reload schema';`;
         )}
 
         {/* Area Konten Utama */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto max-h-[calc(100vh-56px)] bg-[#FAFBFC] dark:bg-[#001740] transition-colors duration-150">
+        <main
+          ref={mainContentRef}
+          className="flex-1 flex flex-col min-w-0 overflow-y-auto max-h-[calc(100vh-56px)] bg-[#FAFBFC] dark:bg-[#001740] transition-colors duration-150 scroll-auto"
+        >
           
           {/* Body Konten Sesuai Tab Terpilih */}
-          <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+          <div key={activeTab} className="p-4 sm:p-5 xl:p-8 space-y-5 xl:space-y-6 w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto min-w-0">
 
             {/* TAB 1: OVERVIEW / RINGKASAN */}
             {activeTab === "overview" && (
@@ -3583,7 +3605,7 @@ NOTIFY pgrst, 'reload schema';`;
                 studentPengurusList={studentPengurusList}
                 activeKegiatan={activeKegiatan}
                 setActiveKegiatan={setActiveKegiatan}
-                onNavigateTab={setActiveTab}
+                onNavigateTab={handleTabChange}
                 onOpenTambahKegiatan={() => setIsTambahKegiatanModalOpen(true)}
                 onRequestDeleteKegiatan={setKegiatanToDelete}
                 overviewAuditLogs={overviewAuditLogs}
@@ -3734,7 +3756,7 @@ NOTIFY pgrst, 'reload schema';`;
 
                   <button
                     type="button"
-                    onClick={() => setActiveTab("rekap-absensi")}
+                    onClick={() => handleTabChange("rekap-absensi")}
                     className="px-3.5 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white font-semibold text-xs uppercase tracking-wider shrink-0 transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <span>Buka Rekap Absensi</span>

@@ -81,6 +81,19 @@ export default function ContentPlannerManager({
   const [activeView, setActiveView] = useState<"cw-table" | "calendar-grid">("cw-table");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // Pastikan posisi tampilan Content Planner selalu berada di paling atas saat dimuat
+  useEffect(() => {
+    const mainEl = document.querySelector("main");
+    if (mainEl) mainEl.scrollTop = 0;
+    if (typeof window !== "undefined") {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      } catch {
+        window.scrollTo(0, 0);
+      }
+    }
+  }, []);
+
   // Rincian minggu dalam bulan terpilih
   const monthWeeks = useMemo(() => {
     return getCalendarWeekDetailsForMonth(selectedYear, selectedMonth - 1);
