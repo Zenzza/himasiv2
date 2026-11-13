@@ -101,6 +101,7 @@ import ShortlinkManager from "@/components/dashboard/shortlink-manager";
 import PopupManager from "@/components/dashboard/popup-manager";
 import DokumenManager from "@/components/dashboard/dokumen-manager";
 import OverviewManager from "@/components/dashboard/overview-manager";
+import VotingManager from "@/components/dashboard/voting-manager";
 import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
 import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 import { getAuditLogs, recordAuditLog } from "@/lib/supabase/audit-log";
@@ -3135,7 +3136,7 @@ NOTIFY pgrst, 'reload schema';`;
             type="button"
             onClick={() => handleTabChange("kartu-qr")}
             className={`px-3.5 xl:px-5 2xl:px-6 h-full flex items-center text-xs tracking-tight border-r border-[#00296E]/20 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none shrink-0 ${
-              ["kartu-qr", "kalender", "dokumen", "persuratan", "content-planner", "shortlink"].includes(activeTab)
+              ["kartu-qr", "kalender", "dokumen", "persuratan", "voting", "content-planner", "shortlink"].includes(activeTab)
                 ? "font-extrabold text-[#00296E] dark:text-white border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8] bg-white dark:bg-[#001438]"
                 : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]"
             }`}
@@ -3380,6 +3381,22 @@ NOTIFY pgrst, 'reload schema';`;
                 >
                   <span>Persuratan</span>
                   {activeTab === "persuratan" && <span className="font-mono text-sm leading-none">&rarr;</span>}
+                </button>
+              )}
+
+              {/* E-Voting Pemilihan Ketua Himpunan */}
+              {canAccessTab(currentUserRole, "voting") && (
+                <button
+                  type="button"
+                  onClick={() => handleTabChange("voting")}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer rounded-none ${
+                    activeTab === "voting"
+                      ? "bg-[#00296E]/5 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] font-bold border-l-[3px] border-[#00296E] dark:border-[#38BDF8]"
+                      : "text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-[#00296E]/[0.02] dark:hover:bg-white/5 border-l-[3px] border-transparent font-medium"
+                  }`}
+                >
+                  <span>E-Voting Pemilihan</span>
+                  {activeTab === "voting" && <span className="font-mono text-sm leading-none">&rarr;</span>}
                 </button>
               )}
 
@@ -3964,6 +3981,11 @@ NOTIFY pgrst, 'reload schema';`;
             {/* TAB PERSURATAN & PENOMORAN OTOMATIS */}
             {activeTab === "persuratan" && (
               <PersuratanManager currentUserRole={currentUserRole} currentUserName={currentUserName} />
+            )}
+
+            {/* TAB E-VOTING PEMILIHAN KETUA HIMPUNAN */}
+            {activeTab === "voting" && (
+              <VotingManager currentUserRole={currentUserRole} currentUserName={currentUserName} />
             )}
 
             {/* TAB CONTENT PLANNER */}

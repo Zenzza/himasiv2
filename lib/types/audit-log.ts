@@ -17,7 +17,8 @@ export type AuditLogModul =
   | "users"
   | "sistem"
   | "auth"
-  | "tautan";
+  | "tautan"
+  | "voting";
 
 export type AuditLogStatus = "berhasil" | "gagal" | "peringatan";
 
@@ -57,6 +58,7 @@ export const AUDIT_LOG_MODULS: readonly AuditLogModul[] = [
   "sistem",
   "auth",
   "tautan",
+  "voting",
 ] as const;
 
 export const AUDIT_LOG_STATUSES: readonly AuditLogStatus[] = [
@@ -80,6 +82,7 @@ export const AUDIT_LOG_MODUL_LABELS: Record<AuditLogModul, string> = {
   sistem: "Konfigurasi Sistem",
   auth: "Autentikasi & Keamanan",
   tautan: "Tautan & QR",
+  voting: "E-Voting Pemilihan",
 };
 
 export const AUDIT_LOG_STATUS_LABELS: Record<AuditLogStatus, string> = {

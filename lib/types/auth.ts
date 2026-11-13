@@ -29,7 +29,8 @@ export type DashboardTabKey =
   | "database"
   | "users"
   | "audit-log"
-  | "shortlink";
+  | "shortlink"
+  | "voting";
 
 export type TabKey = DashboardTabKey;
 

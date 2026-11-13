@@ -275,7 +275,7 @@ export default function OverviewManager({
               </p>
             </div>
             <div className="mt-2.5 xl:mt-3 pt-2 xl:pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-between text-[10px] xl:text-[11px] font-mono font-bold text-[#00296E] dark:text-[#38BDF8] group-hover:underline">
-              <span>KELOLA Berita</span>
+              <span>KELOLA BERITA</span>
               <span>&rarr;</span>
             </div>
           </div>
