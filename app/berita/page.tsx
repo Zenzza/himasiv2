@@ -135,7 +135,7 @@ export default function BeritaPage() {
 
             {/* Subjudul Sesuai Referensi */}
             <p className="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed font-normal">
-              Kupas tuntas warta terkini dan kegiatan Himpunan Mahasiswa Sistem Informasi
+              Kupas tuntas berita terkini dan kegiatan Himpunan Mahasiswa Sistem Informasi
             </p>
           </div>
         </ScrollReveal>

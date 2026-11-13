@@ -15,7 +15,7 @@ import {
 import Footer from "@/components/footer";
 import ScrollReveal from "@/components/scroll-reveal";
 
-const YOUTUBE_VIDEO_ID = "Q-SbWMLlmoI";
+const YOUTUBE_VIDEO_ID = "ChpVoTLy36k";
 
 const LOGO_ELEMENTS = [
   {
@@ -119,7 +119,7 @@ const CONTACT_CHANNELS = [
   {
     id: "alamat",
     name: "Alamat",
-    handle: "ISB Atma Luhur Pangkalpinang",
+    handle: "ISB Atma Luhur",
     url: "https://maps.google.com/?q=ISB+Atma+Luhur+Pangkalpinang",
     accentColor: "hover:border-[#00296E]/40 hover:shadow-blue-900/10",
     iconBg: "bg-[#00296E] text-white shadow-blue-900/25",

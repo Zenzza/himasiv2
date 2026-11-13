@@ -32,6 +32,7 @@ import FormAspirasi from "@/components/form-aspirasi";
 import ScrollReveal from "@/components/scroll-reveal";
 import HeroBannerImage from "@/components/hero-banner-image";
 import HomepagePopup from "@/components/homepage-popup";
+import FloatingAlert, { type FloatingAlertType } from "@/components/ui/floating-alert";
 import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
 import { getPublishedBerita } from "@/lib/supabase/berita";
 import { formatBeritaDate } from "@/lib/utils/slug";
@@ -51,7 +52,7 @@ import {
 } from "@/lib/constants/fitur-utama";
 
 // URL Video YouTube Company Profile HIMASI (Ganti link di sini sesuai kebutuhan)
-const YOUTUBE_VIDEO_URL = "https://youtu.be/Q-SbWMLlmoI?si=5uNeFPoj9BzOo0bT";
+const YOUTUBE_VIDEO_URL = "https://youtu.be/ChpVoTLy36k";
 
 // Helper untuk mengekstrak Video ID dari berbagai format link YouTube
 function getYouTubeVideoId(url: string): string {
@@ -75,56 +76,35 @@ const FAQ_ITEMS = [
     icon: Smiley,
     question: "Apa itu HIMASI dan apa saja peran utamanya di ISB Atma Luhur?",
     answer:
-      "\"HIMASI\" adalah organisasi mahasiswa resmi di bawah naungan Program Studi Sistem Informasi di Institut Sains dan Bisnis Atma Luhur. Organisasi ini bertujuan untuk menjadi wadah pengembangan diri, kreativitas, kepemimpinan, dan keterampilan mahasiswa dalam bidang akademik, sosial, serta teknologi informasi.",
+      "\"HIMASI\" adalah organisasi mahasiswa dan lembaga keilmuan resmi di bawah naungan Program Studi Sistem Informasi di Institut Sains dan Bisnis Atma Luhur. Organisasi ini bertujuan untuk menjadi wadah pengembangan diri, kreativitas, kepemimpinan, dan keterampilan mahasiswa dalam bidang akademik, sosial, serta teknologi informasi.",
   },
   {
     id: 2,
     icon: Stack,
     question: "Berapa divisi dalam kepengurusan Kabinet HIMASI saat ini?",
     answer:
-      "HIMASI ISB Atma Luhur Kabinet REKSABUDAYA menaungi 6 divisi strategis: Badan Pengurus Harian (BPH), Divisi Akademik & Riset, Divisi Media Komunikasi & Informasi (Medkominfo), Divisi Hubungan Luar (Hublu), Divisi Dana Usaha (Danus), dan Divisi Minat & Bakat (Mikat).",
+      "HIMASI ISB Atma Luhur Kabinet REKSABUDAYA menaungi 4 divisi strategis: Badan Pengurus Harian (BPH), Divisi Media Komunikasi dan Informasi (MEDKOMINFO), Divisi Hubungan Masyarakat (HUMAS), Divisi Bisnis Kreatif.",
   },
   {
     id: 3,
     icon: UserPlus,
     question: "Bagaimana alur pendaftaran untuk bergabung di HIMASI?",
     answer:
-      "Mahasiswa aktif Program Studi Sistem Informasi dapat mendaftar saat periode Open Recruitment (Oprec) pengurus kabinet baru setiap awal tahun kepengurusan, melalui seleksi administrasi, tes wawasan keorganisasian, serta sesi wawancara bersama BPH.",
+      "Mahasiswa aktif Program Studi Sistem Informasi dapat mendaftar saat periode Open Recruitment (Oprec) pengurus kabinet baru setiap awal tahun kepengurusan, melalui seleksi administrasi, tes wawasan keorganisasian, serta sesi wawancara.",
   },
   {
     id: 4,
-    icon: BookOpen,
-    question: "Bantuan akademik apa saja yang disediakan HIMASI bagi mahasiswa?",
-    answer:
-      "HIMASI menyelenggarakan Klinik Koding & Asistensi Tutorial praktikum bersama tutor sebaya berprestasi, bank soal ujian semester terdahulu, bimbingan persiapan sidang skripsi/Tugas Akhir, serta sosialisasi berkala konversi SKS untuk program Magang MBKM & MSIB.",
-  },
-  {
-    id: 5,
-    icon: FileText,
-    question: "Bagaimana alur pengajuan surat dispensasi kuliah atau delegasi lomba?",
-    answer:
-      "Mahasiswa dapat mengunduh format surat dispensasi di portal Pusat Informasi, melengkapi data mata kuliah serta surat undangan lomba/kegiatan, lalu menghubungi narahubung Divisi Hubungan Luar (Hublu) paling lambat H-7 untuk diverifikasi dan diteruskan ke pihak Program Studi dan Dekanat.",
-  },
-  {
-    id: 6,
     icon: Sparkle,
     question: "Apakah kegiatan seminar, workshop, atau kompetisi HIMASI terbuka untuk umum?",
     answer:
-      "Ya! Sebagian besar agenda besar kami seperti HIMASI Fest, workshop artificial intelligence, seminar karir software engineering, dan turnamen e-sport terbuka untuk seluruh mahasiswa lintas fakultas maupun masyarakat umum dari universitas lain.",
+      "Ya! Sebagian besar agenda besar kami seperti FTI Festival, workshop, seminar terbuka untuk seluruh mahasiswa lintas fakultas maupun masyarakat umum dari universitas lain.",
   },
   {
-    id: 7,
+    id: 5,
     icon: ChatTeardropText,
     question: "Bagaimana cara menyampaikan aspirasi, saran, atau aduan ke jurusan?",
     answer:
-      "Melalui program Apresia-SI (Aspirasi Mahasiswa SI), mahasiswa dapat menyampaikan aspirasi kapan saja secara daring lewat formulir online di website ini atau menghadiri forum tatap muka Serap Aspirasi berkala yang langsung diadvokasikan ke Kaprodi Sistem Informasi.",
-  },
-  {
-    id: 8,
-    icon: PlayCircle,
-    question: "Apakah HIMASI menyediakan rekaman tutorial atau materi pembelajaran?",
-    answer:
-      "Ya, dokumentasi materi workshop, rekaman webinar, dan tutorial teknologi dapat diakses melalui kanal YouTube resmi HIMASI ISB Atma Luhur serta arsip dokumentasi digital di website ini.",
+      "Mahasiswa dapat menyampaikan aspirasi kapan saja secara daring lewat formulir online di website ini yang langsung diadvokasikan ke Kaprodi Sistem Informasi.",
   },
 ];
 
@@ -447,7 +427,11 @@ export default function Home() {
 
   // Dynamic Fitur Utama State (Tersinkronisasi Realtime dengan Dashboard & Supabase)
   const [fiturConfig, setFiturConfig] = useState<FiturUtamaSectionConfig>(DEFAULT_FITUR_UTAMA);
-  const [fiturNoticeToast, setFiturNoticeToast] = useState<string | null>(null);
+  const [fiturNoticeToast, setFiturNoticeToast] = useState<{
+    title: string;
+    message: string;
+    type?: FloatingAlertType;
+  } | null>(null);
 
   useEffect(() => {
     // 1. Muat dari localStorage / default
@@ -889,10 +873,11 @@ export default function Home() {
                 const handleCardClick = (e: React.MouseEvent) => {
                   if (isLocked) {
                     e.preventDefault();
-                    setFiturNoticeToast(
-                      `Fitur ${card.title} saat ini sedang ditutup (${statusLabel}). Pantau terus informasi terbaru di media sosial resmi HIMASI!`
-                    );
-                    setTimeout(() => setFiturNoticeToast(null), 4000);
+                    setFiturNoticeToast({
+                      title: "Information",
+                      message: `Fitur ${card.title} saat ini sedang ditutup (${statusLabel}). Pantau terus informasi terbaru di media sosial resmi HIMASI!`,
+                      type: "info",
+                    });
                   }
                 };
 
@@ -1392,19 +1377,17 @@ export default function Home() {
         </div>
       )}
 
-      {/* Toast Notifikasi Fitur Tertutup (Closed) */}
+      {/* Floating Alert Notifikasi Fitur Tertutup (Closed) - Modern & Unik di Atas Kanan */}
       {fiturNoticeToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-[92%] sm:w-auto px-4 sm:px-5 py-3 rounded-2xl bg-slate-900/95 text-white text-xs sm:text-sm shadow-2xl backdrop-blur-md border border-slate-700/60 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <span className="text-base shrink-0">🔒</span>
-          <p className="font-medium leading-snug">{fiturNoticeToast}</p>
-          <button
-            type="button"
-            onClick={() => setFiturNoticeToast(null)}
-            className="ml-auto text-slate-400 hover:text-white p-1 cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
+        <FloatingAlert
+          isOpen={!!fiturNoticeToast}
+          onClose={() => setFiturNoticeToast(null)}
+          title={fiturNoticeToast.title}
+          message={fiturNoticeToast.message}
+          type={fiturNoticeToast.type || "info"}
+          position="top-right"
+          duration={5000}
+        />
       )}
 
       {/* Footer Section Sesuai Referensi Layout */}

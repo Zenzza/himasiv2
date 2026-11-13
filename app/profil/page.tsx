@@ -292,7 +292,7 @@ export default function ProfilPage() {
 
             {/* Subjudul Sesuai Referensi Berita */}
             <p className="text-slate-600 text-xs sm:text-sm md:text-base leading-relaxed mt-3 font-normal">
-              Mengenal lebih dekat Kabinet REKSABUDAYA HIMASI ISB Atma Luhur: landasan filosofis, arah kepemimpinan, visi misi strategis, dan struktur divisi kerja.
+              Mengenal lebih dekat Kabinet REKSABUDAYA HIMASI ISB Atma Luhur
             </p>
           </div>
         </ScrollReveal>
