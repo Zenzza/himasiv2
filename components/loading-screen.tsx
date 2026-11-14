@@ -18,6 +18,7 @@ interface LoadingScreenProps {
 const TOTAL_SEGMENTS = 64; // Jumlah segmen bar vertikal memanjang dari ujung kiri ke kanan
 const INITIAL_DELAY_MS = 1000; // Jeda awal 1 detik sebelum bar mulai berhitung
 const PROGRESS_DURATION_MS = 2400; // Durasi animasi hitungan dari 0% hingga 100%
+const EXIT_DURATION_MS = 1100; // Durasi transisi tirai preloader meluncur ke atas (1100ms)
 const SEGMENT_INDICES = Array.from({ length: TOTAL_SEGMENTS }, (_, i) => i);
 
 export default function LoadingScreen({ children, forceShow = false, onComplete }: LoadingScreenProps) {
@@ -32,6 +33,17 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
 
   // State fase: 'idle' (delay awal) -> 'animating' (bar jalan) -> 'exiting' (seluruh kontainer naik) -> 'hidden' (selesai)
   const [phase, setPhase] = useState<"idle" | "animating" | "exiting" | "hidden">("idle");
+
+  // Helper untuk membersihkan seluruh sisa style scroll pada html & body
+  const restoreScroll = () => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.height = "";
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+      document.body.style.touchAction = "";
+    }
+  };
 
   useEffect(() => {
     const handleDismiss = () => {
@@ -58,17 +70,6 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
-  // Helper untuk membersihkan seluruh sisa style scroll pada html & body
-  const restoreScroll = () => {
-    if (typeof document !== "undefined") {
-      document.documentElement.style.overflow = "";
-      document.documentElement.style.height = "";
-      document.body.style.overflow = "";
-      document.body.style.height = "";
-      document.body.style.touchAction = "";
-    }
-  };
-
   // Transisi exit: kontainer utama meluncur -100vh ke atas, menarik navbar & halaman langsung di bawah preloader
   const exitIntro = () => {
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
@@ -83,7 +84,7 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
       setPhase("hidden");
       restoreScroll();
       onCompleteRef.current?.();
-    }, 1100);
+    }, EXIT_DURATION_MS);
   };
 
   // Jalankan perhitungan progress dari 0% ke 100% (Dioptimasi tanpa re-render berlebihan)
@@ -199,12 +200,12 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
 
   // Mount effect & register global handlers
   useEffect(() => {
-    if (isExcludedPath && !forceShow) {
+    if ((isExcludedPath && !forceShow) || phase === "hidden") {
       restoreScroll();
       return;
     }
 
-    // Jalankan urutan animasi dengan delay
+    // Jalankan urutan animasi dengan delay awal ringan
     delayTimerRef.current = setTimeout(() => {
       setPhase("animating");
       runProgressLoop();
@@ -251,7 +252,7 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
       className="w-full relative overflow-hidden"
       style={{
         transform: isExiting ? "translate3d(0, -100vh, 0)" : "translate3d(0, 0, 0)",
-        transition: isExiting ? "transform 1100ms cubic-bezier(0.76, 0, 0.24, 1)" : "none",
+        transition: isExiting ? `transform ${EXIT_DURATION_MS}ms cubic-bezier(0.76, 0, 0.24, 1)` : "none",
         willChange: isExiting ? "transform" : "auto",
         backfaceVisibility: "hidden",
         WebkitBackfaceVisibility: "hidden",

@@ -167,17 +167,18 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 inset-x-0 z-50 w-full transition-all duration-300">
+      <header className="sticky -top-0.5 inset-x-0 z-50 w-full transition-all duration-300">
         {/* 
           Navbar Container:
           - Jika bukan HOMEPAGE dan posisi di atas: background putih dengan teks biru #00296E
           - Jika HOMEPAGE atau di-scroll: warna biru navy (#00296E) dengan teks putih
+          - Pseudo-element before:-top-3 menutup celah subpixel / garis putih antara browser chrome & navbar
         */}
         <div
-          className={`w-full transition-all duration-300 ${
+          className={`relative w-full transition-all duration-300 before:content-[''] before:absolute before:-top-3 before:inset-x-0 before:h-3 ${
             isTransparentWhite
-              ? "bg-white text-[#00296E]"
-              : "bg-[#00296E] text-white"
+              ? "bg-white text-[#00296E] before:bg-white"
+              : "bg-[#00296E] text-white before:bg-[#00296E]"
           }`}
         >
           <div className="w-full px-5 sm:px-10 lg:px-16 py-3.5 sm:py-4 flex items-center justify-between">
@@ -192,6 +193,7 @@ export default function Navbar() {
                 <img
                   src="/logo-himasi.png"
                   alt="Logo HIMASI ISB Atma Luhur"
+                  decoding="async"
                   className="w-9 h-9 sm:w-11 sm:h-11 object-contain group-hover:scale-105 transition-transform drop-shadow-sm select-none shrink-0"
                 />
 
@@ -290,6 +292,7 @@ export default function Navbar() {
               <img
                 src="/logo-himasi.png"
                 alt="Logo HIMASI"
+                decoding="async"
                 className="w-8 h-8 sm:w-9 sm:h-9 object-contain"
               />
             </Link>

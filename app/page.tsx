@@ -27,12 +27,24 @@ import {
   ChatTeardropText,
   PlayCircle,
 } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
 import Footer from "@/components/footer";
-import FormAspirasi from "@/components/form-aspirasi";
 import ScrollReveal from "@/components/scroll-reveal";
 import HeroBannerImage from "@/components/hero-banner-image";
-import HomepagePopup from "@/components/homepage-popup";
 import FloatingAlert, { type FloatingAlertType } from "@/components/ui/floating-alert";
+
+// Dynamic Imports untuk komponen below-the-fold & modal guna memangkas initial bundle
+const FormAspirasi = dynamic(() => import("@/components/form-aspirasi"), {
+  loading: () => (
+    <div className="w-full h-80 rounded-3xl bg-white border border-slate-200/80 p-8 flex items-center justify-center animate-pulse">
+      <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-[#0094e0] animate-spin" />
+    </div>
+  ),
+});
+
+const HomepagePopup = dynamic(() => import("@/components/homepage-popup"), {
+  ssr: false,
+});
 import { type BeritaItem, FALLBACK_BERITA } from "@/lib/types/berita";
 import { getPublishedBerita } from "@/lib/supabase/berita";
 import { formatBeritaDate } from "@/lib/utils/slug";
@@ -157,8 +169,34 @@ export default function Home() {
   );
 
   // State untuk Infinite Carousel Berita & Informasi (Sinkron Live dengan Berita Page)
-  const [newsList, setNewsList] = useState<BeritaItem[]>([]);
-  const [loadingNews, setLoadingNews] = useState(true);
+  const [newsList, setNewsList] = useState<BeritaItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("himasi_berita_local_cache");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        // Abaikan parse error
+      }
+    }
+    return FALLBACK_BERITA;
+  });
+  const [loadingNews, setLoadingNews] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("himasi_berita_local_cache");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return false;
+        }
+      } catch {
+        // Abaikan parse error
+      }
+    }
+    return true;
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [transitionEnabled, setTransitionEnabled] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -188,19 +226,25 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true;
     async function loadHomeNews() {
-      setLoadingNews(true);
       try {
         const liveArticles = await getPublishedBerita();
         if (isMounted) {
           if (liveArticles && liveArticles.length > 0) {
             setNewsList(liveArticles);
+            if (typeof window !== "undefined") {
+              try {
+                localStorage.setItem("himasi_berita_local_cache", JSON.stringify(liveArticles));
+              } catch {
+                // Kuota storage
+              }
+            }
           } else {
-            setNewsList(FALLBACK_BERITA);
+            setNewsList((prev) => (prev.length > 0 ? prev : FALLBACK_BERITA));
           }
         }
       } catch (err) {
         console.warn("[HomeNews] Menggunakan berita fallback:", err);
-        if (isMounted) setNewsList(FALLBACK_BERITA);
+        if (isMounted) setNewsList((prev) => (prev.length > 0 ? prev : FALLBACK_BERITA));
       } finally {
         if (isMounted) setLoadingNews(false);
       }
@@ -232,7 +276,7 @@ export default function Home() {
       setIsDesktop(window.innerWidth >= 768);
     };
     updateMedia();
-    window.addEventListener("resize", updateMedia);
+    window.addEventListener("resize", updateMedia, { passive: true });
     return () => window.removeEventListener("resize", updateMedia);
   }, []);
 
@@ -372,7 +416,7 @@ export default function Home() {
           jabatan: row.jabatan || "",
           divisi: (row.divisi || "").trim().toUpperCase(),
           qrToken: row.qr_token || "",
-          image: row.foto_url || "/DSC01203.png",
+          image: row.foto_url || "/DSC01203.jpg",
           email: row.email || "",
           urutan: row.urutan != null ? Number(row.urutan) : undefined,
         }));
@@ -583,6 +627,8 @@ export default function Home() {
                       <img
                         src={thumbSrc}
                         alt="Thumbnail Company Profile HIMASI"
+                        loading="lazy"
+                        decoding="async"
                         onError={() => {
                           setThumbSrc(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
                         }}
@@ -600,6 +646,8 @@ export default function Home() {
                           <img
                             src="/logo-himasi.png"
                             alt="HIMASI Logo"
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-contain"
                           />
                         </div>
@@ -1048,6 +1096,8 @@ export default function Home() {
                           src={item.image_url}
                           alt={item.title}
                           draggable={false}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 pointer-events-none"
                         />
                         {/* Tag Kategori (seperti #science pada gambar referensi) */}
@@ -1170,8 +1220,8 @@ export default function Home() {
           <div className="relative w-full max-w-full overflow-hidden select-none group/carousel py-2">
             
             {/* Left & Right Gradient Fade Masks */}
-            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-24 z-20 bg-gradient-to-r from-white via-white/80 to-transparent" />
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-24 z-20 bg-gradient-to-l from-white via-white/80 to-transparent" />
+            <div className="pointer-events-none absolute -left-4 sm:-left-8 -top-1 -bottom-1 w-14 sm:w-36 z-20 bg-gradient-to-r from-white via-white/90 to-transparent" />
+            <div className="pointer-events-none absolute -right-4 sm:-right-8 -top-1 -bottom-1 w-14 sm:w-36 z-20 bg-gradient-to-l from-white via-white/90 to-transparent" />
 
             {/* Seamless Infinite Looping Track Container */}
             <div
@@ -1196,11 +1246,13 @@ export default function Home() {
                       {/* Foto Pengurus Full */}
                       <div className="absolute inset-0 bg-slate-100 overflow-hidden">
                         <img
-                          src={item.image || "/DSC01203.png"}
+                          src={item.image || "/DSC01203.jpg"}
                           alt={item.nama}
                           draggable={false}
+                          loading="lazy"
+                          decoding="async"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                            (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                           }}
                           className="w-full h-full object-cover object-top group-hover/card:scale-105 transition-transform duration-500 pointer-events-none"
                         />
@@ -1240,11 +1292,13 @@ export default function Home() {
                       {/* Foto Pengurus Full */}
                       <div className="absolute inset-0 bg-slate-100 overflow-hidden">
                         <img
-                          src={item.image || "/DSC01203.png"}
+                          src={item.image || "/DSC01203.jpg"}
                           alt={item.nama}
                           draggable={false}
+                          loading="lazy"
+                          decoding="async"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                            (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                           }}
                           className="w-full h-full object-cover object-top group-hover/card:scale-105 transition-transform duration-500 pointer-events-none"
                         />

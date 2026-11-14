@@ -160,7 +160,7 @@ export default function ProfilPage() {
           jabatan: row.jabatan || "",
           divisi: (row.divisi || "").trim().toUpperCase(),
           qrToken: "",
-          image: row.foto_url || "/DSC01203.png",
+          image: row.foto_url || "/DSC01203.jpg",
           email: "",
           urutan: row.urutan != null ? Number(row.urutan) : undefined,
         }));
@@ -314,8 +314,10 @@ export default function ProfilPage() {
               <div className="relative w-full rounded-[30px] sm:rounded-[36px] bg-white p-3 sm:p-4 shadow-[0_20px_50px_rgba(0,41,110,0.12)] border border-slate-100">
                 <div className="aspect-[4/3] w-full rounded-[24px] sm:rounded-[28px] overflow-hidden bg-slate-100 relative group">
                   <img
-                    src="/hero-banner.png"
+                    src="/hero-banner.jpg"
                     alt="Kepengurusan Kabinet REKSABUDAYA HIMASI"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#002257]/90 via-[#002257]/20 to-transparent flex flex-col justify-end p-5 text-white">
@@ -558,6 +560,8 @@ export default function ProfilPage() {
                   <img
                     src="/logo-kabinet.png"
                     alt="Lambang Kabinet REKSABUDAYA HIMASI"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,41,110,0.14)] select-none pointer-events-none"
                     draggable={false}
                   />
@@ -769,11 +773,13 @@ export default function ProfilPage() {
                   {/* Foto Pengurus Full */}
                   <div className="absolute inset-0 bg-slate-100 overflow-hidden">
                     <img
-                      src={member.image || "/DSC01203.png"}
+                      src={member.image || "/DSC01203.jpg"}
                       alt={member.nama}
                       draggable={false}
+                      loading="lazy"
+                      decoding="async"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                        (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                       }}
                       className="w-full h-full object-cover object-top group-hover/card:scale-105 transition-transform duration-500 pointer-events-none"
                     />
@@ -803,7 +809,7 @@ export default function ProfilPage() {
       {/* Layout Persis Sesuai Gambar Referensi (AD/ART, BPPK, UU Pilka) */}
       {/* Menggunakan Warna & Style HIMASI yang Telah Ada */}
       {/* ============================================================ */}
-      <section className="relative py-14 sm:py-20 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
+      <section className="relative py-14 sm:py-20 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden content-auto">
         <ScrollReveal className="max-w-6xl mx-auto">
           
           {/* Header Dokumen Organisasi Sesuai Gambar Referensi */}

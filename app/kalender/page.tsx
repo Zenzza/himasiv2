@@ -88,17 +88,54 @@ export default function KalenderPage() {
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
-  // Dynamic Agenda List dari Supabase
-  const [agendaList, setAgendaList] = useState<AgendaKalender[]>(DEFAULT_AGENDA_EVENTS);
-  const [loadingAgenda, setLoadingAgenda] = useState(true);
+  // Dynamic Agenda List dari Supabase dengan Cache-First Instant Rendering
+  const [agendaList, setAgendaList] = useState<AgendaKalender[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("himasi_kalender_local_cache");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        // Abaikan parse error
+      }
+    }
+    return DEFAULT_AGENDA_EVENTS;
+  });
+  const [loadingAgenda, setLoadingAgenda] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("himasi_kalender_local_cache");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return false;
+        }
+      } catch {
+        // Abaikan parse error
+      }
+    }
+    return true;
+  });
 
   const fetchAgendaData = useCallback(async () => {
     try {
       const data = await getAgendaKalender();
-      setAgendaList(data);
+      if (data && data.length > 0) {
+        setAgendaList(data);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("himasi_kalender_local_cache", JSON.stringify(data));
+          } catch {
+            // Kuota storage penuh
+          }
+        }
+      } else {
+        setAgendaList((prev) => (prev.length > 0 ? prev : DEFAULT_AGENDA_EVENTS));
+      }
     } catch (err) {
-      console.warn("Koneksi kalender offline, memakai data default:", err);
-      setAgendaList(DEFAULT_AGENDA_EVENTS);
+      console.warn("Koneksi kalender offline, memakai data default/cache:", err);
+      setAgendaList((prev) => (prev.length > 0 ? prev : DEFAULT_AGENDA_EVENTS));
     } finally {
       setLoadingAgenda(false);
     }

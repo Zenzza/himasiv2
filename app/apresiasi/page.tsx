@@ -16,9 +16,20 @@ import {
   Certificate,
   ArrowRight,
 } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
 import ScrollReveal from "@/components/scroll-reveal";
 import Footer from "@/components/footer";
-import FormPengajuanApresiasi from "@/components/form-pengajuan-apresiasi";
+
+const FormPengajuanApresiasi = dynamic(
+  () => import("@/components/form-pengajuan-apresiasi"),
+  {
+    loading: () => (
+      <div className="w-full h-96 rounded-3xl bg-slate-50 border border-slate-200/80 p-8 flex items-center justify-center animate-pulse">
+        <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-[#0094e0] animate-spin" />
+      </div>
+    ),
+  }
+);
 import {
   getApresiasiShowcase,
   isApresiasiLiked,
@@ -464,6 +475,8 @@ export default function ApresiaSIPage() {
                 src={selectedItem.image}
                 alt={selectedItem.title}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
                     "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop";
@@ -655,7 +668,7 @@ export default function ApresiaSIPage() {
       {/* ============================================================ */}
       <section
         id="ajukan-apresiasi"
-        className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-white w-full"
+        className="relative py-12 sm:py-16 px-4 sm:px-6 lg:px-12 bg-white w-full content-auto"
       >
         <ScrollReveal className="max-w-6xl mx-auto">
           {/* Header Section Form Submisi */}

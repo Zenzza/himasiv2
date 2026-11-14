@@ -66,6 +66,7 @@ export default function HeroBannerImage({
           } md:${config.desktopPosition || "object-[center_65%]"}`}
           loading="eager"
           fetchPriority="high"
+          decoding="async"
         />
       </picture>
 

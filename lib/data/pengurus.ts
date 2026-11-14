@@ -86,7 +86,7 @@ export const DAFTAR_PENGURUS_HIMASI: PengurusMember[] = [
     jabatan: "Ketua Umum HIMASI",
     divisi: "BPH",
     qrToken: "HIMASI-QR-231150001-JV",
-    image: "/DSC01203.png",
+    image: "/DSC01203.jpg",
     email: "jordi.venzen@atmaluhur.ac.id",
     urutan: 1,
   },

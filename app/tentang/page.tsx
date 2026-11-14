@@ -174,70 +174,98 @@ export default function TentangPage() {
             </p>
           </div>
 
-          {/* 5-Column Photo Collage Sesuai Referensi Gambar */}
+          {/* 5-Column Photo Collage (7 Foto Sesuai Layout Sebelumnya) */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4.5 items-center">
             
             {/* Kolom 1: Foto Portrait Tunggal (Tinggi) */}
             <div className="col-span-1 h-[280px] sm:h-[350px] lg:h-[380px] rounded-[22px] sm:rounded-[26px] overflow-hidden bg-slate-100 border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop"
-                alt="Anggota HIMASI"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
+              <picture className="w-full h-full block">
+                <source srcSet="/tentang-1.jpg" type="image/jpeg" />
+                <img
+                  src="/tentang-1.png"
+                  alt="Aktivitas Mahasiswa HIMASI 1"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  decoding="async"
+                />
+              </picture>
             </div>
 
-            {/* Kolom 2: 2 Foto Ditumpuk + Floating Quote Pill di Bawah */}
+            {/* Kolom 2: 2 Foto Ditumpuk */}
             <div className="col-span-1 flex flex-col gap-3.5 sm:gap-4.5 relative">
               <div className="h-[135px] sm:h-[170px] lg:h-[185px] rounded-[20px] sm:rounded-[24px] overflow-hidden bg-slate-100 border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                <img
-                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop"
-                  alt="Kolaborasi HIMASI"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                <picture className="w-full h-full block">
+                  <source srcSet="/tentang-2.jpg" type="image/jpeg" />
+                  <img
+                    src="/tentang-2.png"
+                    alt="Aktivitas Mahasiswa HIMASI 2"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    decoding="async"
+                  />
+                </picture>
               </div>
               <div className="h-[135px] sm:h-[170px] lg:h-[185px] rounded-[20px] sm:rounded-[24px] overflow-hidden bg-slate-100 border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                <img
-                  src="https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop"
-                  alt="Diskusi Tim HIMASI"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                <picture className="w-full h-full block">
+                  <source srcSet="/tentang-3.jpg" type="image/jpeg" />
+                  <img
+                    src="/tentang-3.png"
+                    alt="Aktivitas Mahasiswa HIMASI 3"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    decoding="async"
+                  />
+                </picture>
               </div>
             </div>
 
             {/* Kolom 3: Foto Portrait Tengah (Focal Point, Sedikit Lebih Tinggi) */}
             <div className="col-span-1 hidden md:block h-[310px] sm:h-[390px] lg:h-[420px] rounded-[24px] sm:rounded-[28px] overflow-hidden bg-slate-100 border border-slate-100 shadow-md hover:shadow-lg transition-all group lg:translate-y-2">
-              <img
-                src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=800&auto=format&fit=crop"
-                alt="Pimpinan HIMASI"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
+              <picture className="w-full h-full block">
+                <source srcSet="/tentang-4.jpg" type="image/jpeg" />
+                <img
+                  src="/tentang-4.png"
+                  alt="Aktivitas Mahasiswa HIMASI 4"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  decoding="async"
+                />
+              </picture>
             </div>
 
             {/* Kolom 4: 2 Foto Ditumpuk */}
             <div className="col-span-1 hidden md:flex flex-col gap-3.5 sm:gap-4.5">
               <div className="h-[135px] sm:h-[170px] lg:h-[185px] rounded-[20px] sm:rounded-[24px] overflow-hidden bg-slate-100 border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                <img
-                  src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=800&auto=format&fit=crop"
-                  alt="Aktivitas Mahasiswa SI"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                <picture className="w-full h-full block">
+                  <source srcSet="/tentang-5.jpg" type="image/jpeg" />
+                  <img
+                    src="/tentang-5.png"
+                    alt="Aktivitas Mahasiswa HIMASI 5"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    decoding="async"
+                  />
+                </picture>
               </div>
               <div className="h-[135px] sm:h-[170px] lg:h-[185px] rounded-[20px] sm:rounded-[24px] overflow-hidden bg-slate-100 border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                <img
-                  src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop"
-                  alt="Rapat Kerja HIMASI"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                <picture className="w-full h-full block">
+                  <source srcSet="/tentang-6.jpg" type="image/jpeg" />
+                  <img
+                    src="/tentang-6.png"
+                    alt="Aktivitas Mahasiswa HIMASI 6"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    decoding="async"
+                  />
+                </picture>
               </div>
             </div>
 
-            {/* Kolom 5: Foto Portrait Tunggal (Tinggi) */}
+            {/* Kolom 5: Foto Portrait Tunggal (Tinggi) Sesuai Layout Sebelumnya */}
             <div className="col-span-1 hidden lg:block h-[280px] sm:h-[350px] lg:h-[380px] rounded-[22px] sm:rounded-[26px] overflow-hidden bg-slate-100 border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-              <img
-                src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=800&auto=format&fit=crop"
-                alt="Forum HIMASI"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
+              <picture className="w-full h-full block">
+                <source srcSet="/tentang-7.jpg" type="image/jpeg" />
+                <img
+                  src="/tentang-7.png"
+                  alt="Aktivitas Mahasiswa HIMASI 7"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  decoding="async"
+                />
+              </picture>
             </div>
 
           </div>
@@ -265,8 +293,10 @@ export default function TentangPage() {
                   <div className="p-2 sm:p-2.5 md:p-3 bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,41,110,0.16)] border border-slate-100/90">
                     <div className="aspect-[16/11] w-full rounded-[18px] sm:rounded-[24px] overflow-hidden bg-slate-100">
                       <img
-                        src="/hero-banner.png"
+                        src="/hero-banner.jpg"
                         alt="HIMASI Atma Luhur"
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover object-[center_60%] group-hover:scale-105 transition-transform duration-700"
                       />
                     </div>
@@ -277,11 +307,16 @@ export default function TentangPage() {
                 <div className="w-[84%] sm:w-[85%] -mt-24 sm:-mt-32 mr-auto relative z-20 rotate-[3.5deg] transition-all duration-500 ease-out hover:rotate-[2deg] hover:scale-[1.03] group">
                   <div className="p-2 sm:p-2.5 md:p-3 bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_25px_60px_rgba(0,41,110,0.22)] border border-slate-100/90">
                     <div className="aspect-[16/11] w-full rounded-[18px] sm:rounded-[24px] overflow-hidden bg-slate-100">
-                      <img
-                        src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop"
-                        alt="Aktivitas dan Kolaborasi Mahasiswa HIMASI"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
+                      <picture className="w-full h-full block">
+                        <source srcSet="/tentang-8.jpg" type="image/jpeg" />
+                        <img
+                          src="/tentang-8.png"
+                          alt="Aktivitas dan Kolaborasi Mahasiswa HIMASI"
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                      </picture>
                     </div>
                   </div>
                 </div>
@@ -585,7 +620,7 @@ export default function TentangPage() {
       {/* BAGIAN 4: FILOSOFI LOGO HIMASI */}
       {/* Logo di Kiri & Teks di Kanan, Style & Warna Seragam, Background Putih */}
       {/* ============================================================ */}
-      <section className="relative py-16 sm:py-24 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
+      <section className="relative py-16 sm:py-24 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden content-auto">
         <ScrollReveal className="max-w-6xl mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
             
@@ -637,6 +672,8 @@ export default function TentangPage() {
                   <img
                     src="/logo-himasi.png"
                     alt="Lambang HIMASI ISB Atma Luhur"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,41,110,0.12)] select-none pointer-events-none"
                     draggable={false}
                   />

@@ -7,8 +7,8 @@ export interface HeroBannerConfig {
 }
 
 export const DEFAULT_HERO_BANNER: HeroBannerConfig = {
-  desktopImage: "/hero-banner.png",
-  mobileImage: "/hero-banner-mobile.png",
+  desktopImage: "/hero-banner.jpg",
+  mobileImage: "/hero-banner-mobile.jpg",
   desktopPosition: "object-[center_65%]",
   mobilePosition: "object-center",
   alt: "Hero Banner HIMASI ISB Atma Luhur - Kabinet REKSABUDAYA",

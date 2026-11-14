@@ -448,7 +448,7 @@ INSERT INTO public.apresiasi_showcase (
   'Mengembangkan aplikasi asisten perkuliahan cerdas untuk penyandang disabilitas sensorik dengan pengenalan suara dan gestur berbasis AI.',
   'Dalam kompetisi hackathon nasional berdurasi 48 jam yang diikuti lebih dari 120 universitas di seluruh Indonesia, Tim Inovasi Aksesibel SI berhasil meraih Juara 1 dengan menciptakan solusi Aksesibel-SI.',
   'Dosen Pembina HIMASI ISB Atma Luhur', 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop',
-  'https://github.com/himasi-atmaluhur', 'https://github.com/himasi-atmaluhur', '/DSC01203.png', 84, true
+  'https://github.com/himasi-atmaluhur', 'https://github.com/himasi-atmaluhur', '/DSC01203.jpg', 84, true
 ),
 (
   'Best Paper Award - International Conference on Information Systems (ICIS 2025)', 'lomba', 'Juara Lomba', 'Best Paper Internasional',
@@ -457,7 +457,7 @@ INSERT INTO public.apresiasi_showcase (
   'Menerbitkan penelitian ilmiah bereputasi internasional mengenai arsitektur sistem informasi prediktif pada rantai pasok maritim kepulauan.',
   'Penelitian ini menganalisis efisiensi logistik distribusi komoditas antarpulau di Kepulauan Bangka Belitung menggunakan model prediktif berbasis machine learning.',
   'Kaprodi Sistem Informasi ISB Atma Luhur', 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=800&auto=format&fit=crop',
-  'https://ieee.org', NULL, '/DSC01203.png', 72, true
+  'https://ieee.org', NULL, '/DSC01203.jpg', 72, true
 ),
 (
   'SmartAgri Bangka - Sistem Monitoring IoT & Prediksi Panen Lada Putih', 'karya', 'Karya Aplikasi', 'Inovasi Daerah',
@@ -484,7 +484,7 @@ INSERT INTO public.apresiasi_showcase (
   'Kompetisi Capture The Flag (CTF) kategori Web Exploitation, Reverse Engineering, dan Forensik Jaringan tingkat universitas se-Indonesia.',
   'Menghadapi 40 tim finalis dari seluruh perguruan tinggi, perwakilan HIMASI berhasil menyelesaikan skenario forensik digital.',
   NULL, 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop',
-  NULL, NULL, '/DSC01203.png', 58, false
+  NULL, NULL, '/DSC01203.jpg', 58, false
 ),
 (
   'AtmaCare - Aplikasi Konseling Mahasiswa & Reservasi Sesi Psikolog Kampus', 'karya', 'Karya Aplikasi', 'Startup Digital',

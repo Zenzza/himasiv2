@@ -25,8 +25,35 @@ const CATEGORIES = [
 ];
 
 export default function BeritaPage() {
-  const [articles, setArticles] = useState<BeritaItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Optimalisasi Cache-First (Stale-While-Revalidate): Muat instan dari cache lokal jika ada
+  const [articles, setArticles] = useState<BeritaItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("himasi_berita_local_cache");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        // Abaikan parse error
+      }
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("himasi_berita_local_cache");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return false;
+        }
+      } catch {
+        // Abaikan parse error
+      }
+    }
+    return true;
+  });
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,24 +61,25 @@ export default function BeritaPage() {
 
   const ITEMS_PER_PAGE = 6;
 
-  // Ambil data berita terbit secara live dari Supabase / cache lokal
+  // Ambil data berita terbit secara live dari Supabase / revalidasi cache
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
-      setLoading(true);
       try {
         const liveArticles = await getPublishedBerita();
         if (isMounted) {
           if (liveArticles && liveArticles.length > 0) {
             setArticles(liveArticles);
           } else {
-            // Gunakan fallback hanya jika Supabase benar-benar kosong
-            setArticles(FALLBACK_BERITA);
+            // Gunakan fallback hanya jika Supabase dan cache benar-benar kosong
+            setArticles((prev) => (prev.length > 0 ? prev : FALLBACK_BERITA));
           }
         }
       } catch (err) {
         console.warn("[BeritaPage] Menggunakan artikel fallback:", err);
-        if (isMounted) setArticles(FALLBACK_BERITA);
+        if (isMounted) {
+          setArticles((prev) => (prev.length > 0 ? prev : FALLBACK_BERITA));
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -251,6 +279,7 @@ export default function BeritaPage() {
                               alt={article.title}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               loading="lazy"
+                              decoding="async"
                             />
 
                             {/* Ornamen Bentuk Geometris Warna-Warni Sesuai Referensi Gambar */}

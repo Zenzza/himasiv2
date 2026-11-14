@@ -89,21 +89,63 @@ import {
   sortPengurusMembers,
   type PengurusMember,
 } from "@/lib/data/pengurus";
-import AdminQrScanner, { type AbsensiRecord } from "@/components/absensi/admin-qr-scanner";
-import PengurusQrCard from "@/components/absensi/pengurus-qr-card";
-import AspirasiManager from "@/components/dashboard/aspirasi-manager";
-import ApresiasiManager from "@/components/dashboard/apresiasi-manager";
-import UserManager from "@/components/dashboard/user-manager";
-import PersuratanManager from "@/components/dashboard/persuratan-manager";
-import ContentPlannerManager from "@/components/dashboard/content-planner-manager";
-import AuditLogManager from "@/components/dashboard/audit-log-manager";
-import ShortlinkManager from "@/components/dashboard/shortlink-manager";
-import PopupManager from "@/components/dashboard/popup-manager";
-import DokumenManager from "@/components/dashboard/dokumen-manager";
+import dynamic from "next/dynamic";
+import type { AbsensiRecord } from "@/components/absensi/admin-qr-scanner";
 import OverviewManager from "@/components/dashboard/overview-manager";
-import VotingManager from "@/components/dashboard/voting-manager";
 import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
 import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
+
+const TabLoadingFallback = () => (
+  <div className="w-full min-h-[320px] rounded-3xl bg-white/60 dark:bg-[#00173d]/50 border border-slate-200/80 dark:border-white/10 p-8 flex items-center justify-center animate-pulse">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-[#0094e0] animate-spin" />
+      <span className="text-xs text-slate-400 font-medium tracking-wide">Memuat modul dashboard...</span>
+    </div>
+  </div>
+);
+
+// Dynamic Code-Splitting untuk modul tab & pustaka berat (html5-qrcode, qrcode, dsb.)
+const AdminQrScanner = dynamic(() => import("@/components/absensi/admin-qr-scanner"), {
+  loading: TabLoadingFallback,
+  ssr: false,
+});
+const PengurusQrCard = dynamic(() => import("@/components/absensi/pengurus-qr-card"), {
+  loading: TabLoadingFallback,
+  ssr: false,
+});
+const AspirasiManager = dynamic(() => import("@/components/dashboard/aspirasi-manager"), {
+  loading: TabLoadingFallback,
+});
+const ApresiasiManager = dynamic(() => import("@/components/dashboard/apresiasi-manager"), {
+  loading: TabLoadingFallback,
+});
+const UserManager = dynamic(() => import("@/components/dashboard/user-manager"), {
+  loading: TabLoadingFallback,
+});
+const PersuratanManager = dynamic(() => import("@/components/dashboard/persuratan-manager"), {
+  loading: TabLoadingFallback,
+});
+const ContentPlannerManager = dynamic(() => import("@/components/dashboard/content-planner-manager"), {
+  loading: TabLoadingFallback,
+});
+const AuditLogManager = dynamic(() => import("@/components/dashboard/audit-log-manager"), {
+  loading: TabLoadingFallback,
+});
+const ShortlinkManager = dynamic(() => import("@/components/dashboard/shortlink-manager"), {
+  loading: TabLoadingFallback,
+});
+const PopupManager = dynamic(() => import("@/components/dashboard/popup-manager"), {
+  loading: TabLoadingFallback,
+});
+const DokumenManager = dynamic(() => import("@/components/dashboard/dokumen-manager"), {
+  loading: TabLoadingFallback,
+});
+const VotingManager = dynamic(() => import("@/components/dashboard/voting-manager"), {
+  loading: TabLoadingFallback,
+});
+const RekapAbsensiView = dynamic(() => import("@/components/absensi/rekap-absensi-view"), {
+  loading: TabLoadingFallback,
+});
 import { getAuditLogs, recordAuditLog } from "@/lib/supabase/audit-log";
 import type { AuditLogItem } from "@/lib/types/audit-log";
 import {
@@ -117,7 +159,7 @@ import {
   ROLE_BADGE_STYLES,
 } from "@/lib/types/auth";
 import { getCurrentUserProfile } from "@/lib/supabase/users";
-import RekapAbsensiView, {
+import {
   type KegiatanItem,
   formatTanggalIndo,
 } from "@/components/absensi/rekap-absensi-view";
@@ -989,7 +1031,7 @@ export default function DashboardPage() {
   const [formPengurusDivisi, setFormPengurusDivisi] = useState<string>("BPH");
   const [formPengurusJabatan, setFormPengurusJabatan] = useState("");
   const [formPengurusEmail, setFormPengurusEmail] = useState("");
-  const [formPengurusImage, setFormPengurusImage] = useState<string>("/DSC01203.png");
+  const [formPengurusImage, setFormPengurusImage] = useState<string>("/DSC01203.jpg");
   const [formPengurusToken, setFormPengurusToken] = useState("");
   const [formPengurusUrutan, setFormPengurusUrutan] = useState<number>(0);
   const [savingPengurus, setSavingPengurus] = useState(false);
@@ -1292,7 +1334,7 @@ export default function DashboardPage() {
             nim: row.nim,
             divisi: row.divisi || pengurus?.divisi || "HIMASI",
             jabatan: pengurus?.jabatan || "Pengurus HIMASI",
-            image: pengurus?.image || "/DSC01203.png",
+            image: pengurus?.image || "/DSC01203.jpg",
             kegiatan: row.nama_kegiatan,
             waktu: waktuFormat,
             status: (row.status as AbsensiRecord["status"]) || "Hadir",
@@ -1326,7 +1368,7 @@ export default function DashboardPage() {
           jabatan: row.jabatan,
           divisi: (row.divisi || "").trim().toUpperCase(),
           qrToken: row.qr_token || row.qrToken || generateQrToken(row.nim, row.nama),
-          image: row.foto_url || row.image || "/DSC01203.png",
+          image: row.foto_url || row.image || "/DSC01203.jpg",
           email: row.email || `${row.nim}@atmaluhur.ac.id`,
           urutan: row.urutan != null ? Number(row.urutan) : undefined,
         }));
@@ -1357,7 +1399,7 @@ export default function DashboardPage() {
             jabatan: row.jabatan,
             divisi: (row.divisi || "").trim().toUpperCase(),
             qrToken: row.qr_token || generateQrToken(row.nim, row.nama),
-            image: row.foto_url || "/DSC01203.png",
+            image: row.foto_url || "/DSC01203.jpg",
             email: row.email || `${row.nim}@atmaluhur.ac.id`,
             urutan: row.urutan != null ? Number(row.urutan) : undefined,
           }));
@@ -1766,7 +1808,7 @@ export default function DashboardPage() {
     setFormPengurusDivisi(DAFTAR_DIVISI[0] || "PEMBINA");
     setFormPengurusJabatan("");
     setFormPengurusEmail("");
-    setFormPengurusImage("/DSC01203.png");
+    setFormPengurusImage("/DSC01203.jpg");
     setFormPengurusToken("");
     setFormPengurusUrutan(0);
     setIsPengurusModalOpen(true);
@@ -1779,7 +1821,7 @@ export default function DashboardPage() {
     setFormPengurusDivisi(member.divisi);
     setFormPengurusJabatan(member.jabatan);
     setFormPengurusEmail(member.email || `${member.nim}@atmaluhur.ac.id`);
-    setFormPengurusImage(member.image || "/DSC01203.png");
+    setFormPengurusImage(member.image || "/DSC01203.jpg");
     setFormPengurusToken(member.qrToken || generateQrToken(member.nim, member.nama));
     setFormPengurusUrutan(member.urutan != null ? member.urutan : 0);
     setIsPengurusModalOpen(true);
@@ -1902,7 +1944,7 @@ export default function DashboardPage() {
     const cleanNama = formPengurusNama.trim().toUpperCase();
     const cleanJabatan = formPengurusJabatan.trim() || `Pengurus ${cleanDivisi}`;
     const cleanEmail = formPengurusEmail.trim() || `${cleanNim}@atmaluhur.ac.id`;
-    const cleanImage = formPengurusImage.trim() || "/DSC01203.png";
+    const cleanImage = formPengurusImage.trim() || "/DSC01203.jpg";
     const cleanToken = formPengurusToken.trim() || generateQrToken(cleanNim, cleanNama);
     const cleanUrutan = formPengurusUrutan > 0 ? formPengurusUrutan : undefined;
 
@@ -3910,7 +3952,7 @@ NOTIFY pgrst, 'reload schema';`;
                                 alt={member.nama}
                                 className="w-full h-full object-cover object-top"
                                 onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                                  (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                                 }}
                               />
                             </div>
@@ -4159,7 +4201,7 @@ NOTIFY pgrst, 'reload schema';`;
                                         alt={item.title}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                          (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                                          (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                                         }}
                                       />
                                     </div>
@@ -4307,7 +4349,7 @@ NOTIFY pgrst, 'reload schema';`;
                                   alt={item.title}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                                    (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                                   }}
                                 />
                               </div>
@@ -5130,7 +5172,7 @@ NOTIFY pgrst, 'reload schema';`;
                             type="text"
                             value={formDesktopImage}
                             onChange={(e) => setFormDesktopImage(e.target.value)}
-                            placeholder="/hero-banner.png atau link https://..."
+                            placeholder="/hero-banner.jpg atau link https://..."
                             className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                             required
                           />
@@ -5143,12 +5185,12 @@ NOTIFY pgrst, 'reload schema';`;
                             <button
                               type="button"
                               onClick={() => {
-                                setFormDesktopImage("/hero-banner.png");
+                                setFormDesktopImage("/hero-banner.jpg");
                                 setFormDesktopPos("object-[center_65%]");
                               }}
                               className="px-2.5 py-1 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono transition-colors cursor-pointer"
                             >
-                              /hero-banner.png (Resmi 5933x3219)
+                              /hero-banner.jpg (Resmi 5933x3219)
                             </button>
                             <button
                               type="button"
@@ -5203,7 +5245,7 @@ NOTIFY pgrst, 'reload schema';`;
                             type="text"
                             value={formMobileImage}
                             onChange={(e) => setFormMobileImage(e.target.value)}
-                            placeholder="/hero-banner-mobile.png atau link https://..."
+                            placeholder="/hero-banner-mobile.jpg atau link https://..."
                             className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
                             required
                           />
@@ -5216,22 +5258,22 @@ NOTIFY pgrst, 'reload schema';`;
                             <button
                               type="button"
                               onClick={() => {
-                                setFormMobileImage("/hero-banner-mobile.png");
+                                setFormMobileImage("/hero-banner-mobile.jpg");
                                 setFormMobilePos("object-center");
                               }}
                               className="px-2.5 py-1 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono transition-colors cursor-pointer"
                             >
-                              /hero-banner-mobile.png (Portrait 1811x3219)
+                              /hero-banner-mobile.jpg (Portrait 1811x3219)
                             </button>
                             <button
                               type="button"
                               onClick={() => {
-                                setFormMobileImage("/hero-banner.png");
+                                setFormMobileImage("/hero-banner.jpg");
                                 setFormMobilePos("object-center");
                               }}
                               className="px-2.5 py-1 rounded-none border border-[#00296E]/15 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono transition-colors cursor-pointer"
                             >
-                              /hero-banner.png (Gunakan Versi Desktop)
+                              /hero-banner.jpg (Gunakan Versi Desktop)
                             </button>
                           </div>
                         </div>
@@ -5756,7 +5798,7 @@ NOTIFY pgrst, 'reload schema';`;
                             alt="Preview"
                             className="w-full h-full object-cover object-top"
                             onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                              (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                             }}
                           />
                         ) : (
@@ -5783,10 +5825,10 @@ NOTIFY pgrst, 'reload schema';`;
                           <span>{uploadingImage ? "Mengunggah..." : "Unggah Foto dari Perangkat"}</span>
                         </button>
 
-                        {formPengurusImage && formPengurusImage !== "/DSC01203.png" && (
+                        {formPengurusImage && formPengurusImage !== "/DSC01203.jpg" && (
                           <button
                             type="button"
-                            onClick={() => setFormPengurusImage("/DSC01203.png")}
+                            onClick={() => setFormPengurusImage("/DSC01203.jpg")}
                             className="px-3 py-2.5 rounded-none bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
                           >
                             Reset Default
@@ -5891,7 +5933,7 @@ NOTIFY pgrst, 'reload schema';`;
                   alt={pengurusToDelete.nama}
                   className="w-full h-full object-cover object-top"
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                    (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                   }}
                 />
               </div>
@@ -6925,7 +6967,7 @@ NOTIFY pgrst, 'reload schema';`;
                         alt="Preview Sampul Berita"
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = "/DSC01203.png";
+                          (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
                         }}
                       />
 

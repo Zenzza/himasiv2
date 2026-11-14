@@ -32,25 +32,25 @@ export default function BeritaDetailPage({ params }: PageProps) {
   const slug = typeof rawSlug === "string" ? decodeURIComponent(rawSlug) : "";
 
   const [article, setArticle] = useState<BeritaItem | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(Boolean(slug));
+  const [notFound, setNotFound] = useState(!slug);
   const [relatedArticles, setRelatedArticles] = useState<BeritaItem[]>([]);
   const [copiedToast, setCopiedToast] = useState(false);
 
-  // Ambil detail artikel dari Supabase / cache lokal
+  // Ambil detail artikel dari Supabase / cache lokal secara paralel
   useEffect(() => {
-    if (!slug) {
-      setLoading(false);
-      setNotFound(true);
-      return;
-    }
+    if (!slug) return;
 
     let isMounted = true;
     async function loadArticle() {
       setLoading(true);
       setNotFound(false);
       try {
-        const liveArticle = await getBeritaBySlug(slug);
+        const [liveArticle, allPublished] = await Promise.all([
+          getBeritaBySlug(slug),
+          getPublishedBerita(),
+        ]);
+
         if (isMounted) {
           if (liveArticle) {
             setArticle(liveArticle);
@@ -65,17 +65,16 @@ export default function BeritaDetailPage({ params }: PageProps) {
               setNotFound(true);
             }
           }
-        }
 
-        // Ambil artikel terkait lainnya
-        const allPublished = await getPublishedBerita();
-        if (isMounted && allPublished && allPublished.length > 0) {
-          const others = allPublished.filter(
-            (b) =>
-              b.slug !== slug &&
-              String(b.id) !== String(liveArticle?.id || slug)
-          );
-          setRelatedArticles(others.slice(0, 3));
+          // Ambil artikel terkait lainnya
+          if (allPublished && allPublished.length > 0) {
+            const others = allPublished.filter(
+              (b) =>
+                b.slug !== slug &&
+                String(b.id) !== String(liveArticle?.id || slug)
+            );
+            setRelatedArticles(others.slice(0, 3));
+          }
         }
       } catch (err) {
         console.warn("[BeritaDetail] Error fetching article:", err);

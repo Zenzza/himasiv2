@@ -66,18 +66,19 @@ body {
   background: #00296e;
 }
 
-/* Infinite Text Carousel / Marquee */
+/* Infinite Text Carousel / Marquee (GPU Accelerated) */
 @keyframes marquee {
   0% {
-    transform: translateX(0%);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(-100%);
+    transform: translate3d(-100%, 0, 0);
   }
 }
 
 .animate-marquee {
   animation: marquee 25s linear infinite;
+  will-change: transform;
 }
 
 .animate-marquee:hover {
@@ -188,5 +189,11 @@ body:has(#himasi-preloader-root) {
 
 #qr-camera-element canvas {
   max-width: 100% !important;
+}
+
+/* Performance: Offscreen content rendering optimization */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 700px;
 }
 
