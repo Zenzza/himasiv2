@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Play,
@@ -137,6 +137,25 @@ const CONTACT_CHANNELS = [
 export default function TentangPage() {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [hoveredLogoElement, setHoveredLogoElement] = useState<number | null>(null);
+
+  // Smooth scroll ke section #kontak jika ada hash di URL
+  useEffect(() => {
+    const scrollToTarget = () => {
+      if (typeof window !== "undefined" && window.location.hash === "#kontak") {
+        const el = document.getElementById("kontak");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+    };
+
+    const timer = setTimeout(scrollToTarget, 100);
+    window.addEventListener("hashchange", scrollToTarget);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("hashchange", scrollToTarget);
+    };
+  }, []);
 
   const activeElement = hoveredLogoElement !== null ? LOGO_ELEMENTS[hoveredLogoElement] : null;
   const targetPin = activeElement?.primaryPin;
@@ -620,7 +639,7 @@ export default function TentangPage() {
       {/* BAGIAN 4: FILOSOFI LOGO HIMASI */}
       {/* Logo di Kiri & Teks di Kanan, Style & Warna Seragam, Background Putih */}
       {/* ============================================================ */}
-      <section className="relative py-16 sm:py-24 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden content-auto">
+      <section className="relative py-16 sm:py-24 px-4 sm:px-6 lg:px-12 bg-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
             
@@ -811,7 +830,7 @@ export default function TentangPage() {
       {/* ============================================================ */}
       {/* BAGIAN 5: KONTAK KAMI & MEDIA SOSIAL */}
       {/* ============================================================ */}
-      <section id="kontak" className="relative py-16 sm:py-24 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full overflow-hidden">
+      <section id="kontak" className="relative scroll-mt-20 sm:scroll-mt-24 py-16 sm:py-24 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-white via-[#f7faff] to-white w-full overflow-hidden">
         <ScrollReveal className="max-w-6xl mx-auto">
           
           {/* Header Section: Hubungi Kami */}

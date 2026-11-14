@@ -52,13 +52,13 @@ export default function Navbar() {
     };
   }, [mobileMenuOpen]);
 
-  // Tutup menu otomatis jika rute halaman berpindah dan pastikan scroll ke titik tertinggi
+  // Tutup menu otomatis jika rute halaman berpindah dan pastikan scroll ke titik tertinggi jika bukan navigasi hash
   useEffect(() => {
     setMobileMenuOpen(false);
     if (typeof document !== "undefined") {
       document.body.style.overflow = "";
     }
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !window.location.hash) {
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     }
   }, [pathname]);
@@ -142,6 +142,25 @@ export default function Navbar() {
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       });
+    }
+  };
+
+  // Handler khusus tombol Contact Us agar melakukan smooth scroll jika sudah di halaman /tentang
+  const handleContactUsClick = (e: React.MouseEvent) => {
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "";
+    }
+    setMobileMenuOpen(false);
+
+    if (pathname === "/tentang") {
+      e.preventDefault();
+      const el = document.getElementById("kontak");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (typeof window !== "undefined") {
+          window.history.pushState(null, "", "/tentang#kontak");
+        }
+      }
     }
   };
 
@@ -244,6 +263,7 @@ export default function Navbar() {
               {/* Tombol Contact Us: HANYA tampil di layar desktop (md+) agar tidak menabrak logo di layar mobile */}
               <Link
                 href="/tentang#kontak"
+                onClick={handleContactUsClick}
                 className={`hidden md:inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 shadow-sm hover:shadow active:scale-95 select-none ${
                   isTransparentWhite
                     ? "bg-[#00296E] hover:bg-[#0094E0] text-white"
@@ -322,7 +342,13 @@ export default function Navbar() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    onClick={() => handleNavClick(item.href)}
+                    onClick={(e) => {
+                      if (item.href === "/tentang#kontak") {
+                        handleContactUsClick(e);
+                      } else {
+                        handleNavClick(item.href);
+                      }
+                    }}
                     className={`text-[30px] sm:text-[36px] font-semibold tracking-tight text-left transition-colors duration-150 block ${
                       isActive
                         ? "text-[#00296E] font-bold"

@@ -62,3 +62,4 @@ pnpm-debug.log*
 next-env.d.ts
 /docs/
 scripts/
+test/

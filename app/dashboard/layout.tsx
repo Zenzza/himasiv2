@@ -20,5 +20,9 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <div className="admin-dashboard-mode contents" data-admin-dashboard="true">
+      {children}
+    </div>
+  );
 }

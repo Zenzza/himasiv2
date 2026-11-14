@@ -523,6 +523,11 @@ NOTIFY pgrst, 'reload schema';`;
       <DashboardPageHeader
         title="Pusat Kendali E-Voting Pemilihan Ketua Himpunan"
         subtitle="Manajemen sesi pemilihan, profil calon ketua himpunan, verifikasi DPT berbasis NIM & tanggal lahir, dan pencetakan Berita Acara resmi ber-kop surat."
+        badge={
+          <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold px-2 py-0.5 border border-[#00296E]/20 dark:border-white/20 text-[#00296E] dark:text-[#38BDF8] bg-[#00296E]/5 dark:bg-[#38BDF8]/10 rounded-none">
+            E-VOTING ENGINE
+          </span>
+        }
         publicUrl="/voting"
         publicLabel="Bilik Suara Publik"
         onRefresh={async () => {

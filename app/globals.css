@@ -197,3 +197,41 @@ body:has(#himasi-preloader-root) {
   contain-intrinsic-size: 1px 700px;
 }
 
+/* Custom Public Website Cursors (Zero-latency Native CSS) */
+@media (hover: hover) and (pointer: fine) {
+  body:not(:has(.admin-dashboard-mode)) {
+    cursor: url('/cursors/cursor-point-32.png') 4 2, auto;
+
+    /* Text elements: preserve standard readable I-beam cursor */
+    & :is(p, h1, h2, h3, h4, h5, h6, blockquote, code, pre, figcaption, td, th) {
+      cursor: text;
+    }
+
+    /* Interactive clickable elements: trigger custom hover cursor with apex hotspot at 16 2 */
+    & :is(a, button, [role="button"], select, summary, input[type="submit"], input[type="button"], input[type="reset"], input[type="checkbox"], input[type="radio"], label[for], .cursor-pointer) {
+      cursor: url('/cursors/cursor-hand-32.png') 16 2, pointer;
+    }
+
+    /* Form input fields */
+    & :is(input[type="text"], input[type="email"], input[type="password"], input[type="search"], input[type="number"], input[type="tel"], input[type="url"], textarea, [contenteditable="true"]) {
+      cursor: text;
+    }
+
+    /* Disabled states */
+    & :is(button:disabled, input:disabled, select:disabled, textarea:disabled, [aria-disabled="true"], .cursor-not-allowed) {
+      cursor: not-allowed;
+    }
+  }
+
+  /* High-DPI / Retina Screen cursor variants (48px) */
+  @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi) {
+    body:not(:has(.admin-dashboard-mode)) {
+      cursor: url('/cursors/cursor-point-48.png') 6 3, auto;
+
+      & :is(a, button, [role="button"], select, summary, input[type="submit"], input[type="button"], input[type="reset"], input[type="checkbox"], input[type="radio"], label[for], .cursor-pointer) {
+        cursor: url('/cursors/cursor-hand-48.png') 24 3, pointer;
+      }
+    }
+  }
+}
+
