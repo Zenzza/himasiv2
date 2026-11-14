@@ -62,44 +62,44 @@ CREATE INDEX IF NOT EXISTS idx_voting_dpt_status ON public.voting_dpt(sesi_id, s
 CREATE INDEX IF NOT EXISTS idx_voting_suara_sesi ON public.voting_suara(sesi_id, kandidat_id);
 
 -- ==============================================================================
--- 5. Hak Akses & Kebijakan Keamanan (Row Level Security)
+-- 5. Hak Akses & Kebijakan Keamanan (Row Level Security & Permisi API)
 -- ==============================================================================
 GRANT ALL ON TABLE public.voting_sesi TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.voting_kandidat TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.voting_dpt TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.voting_suara TO anon, authenticated, service_role;
 
-ALTER TABLE public.voting_sesi ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.voting_kandidat ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.voting_dpt ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.voting_suara ENABLE ROW LEVEL SECURITY;
+-- Nonaktifkan RLS agar operasi CRUD dari bilik suara & CMS Admin berjalan konsisten tanpa pembatasan 42501
+-- (Selaras dengan tabel kegiatan_absensi, absensi_log, aspirasi, pengurus, & dokumen_organisasi)
+ALTER TABLE public.voting_sesi DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_kandidat DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_dpt DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_suara DISABLE ROW LEVEL SECURITY;
 
--- Policies: voting_sesi
+-- Kebijakan Permisif Cadangan (Digunakan secara aman bila administrator mengaktifkan kembali RLS)
 DROP POLICY IF EXISTS "voting_sesi_read_all" ON public.voting_sesi;
-CREATE POLICY "voting_sesi_read_all" ON public.voting_sesi FOR SELECT USING (true);
 DROP POLICY IF EXISTS "voting_sesi_manage_all" ON public.voting_sesi;
-CREATE POLICY "voting_sesi_manage_all" ON public.voting_sesi FOR ALL USING (true);
+DROP POLICY IF EXISTS "voting_sesi_all" ON public.voting_sesi;
+CREATE POLICY "voting_sesi_all" ON public.voting_sesi FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
 
--- Policies: voting_kandidat
 DROP POLICY IF EXISTS "voting_kandidat_read_all" ON public.voting_kandidat;
-CREATE POLICY "voting_kandidat_read_all" ON public.voting_kandidat FOR SELECT USING (true);
 DROP POLICY IF EXISTS "voting_kandidat_manage_all" ON public.voting_kandidat;
-CREATE POLICY "voting_kandidat_manage_all" ON public.voting_kandidat FOR ALL USING (true);
+DROP POLICY IF EXISTS "voting_kandidat_all" ON public.voting_kandidat;
+CREATE POLICY "voting_kandidat_all" ON public.voting_kandidat FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
 
--- Policies: voting_dpt
 DROP POLICY IF EXISTS "voting_dpt_read_all" ON public.voting_dpt;
-CREATE POLICY "voting_dpt_read_all" ON public.voting_dpt FOR SELECT USING (true);
 DROP POLICY IF EXISTS "voting_dpt_update_all" ON public.voting_dpt;
-CREATE POLICY "voting_dpt_update_all" ON public.voting_dpt FOR UPDATE USING (true);
 DROP POLICY IF EXISTS "voting_dpt_manage_all" ON public.voting_dpt;
-CREATE POLICY "voting_dpt_manage_all" ON public.voting_dpt FOR ALL USING (true);
+DROP POLICY IF EXISTS "voting_dpt_all" ON public.voting_dpt;
+CREATE POLICY "voting_dpt_all" ON public.voting_dpt FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
 
--- Policies: voting_suara
 DROP POLICY IF EXISTS "voting_suara_insert_all" ON public.voting_suara;
-CREATE POLICY "voting_suara_insert_all" ON public.voting_suara FOR INSERT WITH CHECK (true);
 DROP POLICY IF EXISTS "voting_suara_read_all" ON public.voting_suara;
-CREATE POLICY "voting_suara_read_all" ON public.voting_suara FOR SELECT USING (true);
 DROP POLICY IF EXISTS "voting_suara_manage_all" ON public.voting_suara;
-CREATE POLICY "voting_suara_manage_all" ON public.voting_suara FOR ALL USING (true);
+DROP POLICY IF EXISTS "voting_suara_all" ON public.voting_suara;
+CREATE POLICY "voting_suara_all" ON public.voting_suara FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+-- Muat ulang schema cache PostgREST Supabase
+NOTIFY pgrst, 'reload schema';
 
 

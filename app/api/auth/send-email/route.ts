@@ -101,6 +101,10 @@ export async function POST(request: Request) {
           { status: 401 }
         );
       }
+    } else if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "[api/auth/send-email] PERINGATAN KEAMANAN: SUPABASE_AUTH_HOOK_SECRET belum dikonfigurasi di environment produksi. Sangat disarankan untuk mengatur variabel ini di dashboard hosting untuk mencegah request tidak sah."
+      );
     }
 
     // 3. Parsing JSON Payload

@@ -60,10 +60,10 @@ export default function VotingBeritaAcaraTab({
   return (
     <div className="space-y-6">
       {/* 1. Action Bar (Hidden on print) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
+      <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 rounded-none p-5 shadow-none flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <FileText className="w-4 h-4 text-[#00296E] dark:text-blue-400" />
+            <FileText className="w-4 h-4 text-[#00296E] dark:text-[#38BDF8]" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white font-mono uppercase tracking-wider">
               Berita Acara Rekapitulasi Suara Resmi
             </h3>
@@ -76,14 +76,14 @@ export default function VotingBeritaAcaraTab({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowConfigModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-[#00296E]/20 dark:border-white/20 rounded-none transition cursor-pointer"
           >
             <PenNib className="w-3.5 h-3.5" />
             Atur Penandatangan
           </button>
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#00296E] hover:bg-[#002055] rounded-lg shadow-sm transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-[#00296E] hover:bg-[#001f54] rounded-none shadow-none transition cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             Cetak / Simpan PDF
@@ -93,11 +93,11 @@ export default function VotingBeritaAcaraTab({
 
       {/* Warning jika hasil masih dikunci */}
       {!sesi.is_results_unlocked && (
-        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-3 print:hidden">
-          <WarningCircle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+        <div className="p-4 rounded-none bg-amber-500/10 border border-amber-500/30 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-3 print:hidden">
+          <WarningCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
           <div className="space-y-0.5">
-            <p className="font-bold font-mono uppercase">Perhatian: Hasil Suara Belum Diungkap</p>
-            <p className="text-[11px] leading-relaxed">
+            <p className="font-bold font-mono uppercase tracking-wider">Perhatian: Hasil Suara Belum Diungkap</p>
+            <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
               Kotak suara masih dalam status terkunci (Blind Voting). Tabel perolehan suara pada Berita
               Acara di bawah ini menampilkan estimasi angka sementara atau tanda sensor sampai kotak
               suara resmi dibuka pada sub-tab &quot;Sesi &amp; Quick Count&quot;.
@@ -107,8 +107,8 @@ export default function VotingBeritaAcaraTab({
       )}
 
       {/* 2. Lembar Fisik Berita Acara (A4 Sheet Preview & Print Target) */}
-      <div className="bg-slate-100 dark:bg-slate-950/40 p-4 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 print:bg-white print:border-none print:p-0">
-        <div className="max-w-[794px] mx-auto bg-white text-slate-900 border border-slate-300 shadow-md p-8 sm:p-12 print:border-none print:shadow-none print:p-0 print:max-w-none print:text-black">
+      <div className="bg-slate-100 dark:bg-[#001740] p-4 sm:p-8 rounded-none border border-[#00296E]/15 dark:border-white/10 print:bg-white print:border-none print:p-0">
+        <div className="max-w-[794px] mx-auto bg-white text-slate-900 border border-slate-300 dark:border-slate-700 shadow-none p-8 sm:p-12 print:border-none print:shadow-none print:p-0 print:max-w-none print:text-black">
           {/* KOP SURAT RESMI HIMASI */}
           <div className="pb-3 border-b-2 border-black flex items-center gap-4">
             <div className="relative w-18 h-18 shrink-0">

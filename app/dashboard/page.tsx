@@ -143,6 +143,19 @@ const DokumenManager = dynamic(() => import("@/components/dashboard/dokumen-mana
 const VotingManager = dynamic(() => import("@/components/dashboard/voting-manager"), {
   loading: TabLoadingFallback,
 });
+const BeritaManager = dynamic(() => import("@/components/dashboard/berita-manager"), {
+  loading: TabLoadingFallback,
+  ssr: false,
+});
+const KalenderManager = dynamic(() => import("@/components/dashboard/kalender-manager"), {
+  loading: TabLoadingFallback,
+  ssr: false,
+});
+const CommandPalette = dynamic(() => import("@/components/dashboard/command-palette"), {
+  ssr: false,
+});
+import DashboardTabErrorBoundary from "@/components/dashboard/dashboard-error-boundary";
+import OfflineBanner from "@/components/dashboard/offline-banner";
 const RekapAbsensiView = dynamic(() => import("@/components/absensi/rekap-absensi-view"), {
   loading: TabLoadingFallback,
 });
@@ -163,19 +176,8 @@ import {
   type KegiatanItem,
   formatTanggalIndo,
 } from "@/components/absensi/rekap-absensi-view";
-import {
-  type BeritaItem,
-  KATEGORI_BERITA,
-} from "@/lib/types/berita";
-import {
-  getAllBeritaAdmin,
-  createBerita,
-  updateBerita,
-  deleteBerita,
-  togglePublishedBerita,
-  updateBeritaStatus,
-} from "@/lib/supabase/berita";
-import { slugify, estimateReadTime } from "@/lib/utils/slug";
+import { type BeritaItem } from "@/lib/types/berita";
+import { getAllBeritaAdmin } from "@/lib/supabase/berita";
 import {
   type DokumenOrganisasi,
   DEFAULT_DOKUMEN_ORGANISASI,
@@ -187,20 +189,6 @@ import {
   updateDokumen,
   deleteDokumen,
 } from "@/lib/supabase/dokumen";
-import {
-  type AgendaKalender,
-  type EventCategory,
-  DEFAULT_AGENDA_EVENTS,
-  isDateInEventRange,
-  getCategoryMeta,
-} from "@/lib/types/kalender";
-import {
-  getAgendaKalender,
-  createAgenda,
-  updateAgenda,
-  deleteAgenda,
-  updateAgendaStatus,
-} from "@/lib/supabase/kalender";
 
 // Tipe Data Aspirasi Supabase
 interface AspirasiItem {
@@ -242,12 +230,87 @@ const fallbackAspirasi: AspirasiItem[] = [
   },
 ];
 
+const TAB_TITLES: Record<string, { label: string; code: string }> = {
+  overview: { label: "Dasbor Ringkasan", code: "01. RIN" },
+  absensi: { label: "Presensi QR Kegiatan", code: "02. ABS" },
+  "rekap-absensi": { label: "Rekap & Riwayat Absensi", code: "03. RKP" },
+  "kartu-qr": { label: "Kartu QR Pengurus", code: "04. QRC" },
+  voting: { label: "CMS E-Voting", code: "05. EVT" },
+  berita: { label: "Manajemen Berita", code: "06. BRT" },
+  apresiasi: { label: "Apresia-SI Mahasiswa", code: "07. APR" },
+  aspirasi: { label: "Aspirasi Mahasiswa", code: "08. ASP" },
+  kalender: { label: "Kalender Agenda", code: "09. KAL" },
+  dokumen: { label: "Dokumen Organisasi", code: "10. DOK" },
+  persuratan: { label: "Tata Persuratan", code: "11. SRT" },
+  "content-planner": { label: "Content Planner", code: "12. PLN" },
+  shortlink: { label: "Shortlink HIMASI", code: "13. LNK" },
+  banner: { label: "Hero Banner Beranda", code: "14. BNR" },
+  database: { label: "Basis Data Supabase", code: "15. DBS" },
+  users: { label: "Manajemen Pengguna", code: "16. USR" },
+  "audit-log": { label: "Audit Log Aktivitas", code: "17. LOG" },
+};
+
 export default function DashboardPage() {
   const router = useRouter();
 
   // Tab State
   const [activeTab, setActiveTab] = useState<DashboardTabKey>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Global Shortcut Ctrl + K / Cmd + K untuk Command Palette (Tahap 3 / Priority #3)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Touch Swipe Gesture untuk Drawer Sidebar Mobile (Tahap 1 / Priority #1)
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      touchStartXRef.current = touch.clientX;
+      touchStartYRef.current = touch.clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartXRef.current;
+      const deltaY = touch.clientY - touchStartYRef.current;
+
+      // Hanya deteksi gesture jika pergeseran dominan horizontal dan > 50px
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (deltaX < 0 && sidebarOpen) {
+          // Swipe kiri saat drawer terbuka -> tutup sidebar
+          setSidebarOpen(false);
+        } else if (deltaX > 0 && !sidebarOpen && touchStartXRef.current < 45) {
+          // Swipe kanan dari tepi kiri (<45px) saat tertutup -> buka sidebar
+          setSidebarOpen(true);
+        }
+      }
+
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [sidebarOpen]);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>("humas_biskraf");
 
   // Swiss Minimalist Dual-Theme State (Light / Dark)
@@ -363,11 +426,41 @@ export default function DashboardPage() {
   const handleTabChange = useCallback((tab: DashboardTabKey) => {
     setActiveTab(tab);
     setSidebarOpen(false);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (tab === "overview") {
+        url.searchParams.delete("tab");
+      } else {
+        url.searchParams.set("tab", tab);
+      }
+      window.history.replaceState(null, "", url.toString());
+    }
     forceScrollTop();
     requestAnimationFrame(forceScrollTop);
     setTimeout(forceScrollTop, 50);
     setTimeout(forceScrollTop, 150);
   }, [forceScrollTop]);
+
+  // Sinkronisasi Tab URL (?tab=...) saat muat awal dan navigasi history browser (Tahap 3)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab") as DashboardTabKey | null;
+    if (tabParam && canAccessTab(currentUserRole, tabParam)) {
+      setActiveTab(tabParam);
+    }
+
+    const handlePopState = () => {
+      const p = new URLSearchParams(window.location.search);
+      const currentTab = (p.get("tab") as DashboardTabKey) || "overview";
+      if (canAccessTab(currentUserRole, currentTab)) {
+        setActiveTab(currentTab);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [currentUserRole]);
 
   // Auto-scroll ke posisi paling atas setiap perpindahan tab / sub-halaman admin
   useEffect(() => {
@@ -481,37 +574,9 @@ export default function DashboardPage() {
     }, 3500);
   };
 
-  // Berita State (CRUD Admin)
+  // Berita State (CRUD Admin - Disinkronkan dengan BeritaManager & Badge Sidebar)
   const [beritaList, setBeritaList] = useState<BeritaItem[]>([]);
   const [loadingBerita, setLoadingBerita] = useState(true);
-  const [searchBerita, setSearchBerita] = useState("");
-  const [kategoriFilterBerita, setKategoriFilterBerita] = useState("semua");
-  const [statusFilterBerita, setStatusFilterBerita] = useState("semua");
-
-  // Modal CRUD Berita
-  const [isBeritaModalOpen, setIsBeritaModalOpen] = useState(false);
-  const [editingBerita, setEditingBerita] = useState<BeritaItem | null>(null);
-  const [beritaToDelete, setBeritaToDelete] = useState<BeritaItem | null>(null);
-  const [deletingBerita, setDeletingBerita] = useState(false);
-  const [savingBerita, setSavingBerita] = useState(false);
-  const [rejectingBeritaItem, setRejectingBeritaItem] = useState<BeritaItem | null>(null);
-  const [catatanRevisiBerita, setCatatanRevisiBerita] = useState("");
-
-  // Form Berita
-  const [formBeritaTitle, setFormBeritaTitle] = useState("");
-  const [formBeritaSlug, setFormBeritaSlug] = useState("");
-  const [formBeritaCategoryKey, setFormBeritaCategoryKey] = useState("event");
-  const [formBeritaCategoryLabel, setFormBeritaCategoryLabel] = useState("Kegiatan Himpunan");
-  const [formBeritaAuthor, setFormBeritaAuthor] = useState("HIMASI Media");
-  const [formBeritaReadTime, setFormBeritaReadTime] = useState("5 min read");
-  const [formBeritaImage, setFormBeritaImage] = useState("");
-  const [formBeritaExcerpt, setFormBeritaExcerpt] = useState("");
-  const [formBeritaContent, setFormBeritaContent] = useState("");
-  const [formBeritaIsPublished, setFormBeritaIsPublished] = useState(true);
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
-  const [uploadingBeritaImage, setUploadingBeritaImage] = useState(false);
-  const [isDraggingOverBerita, setIsDraggingOverBerita] = useState(false);
-  const beritaFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchBerita = useCallback(async () => {
     setLoadingBerita(true);
@@ -528,376 +593,6 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchBerita();
   }, [fetchBerita]);
-
-  const handleOpenTambahBerita = () => {
-    setEditingBerita(null);
-    setFormBeritaTitle("");
-    setFormBeritaSlug("");
-    setFormBeritaCategoryKey("event");
-    setFormBeritaCategoryLabel("Kegiatan Himpunan");
-    setFormBeritaAuthor("HIMASI Media");
-    setFormBeritaReadTime("5 min read");
-    setFormBeritaImage("");
-    setFormBeritaExcerpt("");
-    setFormBeritaContent("");
-    setFormBeritaIsPublished(true);
-    setSlugManuallyEdited(false);
-    setIsBeritaModalOpen(true);
-  };
-
-  const handleOpenEditBerita = (item: BeritaItem) => {
-    setEditingBerita(item);
-    setFormBeritaTitle(item.title);
-    setFormBeritaSlug(item.slug);
-    setFormBeritaCategoryKey(item.category_key);
-    setFormBeritaCategoryLabel(item.category_label);
-    setFormBeritaAuthor(item.author);
-    setFormBeritaReadTime(item.read_time);
-    setFormBeritaImage(item.image_url);
-    setFormBeritaExcerpt(item.excerpt);
-    setFormBeritaContent(item.content);
-    setFormBeritaIsPublished(item.is_published);
-    setSlugManuallyEdited(true);
-    setIsBeritaModalOpen(true);
-  };
-
-  const handleTitleChange = (val: string) => {
-    setFormBeritaTitle(val);
-    if (!slugManuallyEdited) {
-      setFormBeritaSlug(slugify(val));
-    }
-  };
-
-  const handleContentChange = (val: string) => {
-    setFormBeritaContent(val);
-    setFormBeritaReadTime(estimateReadTime(val));
-    if (!formBeritaExcerpt.trim() && val.trim()) {
-      const firstSentence = val.trim().split(/\n+/)[0].slice(0, 160);
-      setFormBeritaExcerpt(firstSentence);
-    }
-  };
-
-  // Helper Kompresi & Upload Foto Sampul Berita
-  const processAndUploadBeritaPhoto = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      showToast("File yang dipilih harus berupa gambar (JPG, PNG, atau WebP)");
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      showToast("Ukuran berkas terlalu besar (Maksimal 10MB)");
-      return;
-    }
-
-    setUploadingBeritaImage(true);
-    try {
-      // Kompresi gambar via HTML Canvas (max 1200x800 px, kualitas 85%)
-      const { optimizedBlob, base64Url } = await new Promise<{
-        optimizedBlob: Blob;
-        base64Url: string;
-      }>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = document.createElement("img");
-          img.onload = () => {
-            const maxW = 1200;
-            const maxH = 800;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > maxW) {
-              height = Math.round((height * maxW) / width);
-              width = maxW;
-            }
-            if (height > maxH) {
-              width = Math.round((width * maxH) / height);
-              height = maxH;
-            }
-
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) {
-              resolve({
-                optimizedBlob: file,
-                base64Url: e.target?.result as string,
-              });
-              return;
-            }
-
-            ctx.drawImage(img, 0, 0, width, height);
-            const b64 = canvas.toDataURL("image/jpeg", 0.85);
-            canvas.toBlob(
-              (blob) => {
-                resolve({
-                  optimizedBlob: blob || file,
-                  base64Url: b64,
-                });
-              },
-              "image/jpeg",
-              0.85
-            );
-          };
-          img.onerror = reject;
-          img.src = e.target?.result as string;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      // Tampilkan preview instan
-      setFormBeritaImage(base64Url);
-
-      // Coba unggah ke Supabase Storage (bucket: 'foto-berita' atau 'foto-pengurus')
-      const cleanSlug = slugify(formBeritaTitle) || "berita";
-      const filePath = `cover_${cleanSlug}_${Date.now()}.jpg`;
-
-      let uploadedUrl = "";
-      try {
-        const { data, error } = await supabase.storage
-          .from("foto-berita")
-          .upload(filePath, optimizedBlob, {
-            contentType: "image/jpeg",
-            cacheControl: "3600",
-            upsert: true,
-          });
-
-        if (!error && data) {
-          const { data: pubData } = supabase.storage
-            .from("foto-berita")
-            .getPublicUrl(filePath);
-          uploadedUrl = pubData?.publicUrl || "";
-        } else {
-          // Coba fallback ke bucket 'foto-pengurus' yang sudah aktif
-          const { data: pData, error: pError } = await supabase.storage
-            .from("foto-pengurus")
-            .upload(`berita_${filePath}`, optimizedBlob, {
-              contentType: "image/jpeg",
-              cacheControl: "3600",
-              upsert: true,
-            });
-          if (!pError && pData) {
-            const { data: pubData } = supabase.storage
-              .from("foto-pengurus")
-              .getPublicUrl(`berita_${filePath}`);
-            uploadedUrl = pubData?.publicUrl || "";
-          }
-        }
-      } catch (storageErr) {
-        console.warn("Catatan upload storage berita:", storageErr);
-      }
-
-      if (uploadedUrl) {
-        setFormBeritaImage(uploadedUrl);
-        showToast("Foto sampul berhasil diunggah ke Supabase Storage!");
-      } else {
-        showToast("Foto berhasil dimuat & siap disimpan!");
-      }
-    } catch (err) {
-      console.error("Gagal memproses upload foto berita:", err);
-      showToast("Gagal memproses file foto.");
-    } finally {
-      setUploadingBeritaImage(false);
-      setIsDraggingOverBerita(false);
-    }
-  };
-
-  const handleSaveBerita = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formBeritaTitle.trim()) {
-      showToast("Judul berita wajib diisi.");
-      return;
-    }
-
-    setSavingBerita(true);
-    try {
-      const isApprover = canPublishContent(currentUserRole);
-      const targetStatus: ContentStatus = isApprover
-        ? formBeritaIsPublished ? "published" : "draft"
-        : "pending_review";
-
-      const payload = {
-        title: formBeritaTitle.trim(),
-        slug: formBeritaSlug.trim() || slugify(formBeritaTitle),
-        category_key: formBeritaCategoryKey,
-        category_label: formBeritaCategoryLabel,
-        author: formBeritaAuthor.trim() || "HIMASI Media",
-        read_time: formBeritaReadTime || "5 min read",
-        image_url: formBeritaImage.trim() || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
-        excerpt: formBeritaExcerpt.trim() || formBeritaTitle.trim(),
-        content: formBeritaContent.trim() || formBeritaExcerpt.trim(),
-        is_published: isApprover ? formBeritaIsPublished : false,
-        status: targetStatus,
-        catatan_revisi: isApprover ? undefined : editingBerita?.catatan_revisi,
-        published_at: editingBerita?.published_at || new Date().toISOString(),
-      };
-
-      if (editingBerita) {
-        await updateBerita(editingBerita.id, payload);
-        recordAuditLog({
-          modul: "berita",
-          aksi: `Memperbarui artikel Berita/berita: "${payload.title}"`,
-          pengurus_nama: currentUserName,
-          pengurus_role: currentUserRole,
-          status: "berhasil",
-          detail: `Kategori: ${payload.category_label}, Status: ${payload.status}`,
-        }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log update berita:", err));
-        showToast(
-          isApprover
-            ? "Berhasil memperbarui artikel berita!"
-            : "Berita diperbarui dan diajukan ulang untuk ditinjau Medkominfo."
-        );
-      } else {
-        await createBerita(payload);
-        recordAuditLog({
-          modul: "berita",
-          aksi: `Membuat Berita/berita baru: "${payload.title}"`,
-          pengurus_nama: currentUserName,
-          pengurus_role: currentUserRole,
-          status: "berhasil",
-          detail: `Kategori: ${payload.category_label}, Status: ${payload.status}`,
-        }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log create berita:", err));
-        showToast(
-          isApprover
-            ? "Berhasil menerbitkan artikel berita baru!"
-            : "Berita berhasil disimpan & dikirim ke antrean review Medkominfo."
-        );
-      }
-
-      setIsBeritaModalOpen(false);
-      await fetchBerita();
-    } catch (err: any) {
-      console.error("Save berita error:", err);
-      showToast("Gagal menyimpan berita: " + (err.message || "Terjadi kesalahan"));
-    } finally {
-      setSavingBerita(false);
-    }
-  };
-
-  const handleApproveBerita = async (item: BeritaItem) => {
-    try {
-      await updateBeritaStatus(item.id, "published");
-      setBeritaList((prev) =>
-        prev.map((b) =>
-          String(b.id) === String(item.id)
-            ? { ...b, status: "published", is_published: true, catatan_revisi: undefined }
-            : b
-        )
-      );
-      recordAuditLog({
-        modul: "berita",
-        aksi: `Menyetujui & menerbitkan artikel Berita: "${item.title}"`,
-        pengurus_nama: currentUserName,
-        pengurus_role: currentUserRole,
-        status: "berhasil",
-      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log approve berita:", err));
-      showToast(`Berita "${item.title}" disetujui & langsung diterbitkan!`);
-    } catch (err: any) {
-      console.error("Approve berita error:", err);
-      showToast("Gagal menyetujui Berita: " + (err.message || "Terjadi kesalahan"));
-    }
-  };
-
-  const handleConfirmRejectBerita = async () => {
-    if (!rejectingBeritaItem) return;
-    try {
-      await updateBeritaStatus(rejectingBeritaItem.id, "rejected", catatanRevisiBerita.trim());
-      setBeritaList((prev) =>
-        prev.map((b) =>
-          String(b.id) === String(rejectingBeritaItem.id)
-            ? { ...b, status: "rejected", is_published: false, catatan_revisi: catatanRevisiBerita.trim() }
-            : b
-        )
-      );
-      recordAuditLog({
-        modul: "berita",
-        aksi: `Mengembalikan Berita dengan catatan revisi: "${rejectingBeritaItem.title}"`,
-        pengurus_nama: currentUserName,
-        pengurus_role: currentUserRole,
-        status: "peringatan",
-        detail: `Catatan: ${catatanRevisiBerita.trim() || "-"}`,
-      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log reject berita:", err));
-      showToast("Berita dikembalikan dengan catatan revisi untuk kontributor.");
-      setRejectingBeritaItem(null);
-      setCatatanRevisiBerita("");
-    } catch (err: any) {
-      console.error("Reject berita error:", err);
-      showToast("Gagal menolak Berita.");
-    }
-  };
-
-  const handleQuickToggleBeritaStatus = async (item: BeritaItem) => {
-    if (!canPublishContent(currentUserRole)) {
-      showToast("Wewenang terbatas: Hanya Medkominfo atau Super Admin yang dapat mengubah status publikasi.");
-      return;
-    }
-    try {
-      const newStatus = await togglePublishedBerita(item.id, item.is_published);
-      setBeritaList((prev) =>
-        prev.map((b) => (String(b.id) === String(item.id) ? { ...b, is_published: newStatus, status: newStatus ? "published" : "draft" } : b))
-      );
-      recordAuditLog({
-        modul: "berita",
-        aksi: `Mengubah status publikasi berita "${item.title}" ke ${newStatus ? "Terbit" : "Draft"}`,
-        pengurus_nama: currentUserName,
-        pengurus_role: currentUserRole,
-        status: "berhasil",
-      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log toggle berita:", err));
-      showToast(newStatus ? "Status diubah ke Terbit." : "Status diubah ke Draft.");
-    } catch (err) {
-      console.error("Toggle status error:", err);
-      showToast("Gagal mengubah status publikasi.");
-    }
-  };
-
-  const handleConfirmDeleteBerita = async () => {
-    if (!beritaToDelete) return;
-    if ((beritaToDelete.is_published || beritaToDelete.status === "published") && !canEditPublishedContent(currentUserRole)) {
-      showToast("Wewenang terbatas: Berita yang sudah terbit hanya dapat dihapus oleh Medkominfo / Super Admin.");
-      setBeritaToDelete(null);
-      return;
-    }
-    setDeletingBerita(true);
-    const targetTitle = beritaToDelete.title;
-    const targetId = beritaToDelete.id;
-    try {
-      await deleteBerita(targetId);
-      setBeritaList((prev) => prev.filter((b) => String(b.id) !== String(targetId)));
-      recordAuditLog({
-        modul: "berita",
-        aksi: `Menghapus artikel Berita/berita: "${targetTitle}"`,
-        pengurus_nama: currentUserName,
-        pengurus_role: currentUserRole,
-        status: "berhasil",
-        detail: `ID: ${targetId}`,
-      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log delete berita:", err));
-      showToast(`Artikel "${targetTitle}" berhasil dihapus.`);
-      setBeritaToDelete(null);
-    } catch (err) {
-      console.error("Delete berita error:", err);
-      showToast("Gagal menghapus artikel berita.");
-    } finally {
-      setDeletingBerita(false);
-    }
-  };
-
-  const filteredBeritaList = useMemo(() => {
-    return beritaList.filter((b) => {
-      const matchCategory =
-        kategoriFilterBerita === "semua" || b.category_key === kategoriFilterBerita;
-      const matchStatus =
-        statusFilterBerita === "semua" ||
-        (statusFilterBerita === "terbit" && b.is_published) ||
-        (statusFilterBerita === "draft" && !b.is_published);
-      const matchSearch =
-        !searchBerita.trim() ||
-        b.title.toLowerCase().includes(searchBerita.toLowerCase()) ||
-        b.author.toLowerCase().includes(searchBerita.toLowerCase()) ||
-        b.excerpt.toLowerCase().includes(searchBerita.toLowerCase());
-      return matchCategory && matchStatus && matchSearch;
-    });
-  }, [beritaList, kategoriFilterBerita, statusFilterBerita, searchBerita]);
 
   const handleSaveBanner = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -1060,34 +755,6 @@ export default function DashboardPage() {
   const [formDokumenFileSize, setFormDokumenFileSize] = useState("");
   const [formDokumenUrutan, setFormDokumenUrutan] = useState<number>(1);
   const pdfFileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Kalender Agenda State (Dinamis sesuai tanggal & bulan yang sedang berjalan)
-  const [agendaList, setAgendaList] = useState<AgendaKalender[]>(DEFAULT_AGENDA_EVENTS);
-  const [loadingAgenda, setLoadingAgenda] = useState(true);
-  const [adminCalYear, setAdminCalYear] = useState(() => new Date().getFullYear());
-  const [adminCalMonth, setAdminCalMonth] = useState(() => new Date().getMonth());
-  const [adminSelectedDate, setAdminSelectedDate] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  });
-  const [isAgendaModalOpen, setIsAgendaModalOpen] = useState(false);
-  const [editingAgenda, setEditingAgenda] = useState<AgendaKalender | null>(null);
-  const [agendaToDelete, setAgendaToDelete] = useState<AgendaKalender | null>(null);
-  const [deletingAgenda, setDeletingAgenda] = useState(false);
-  const [savingAgenda, setSavingAgenda] = useState(false);
-
-  // Form Agenda State
-  const [formAgendaJudul, setFormAgendaJudul] = useState("");
-  const [formAgendaKategori, setFormAgendaKategori] = useState<EventCategory>("HIMASI");
-  const [formAgendaTanggalMulai, setFormAgendaTanggalMulai] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  });
-  const [formAgendaTanggalSelesai, setFormAgendaTanggalSelesai] = useState("");
-  const [formAgendaIsMultiDay, setFormAgendaIsMultiDay] = useState(false);
-  const [formAgendaWaktu, setFormAgendaWaktu] = useState("Sepanjang Hari");
-  const [formAgendaLokasi, setFormAgendaLokasi] = useState("Kampus ISB Atma Luhur");
-  const [formAgendaDeskripsi, setFormAgendaDeskripsi] = useState("");
 
   // SQL Copy Feedback
   const [copiedSQL, setCopiedSQL] = useState(false);
@@ -1432,27 +1099,12 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // 4D. Ambil Data Agenda Kalender dari Supabase
-  const fetchAgendaList = useCallback(async () => {
-    setLoadingAgenda(true);
-    try {
-      const data = await getAgendaKalender(true);
-      setAgendaList(data);
-    } catch (err) {
-      console.warn("fetchAgendaList error:", err);
-      setAgendaList(DEFAULT_AGENDA_EVENTS);
-    } finally {
-      setLoadingAgenda(false);
-    }
-  }, []);
-
   // Realtime Subscription Supabase (Multi-Device Auto-Sync)
   useEffect(() => {
     fetchKegiatan();
     fetchAbsensiLogs();
     fetchPengurus();
     fetchDokumenList();
-    fetchAgendaList();
 
     const channel = supabase
       .channel("himasi_realtime_dashboard")
@@ -1491,19 +1143,12 @@ export default function DashboardPage() {
           fetchDokumenList();
         }
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "agenda_kalender" },
-        () => {
-          fetchAgendaList();
-        }
-      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchKegiatan, fetchAbsensiLogs, fetchAspirasi, fetchPengurus, fetchDokumenList, fetchAgendaList]);
+  }, [fetchKegiatan, fetchAbsensiLogs, fetchAspirasi, fetchPengurus, fetchDokumenList]);
 
   // 5. Handler saat scan absensi berhasil
   const handleAttendanceSuccess = (record: AbsensiRecord) => {
@@ -2336,330 +1981,6 @@ export default function DashboardPage() {
     setDokumenToDelete(null);
   };
 
-  // 11C. Handler & Helper Kalender Agenda
-  const NAMA_BULAN_ID = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-  ];
-  const HARI_SINGKAT = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
-
-  const handleAdminPrevMonth = () => {
-    let newYear = adminCalYear;
-    let newMonth = adminCalMonth - 1;
-    if (adminCalMonth === 0) {
-      newMonth = 11;
-      newYear = adminCalYear - 1;
-    }
-    setAdminCalMonth(newMonth);
-    setAdminCalYear(newYear);
-    setAdminSelectedDate(`${newYear}-${String(newMonth + 1).padStart(2, "0")}-01`);
-  };
-
-  const handleAdminNextMonth = () => {
-    let newYear = adminCalYear;
-    let newMonth = adminCalMonth + 1;
-    if (adminCalMonth === 11) {
-      newMonth = 0;
-      newYear = adminCalYear + 1;
-    }
-    setAdminCalMonth(newMonth);
-    setAdminCalYear(newYear);
-    setAdminSelectedDate(`${newYear}-${String(newMonth + 1).padStart(2, "0")}-01`);
-  };
-
-  const handleAdminToday = () => {
-    const today = new Date();
-    setAdminCalYear(today.getFullYear());
-    setAdminCalMonth(today.getMonth());
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    setAdminSelectedDate(dateStr);
-  };
-
-  const adminCalendarCells = useMemo(() => {
-    const firstDay = new Date(adminCalYear, adminCalMonth, 1);
-    const startDayOfWeek = (firstDay.getDay() + 6) % 7;
-    const daysInMonth = new Date(adminCalYear, adminCalMonth + 1, 0).getDate();
-    const daysInPrevMonth = new Date(adminCalYear, adminCalMonth, 0).getDate();
-
-    const cells: {
-      dayNumber: number;
-      monthOffset: -1 | 0 | 1;
-      fullDate: string;
-      isToday: boolean;
-      isSelected: boolean;
-      events: AgendaKalender[];
-    }[] = [];
-
-    const todayStr = new Date().toISOString().split("T")[0];
-
-    // Bulan sebelumnya
-    for (let i = startDayOfWeek - 1; i >= 0; i--) {
-      const d = daysInPrevMonth - i;
-      const prevDate = new Date(adminCalYear, adminCalMonth - 1, d);
-      const dateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const evts = agendaList.filter((e) => isDateInEventRange(dateStr, e));
-      cells.push({
-        dayNumber: d,
-        monthOffset: -1,
-        fullDate: dateStr,
-        isToday: dateStr === todayStr,
-        isSelected: dateStr === adminSelectedDate,
-        events: evts,
-      });
-    }
-
-    // Bulan sekarang
-    for (let i = 1; i <= daysInMonth; i++) {
-      const dateStr = `${adminCalYear}-${String(adminCalMonth + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-      const evts = agendaList.filter((e) => isDateInEventRange(dateStr, e));
-      cells.push({
-        dayNumber: i,
-        monthOffset: 0,
-        fullDate: dateStr,
-        isToday: dateStr === todayStr,
-        isSelected: dateStr === adminSelectedDate,
-        events: evts,
-      });
-    }
-
-    // Bulan selanjutnya
-    const totalCells = cells.length <= 35 ? 35 : 42;
-    const remaining = totalCells - cells.length;
-    for (let i = 1; i <= remaining; i++) {
-      const nextDate = new Date(adminCalYear, adminCalMonth + 1, i);
-      const dateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-      const evts = agendaList.filter((e) => isDateInEventRange(dateStr, e));
-      cells.push({
-        dayNumber: i,
-        monthOffset: 1,
-        fullDate: dateStr,
-        isToday: dateStr === todayStr,
-        isSelected: dateStr === adminSelectedDate,
-        events: evts,
-      });
-    }
-
-    return cells;
-  }, [adminCalYear, adminCalMonth, adminSelectedDate, agendaList]);
-
-  const selectedDateEvents = useMemo(() => {
-    if (!adminSelectedDate) return [];
-    return agendaList.filter((e) => isDateInEventRange(adminSelectedDate, e));
-  }, [agendaList, adminSelectedDate]);
-
-  const handleOpenTambahAgenda = (prefillDate?: string) => {
-    setEditingAgenda(null);
-    const targetDate = prefillDate || adminSelectedDate || `${adminCalYear}-${String(adminCalMonth + 1).padStart(2, "0")}-01`;
-    setFormAgendaTanggalMulai(targetDate);
-    setFormAgendaTanggalSelesai("");
-    setFormAgendaIsMultiDay(false);
-    setFormAgendaJudul("");
-    setFormAgendaKategori("HIMASI");
-    setFormAgendaWaktu("Sepanjang Hari");
-    setFormAgendaLokasi("Kampus ISB Atma Luhur");
-    setFormAgendaDeskripsi("");
-    setIsAgendaModalOpen(true);
-  };
-
-  const handleOpenEditAgenda = (agenda: AgendaKalender) => {
-    setEditingAgenda(agenda);
-    setFormAgendaTanggalMulai(agenda.tanggal_mulai);
-    setFormAgendaTanggalSelesai(agenda.tanggal_selesai || "");
-    setFormAgendaIsMultiDay(Boolean(agenda.tanggal_selesai && agenda.tanggal_selesai !== agenda.tanggal_mulai));
-    setFormAgendaJudul(agenda.judul);
-    setFormAgendaKategori(agenda.kategori);
-    setFormAgendaWaktu(agenda.waktu || "Sepanjang Hari");
-    setFormAgendaLokasi(agenda.lokasi || "Kampus ISB Atma Luhur");
-    setFormAgendaDeskripsi(agenda.deskripsi || "");
-    setIsAgendaModalOpen(true);
-  };
-
-  const handleSaveAgenda = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formAgendaJudul.trim() || !formAgendaTanggalMulai) {
-      showToast("Judul dan tanggal mulai agenda wajib diisi!");
-      return;
-    }
-
-    if (formAgendaIsMultiDay && formAgendaTanggalSelesai && formAgendaTanggalSelesai < formAgendaTanggalMulai) {
-      showToast("Tanggal selesai tidak boleh lebih awal dari tanggal mulai!");
-      return;
-    }
-
-    setSavingAgenda(true);
-    const finalTanggalSelesai = formAgendaIsMultiDay && formAgendaTanggalSelesai ? formAgendaTanggalSelesai : null;
-    const isApprover = canPublishContent(currentUserRole);
-    const targetStatus: ContentStatus = isApprover ? "published" : "pending_review";
-
-    if (editingAgenda) {
-      if (editingAgenda.status === "published" && !canEditPublishedContent(currentUserRole)) {
-        showToast("Wewenang terbatas: Agenda terbit hanya dapat diubah oleh Medkominfo.");
-        setSavingAgenda(false);
-        return;
-      }
-
-      const updated = await updateAgenda(editingAgenda.id, {
-        tanggal_mulai: formAgendaTanggalMulai,
-        tanggal_selesai: finalTanggalSelesai,
-        judul: formAgendaJudul,
-        kategori: formAgendaKategori,
-        waktu: formAgendaWaktu,
-        lokasi: formAgendaLokasi,
-        deskripsi: formAgendaDeskripsi,
-        status: isApprover ? editingAgenda.status : "pending_review",
-      });
-
-      if (updated) {
-        setAgendaList((prev) =>
-          prev.map((a) => (a.id === editingAgenda.id ? updated : a))
-        );
-        showToast(
-          isApprover
-            ? `Agenda "${formAgendaJudul}" berhasil diperbarui di Supabase!`
-            : `Agenda "${formAgendaJudul}" diperbarui dan diajukan ulang ke Medkominfo!`
-        );
-      } else {
-        setAgendaList((prev) =>
-          prev.map((a) =>
-            a.id === editingAgenda.id
-              ? {
-                  ...a,
-                  tanggal_mulai: formAgendaTanggalMulai,
-                  tanggal_selesai: finalTanggalSelesai,
-                  judul: formAgendaJudul,
-                  kategori: formAgendaKategori,
-                  waktu: formAgendaWaktu,
-                  lokasi: formAgendaLokasi,
-                  deskripsi: formAgendaDeskripsi,
-                }
-              : a
-          )
-        );
-        showToast("Peringatan: Gagal sinkron ke database Supabase! Pastikan tabel 'agenda_kalender' telah dibuat di SQL Editor.");
-      }
-
-      recordAuditLog({
-        modul: "kalender",
-        aksi: `Memperbarui agenda kegiatan: "${formAgendaJudul}"`,
-        pengurus_nama: currentUserName,
-        pengurus_role: currentUserRole,
-        status: updated ? "berhasil" : "gagal",
-        detail: `Tanggal: ${formAgendaTanggalMulai}${finalTanggalSelesai ? ` s.d ${finalTanggalSelesai}` : ""}, Kategori: ${formAgendaKategori}`,
-      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log update agenda:", err));
-    } else {
-      const created = await createAgenda({
-        tanggal_mulai: formAgendaTanggalMulai,
-        tanggal_selesai: finalTanggalSelesai,
-        judul: formAgendaJudul,
-        kategori: formAgendaKategori,
-        waktu: formAgendaWaktu,
-        lokasi: formAgendaLokasi,
-        deskripsi: formAgendaDeskripsi,
-        status: targetStatus,
-      });
-
-      if (created) {
-        setAgendaList((prev) => [...prev, created]);
-        showToast(
-          isApprover
-            ? `Agenda "${formAgendaJudul}" berhasil disimpan ke database Supabase!`
-            : `Agenda "${formAgendaJudul}" diajukan & menunggu kurasi Medkominfo!`
-        );
-      } else {
-        const localItem: AgendaKalender = {
-          id: `evt-${Date.now()}`,
-          tanggal_mulai: formAgendaTanggalMulai,
-          tanggal_selesai: finalTanggalSelesai,
-          judul: formAgendaJudul,
-          kategori: formAgendaKategori,
-          waktu: formAgendaWaktu,
-          lokasi: formAgendaLokasi,
-          deskripsi: formAgendaDeskripsi,
-          status: targetStatus,
-        };
-        setAgendaList((prev) => [...prev, localItem]);
-        showToast("Peringatan: Tersimpan lokal di browser. Tabel 'agenda_kalender' belum dibuat di Supabase!");
-      }
-
-      recordAuditLog({
-        modul: "kalender",
-        aksi: `Menambahkan agenda kegiatan: "${formAgendaJudul}"`,
-        pengurus_nama: currentUserName,
-        pengurus_role: currentUserRole,
-        status: created ? "berhasil" : "gagal",
-        detail: `Tanggal: ${formAgendaTanggalMulai}, Kategori: ${formAgendaKategori}, Status: ${targetStatus}`,
-      }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log create agenda:", err));
-    }
-
-    setSavingAgenda(false);
-    setIsAgendaModalOpen(false);
-  };
-
-  const handleApproveAgenda = async (agenda: AgendaKalender) => {
-    try {
-      const updated = await updateAgendaStatus(agenda.id, "published");
-      if (updated) {
-        setAgendaList((prev) =>
-          prev.map((a) => (a.id === agenda.id ? { ...a, status: "published" } : a))
-        );
-        showToast(`Agenda "${agenda.judul}" disetujui & dipublikasikan ke kalender publik!`);
-
-        recordAuditLog({
-          modul: "kalender",
-          aksi: `Menyetujui & mempublikasikan agenda kegiatan: "${agenda.judul}"`,
-          pengurus_nama: currentUserName,
-          pengurus_role: currentUserRole,
-          status: "berhasil",
-          detail: `ID: ${agenda.id}, Tanggal: ${agenda.tanggal_mulai}`,
-        }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log approve agenda:", err));
-      }
-    } catch (err) {
-      console.error("Approve agenda error:", err);
-      showToast("Gagal menyetujui agenda.");
-    }
-  };
-
-  const handleConfirmDeleteAgenda = async () => {
-    if (!agendaToDelete) return;
-    if (agendaToDelete.status === "published" && !canEditPublishedContent(currentUserRole)) {
-      showToast("Wewenang terbatas: Agenda publik hanya dapat dihapus oleh Medkominfo.");
-      setAgendaToDelete(null);
-      return;
-    }
-    setDeletingAgenda(true);
-
-    const deleted = await deleteAgenda(agendaToDelete.id);
-    if (!deleted) {
-      showToast("Peringatan: Gagal menghapus dari Supabase! Pastikan tabel telah dibuat di SQL Editor.");
-    } else {
-      showToast(`Agenda "${agendaToDelete.judul}" berhasil dihapus dari Supabase.`);
-    }
-
-    recordAuditLog({
-      modul: "kalender",
-      aksi: `Menghapus agenda kegiatan: "${agendaToDelete.judul}"`,
-      pengurus_nama: currentUserName,
-      pengurus_role: currentUserRole,
-      status: deleted ? "berhasil" : "gagal",
-      detail: `ID: ${agendaToDelete.id}, Tanggal: ${agendaToDelete.tanggal_mulai}`,
-    }).catch((err) => console.warn("[dashboard] Gagal mencatat audit log delete agenda:", err));
-
-    setAgendaList((prev) => prev.filter((a) => a.id !== agendaToDelete.id));
-    setDeletingAgenda(false);
-    setAgendaToDelete(null);
-  };
-
-  const formatTanggalIndoFull = (dateStr: string) => {
-    const parts = dateStr.split("-");
-    if (parts.length !== 3) return dateStr;
-    const year = parts[0];
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    const d = new Date(parseInt(year), month, day);
-    const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"][d.getDay()];
-    return `${hari}, ${day} ${NAMA_BULAN_ID[month]} ${year}`;
-  };
-
   // 12. Logout Pengurus
   const handleLogout = async () => {
     try {
@@ -3120,10 +2441,11 @@ NOTIFY pgrst, 'reload schema';`;
       className={`min-h-screen ${theme === "dark" ? "dark bg-[#001740] text-slate-100" : "bg-white text-slate-900"} flex flex-col font-poppins selection:bg-[#00296E] selection:text-white dark:selection:bg-[#38BDF8] dark:selection:text-[#001740] transition-colors duration-150`}
       data-theme={theme}
     >
+      <OfflineBanner />
       {/* ========================================================================= */}
       {/* GAYA 1: SWISS MINIMALIST GRID - TOP NAVBAR (FULL WIDTH)                   */}
       {/* ========================================================================= */}
-      <header className="no-print w-full h-14 bg-white dark:bg-[#001438] border-b border-[#00296E]/20 dark:border-white/10 sticky top-0 z-50 flex items-stretch select-none">
+      <header className="no-print hidden lg:flex w-full h-14 bg-white dark:bg-[#001438] border-b border-[#00296E]/20 dark:border-white/10 sticky top-0 z-50 items-stretch select-none">
         {/* Kolom Brand: HIMASI/ADMIN (Lebar w-64 sejajar lurus dengan Sidebar) */}
         <div className="w-64 min-w-[16rem] shrink-0 border-r border-[#00296E]/20 dark:border-white/10 px-5 flex items-center justify-between bg-white dark:bg-[#001438]">
           <button
@@ -3226,6 +2548,21 @@ NOTIFY pgrst, 'reload schema';`;
             <ArrowsClockwise className={`w-3.5 h-3.5 ${loadingAspirasi ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
           </button>
 
+          {/* Quick Command Palette Button (Ctrl+K) */}
+          <button
+            type="button"
+            onClick={() => setIsCommandPaletteOpen(true)}
+            title="Buka Command Palette (Ctrl + K)"
+            className="h-full px-3.5 border-l border-[#00296E]/20 dark:border-white/10 hover:bg-[#00296E]/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center gap-2 text-xs font-mono"
+            aria-label="Cari Perintah (Ctrl+K)"
+          >
+            <MagnifyingGlass className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
+            <span className="hidden xl:inline text-[11px] text-slate-500 dark:text-slate-400">Cari...</span>
+            <kbd className="hidden sm:inline-flex px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-[#00296E]/5 dark:bg-white/10 border border-[#00296E]/15 dark:border-white/10">
+              Ctrl K
+            </kbd>
+          </button>
+
           {/* SAKLAR TEMA DUAL-MODE (LIGHT / DARK) */}
           <button
             type="button"
@@ -3250,7 +2587,7 @@ NOTIFY pgrst, 'reload schema';`;
       </header>
 
       {/* Main App Layout (Below Top Navbar) */}
-      <div className="flex flex-1 min-h-[calc(100vh-56px)] relative overflow-hidden">
+      <div className="flex flex-1 min-h-screen lg:min-h-[calc(100vh-56px)] relative overflow-hidden">
         
         {/* Sidebar Navigasi Dashboard Swiss Minimalist */}
         <aside
@@ -3263,13 +2600,55 @@ NOTIFY pgrst, 'reload schema';`;
             <span className="font-extrabold text-xs text-[#00296E] dark:text-white tracking-tight uppercase">
               HIMASI/ADMIN
             </span>
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(false)}
-              className="p-1.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Command Palette Mobile Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSidebarOpen(false);
+                  setIsCommandPaletteOpen(true);
+                }}
+                title="Pencarian Cepat Modul (Ctrl+K)"
+                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white cursor-pointer"
+                aria-label="Pencarian Cepat Modul"
+              >
+                <MagnifyingGlass className="w-3.5 h-3.5" />
+              </button>
+              {/* Refresh Data Button Mobile */}
+              <button
+                type="button"
+                onClick={fetchAspirasi}
+                disabled={loadingAspirasi}
+                title="Muat Ulang Data"
+                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white cursor-pointer"
+                aria-label="Muat Ulang Data"
+              >
+                <ArrowsClockwise className={`w-3.5 h-3.5 ${loadingAspirasi ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
+              </button>
+              {/* Theme Toggle Mobile */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                title={theme === "light" ? "Ganti ke Mode Gelap" : "Ganti ke Mode Terang"}
+                className="p-1.5 text-slate-700 dark:text-slate-200 cursor-pointer"
+                aria-label="Toggle Theme"
+              >
+                {theme === "light" ? (
+                  <Moon className="w-3.5 h-3.5 text-[#00296E]" />
+                ) : (
+                  <Sun className="w-3.5 h-3.5 text-amber-300" />
+                )}
+              </button>
+              {/* Tutup Sidebar */}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                className="p-1.5 rounded-none text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer ml-1"
+                aria-label="Tutup Sidebar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Menu Navigasi Terkategori Berdasarkan Subbagian Instruksi User */}
@@ -3648,9 +3027,73 @@ NOTIFY pgrst, 'reload schema';`;
         {/* Area Konten Utama */}
         <main
           ref={mainContentRef}
-          className="flex-1 flex flex-col min-w-0 overflow-y-auto max-h-[calc(100vh-56px)] bg-[#FAFBFC] dark:bg-[#001740] transition-colors duration-150 scroll-auto"
+          className="flex-1 flex flex-col min-w-0 overflow-y-auto max-h-screen lg:max-h-[calc(100vh-56px)] bg-[#FAFBFC] dark:bg-[#001740] transition-colors duration-150 scroll-auto"
         >
           
+          {/* Mobile Navigation & Breadcrumb Strip (Hanya di Layar Ponsel / Tablet, lg:hidden - Tahap 1) */}
+          <div className="lg:hidden no-print sticky top-0 z-30 w-full bg-white/95 dark:bg-[#001438]/95 backdrop-blur-md border-b border-[#00296E]/15 dark:border-white/10 px-3.5 py-2.5 flex items-center justify-between select-none shrink-0 shadow-sm">
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="p-1.5 -ml-1 text-[#00296E] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 border border-[#00296E]/20 dark:border-white/15 cursor-pointer active:scale-95 transition-all"
+                aria-label="Buka Navigasi Sidebar"
+                title="Buka Menu"
+              >
+                <List className="w-4 h-4 stroke-[2.5]" />
+              </button>
+              <div className="flex items-center gap-1.5 min-w-0 text-xs font-mono">
+                <span className="font-extrabold text-[#00296E] dark:text-[#38BDF8] tracking-tight shrink-0">HIMASI</span>
+                <span className="text-slate-300 dark:text-slate-600 shrink-0">/</span>
+                <span className="font-bold text-slate-800 dark:text-white uppercase truncate">
+                  {TAB_TITLES[activeTab]?.label || activeTab}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Trigger Command Palette Mobile */}
+              <button
+                type="button"
+                onClick={() => setIsCommandPaletteOpen(true)}
+                className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-[#00296E] dark:hover:text-white border border-[#00296E]/15 dark:border-white/10 bg-slate-50 dark:bg-white/5 cursor-pointer"
+                aria-label="Pencarian Cepat Modul"
+                title="Cari Modul (Ctrl+K)"
+              >
+                <MagnifyingGlass className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Refresh Data Mobile */}
+              <button
+                type="button"
+                onClick={fetchAspirasi}
+                disabled={loadingAspirasi}
+                className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-[#00296E] dark:hover:text-white border border-[#00296E]/15 dark:border-white/10 bg-slate-50 dark:bg-white/5 cursor-pointer"
+                aria-label="Segarkan Data"
+                title="Segarkan Data"
+              >
+                <ArrowsClockwise className={`w-3.5 h-3.5 ${loadingAspirasi ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
+              </button>
+
+              {/* Mode Terang / Gelap Mobile */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-[#00296E] dark:hover:text-white border border-[#00296E]/15 dark:border-white/10 bg-slate-50 dark:bg-white/5 cursor-pointer"
+                aria-label="Toggle Theme"
+                title={theme === "light" ? "Mode Gelap" : "Mode Terang"}
+              >
+                {theme === "light" ? (
+                  <Moon className="w-3.5 h-3.5 text-[#00296E]" />
+                ) : (
+                  <Sun className="w-3.5 h-3.5 text-amber-300" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Error Boundary Proteksi Modul Dinamis (Tahap 2) */}
+          <DashboardTabErrorBoundary moduleName={TAB_TITLES[activeTab]?.label || activeTab}>
           {/* Body Konten Sesuai Tab Terpilih */}
           <div key={activeTab} className="p-4 sm:p-5 xl:p-8 space-y-5 xl:space-y-6 w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto min-w-0">
 
@@ -4047,759 +3490,22 @@ NOTIFY pgrst, 'reload schema';`;
 
             {/* TAB 6: BERITA CRUD MANAGEMENT */}
             {activeTab === "berita" && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                <DashboardPageHeader
-                  title="Manajemen Berita"
-                  subtitle="Kelola rilis berita, artikel ilmiah, dan dokumentasi kegiatan HIMASI Atma Luhur."
-                  onRefresh={() => fetchBerita()}
-                  refreshLoading={loadingBerita}
-                  publicUrl="/berita"
-                  publicLabel="Lihat Halaman Publik"
-                  primaryAction={{
-                    label: "+ Tulis Berita Baru",
-                    onClick: handleOpenTambahBerita,
-                  }}
-                />
-
-                <DashboardMetricStrip
-                  metrics={[
-                    {
-                      order: "01.",
-                      label: "TOTAL BERITA",
-                      value: beritaList.length,
-                      sublabel: "Artikel",
-                      icon: <Newspaper className="w-4 h-4" />,
-                      loading: loadingBerita,
-                    },
-                    {
-                      order: "02.",
-                      label: "BERITA TERBIT",
-                      value: beritaList.filter((b) => b.is_published).length,
-                      sublabel: "Publik",
-                      variant: "success",
-                      icon: <CheckCircle className="w-4 h-4" />,
-                      loading: loadingBerita,
-                    },
-                    {
-                      order: "03.",
-                      label: "DRAF TERSIMPAN",
-                      value: beritaList.filter((b) => !b.is_published).length,
-                      sublabel: "Draf",
-                      variant: "warning",
-                      icon: <Clock className="w-4 h-4" />,
-                      loading: loadingBerita,
-                    },
-                  ]}
-                />
-
-                {/* Filter & Search Bar */}
-                <div className="bg-white dark:bg-[#001438] p-3.5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      placeholder="Cari berdasarkan judul, penulis, atau isi berita..."
-                      value={searchBerita}
-                      onChange={(e) => setSearchBerita(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8]"
-                    />
-                    <MagnifyingGlass className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {/* Category Filter */}
-                    <div className="flex items-center gap-1 overflow-x-auto">
-                      <button
-                        type="button"
-                        onClick={() => setKategoriFilterBerita("semua")}
-                        className={`px-2.5 py-1.5 rounded-none text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap ${
-                          kategoriFilterBerita === "semua"
-                            ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
-                            : "border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                        }`}
-                      >
-                        Semua Kategori
-                      </button>
-                      {KATEGORI_BERITA.map((k) => (
-                        <button
-                          key={k.key}
-                          type="button"
-                          onClick={() => setKategoriFilterBerita(k.key)}
-                          className={`px-2.5 py-1.5 rounded-none text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap ${
-                            kategoriFilterBerita === k.key
-                              ? "bg-[#00296E] dark:bg-[#38BDF8] text-white dark:text-[#001740] font-bold"
-                              : "border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          {k.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="h-5 w-px bg-[#00296E]/15 dark:bg-white/10 hidden sm:block mx-1" />
-
-                    <div className="flex items-center gap-1">
-                      {["semua", "terbit", "draft"].map((st) => (
-                        <button
-                          key={st}
-                          type="button"
-                          onClick={() => setStatusFilterBerita(st)}
-                          className={`px-2.5 py-1.5 rounded-none text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer ${
-                            statusFilterBerita === st
-                              ? "bg-slate-800 dark:bg-white text-white dark:text-[#001740] font-bold"
-                              : "border border-[#00296E]/15 dark:border-white/10 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          {st}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Table Data (Desktop & Tablet) */}
-                <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 overflow-hidden shadow-none">
-                  {loadingBerita ? (
-                    <div className="p-12 text-center">
-                      <ArrowsClockwise className="w-6 h-6 text-slate-400 animate-spin mx-auto mb-2" />
-                      <p className="text-xs text-slate-400">Memuat data berita...</p>
-                    </div>
-                  ) : filteredBeritaList.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <Newspaper className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">Tidak ada artikel berita ditemukan</h3>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
-                        Coba sesuaikan kata kunci pencarian atau klik &quot;+ Tulis Berita Baru&quot; untuk menerbitkan Berita.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-left border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-[#FAFBFC] dark:bg-[#00102B] border-b border-[#00296E]/15 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest text-[#00296E] dark:text-slate-300">
-                              <th className="py-2.5 px-3 w-12 text-center">No</th>
-                              <th className="py-2.5 px-4 min-w-[280px]">Artikel &amp; Slug</th>
-                              <th className="py-2.5 px-3 min-w-[130px]">Kategori</th>
-                              <th className="py-2.5 px-3 min-w-[130px]">Penulis</th>
-                              <th className="py-2.5 px-3 text-center min-w-[110px]">Status</th>
-                              <th className="py-2.5 px-3 min-w-[110px]">Tanggal</th>
-                              <th className="py-2.5 px-4 text-right min-w-[130px]">Aksi</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[#00296E]/10 dark:divide-white/10">
-                            {filteredBeritaList.map((item, idx) => (
-                              <tr key={item.id} className="hover:bg-[#00296E]/[0.02] dark:hover:bg-white/[0.03] transition-colors">
-                                <td className="py-3 px-3 text-center text-slate-400 dark:text-slate-500 font-mono text-[11px]">
-                                  {idx + 1}
-                                </td>
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-12 h-10 rounded-none overflow-hidden bg-slate-100 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 shrink-0">
-                                      <img
-                                        src={item.image_url}
-                                        alt={item.title}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
-                                        }}
-                                      />
-                                    </div>
-                                    <div className="overflow-hidden">
-                                      <Link
-                                        href={`/berita/${item.slug}`}
-                                        target="_blank"
-                                        className="font-semibold text-slate-900 dark:text-white hover:text-[#00296E] dark:hover:text-[#38BDF8] hover:underline line-clamp-1 block text-xs"
-                                        title={item.title}
-                                      >
-                                        {item.title}
-                                      </Link>
-                                      <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5 truncate">
-                                        /berita/{item.slug}
-                                      </p>
-                                      {item.status === "rejected" && item.catatan_revisi && (
-                                        <div className="mt-1 px-2 py-0.5 rounded-none bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-700 dark:text-rose-400 leading-tight font-mono">
-                                          <strong>Catatan Revisi:</strong> {item.catatan_revisi}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-3">
-                                  <span className="px-2 py-0.5 rounded-none text-[10px] font-mono uppercase bg-[#00296E]/5 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                                    {item.category_label}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-3 text-slate-700 dark:text-slate-300 font-medium">
-                                  <span className="truncate block max-w-[120px]">{item.author}</span>
-                                </td>
-                                <td className="py-3 px-3 text-center">
-                                  {item.status === "pending_review" ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-mono uppercase border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                                      <Clock className="w-3 h-3 text-amber-500" />
-                                      Menunggu ACC
-                                    </span>
-                                  ) : item.status === "rejected" ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-mono uppercase border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400">
-                                      <XCircle className="w-3 h-3 text-rose-500" />
-                                      Perlu Revisi
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      disabled={!canPublishContent(currentUserRole)}
-                                      onClick={() => handleQuickToggleBeritaStatus(item)}
-                                      className={`px-2 py-0.5 rounded-none text-[10px] font-mono uppercase transition-colors ${
-                                        canPublishContent(currentUserRole) ? "cursor-pointer" : "cursor-default opacity-90"
-                                      } ${
-                                        item.is_published
-                                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-                                          : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 border border-slate-200 dark:border-white/10"
-                                      }`}
-                                      title={canPublishContent(currentUserRole) ? "Klik untuk mengubah status Terbit / Draft" : "Status publikasi dikelola Medkominfo"}
-                                    >
-                                      {item.is_published ? "● Terbit" : "○ Draft"}
-                                    </button>
-                                  )}
-                                </td>
-                                <td className="py-3 px-3 text-slate-500 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
-                                  {new Date(item.published_at).toLocaleDateString("id-ID", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })}
-                                </td>
-                                <td className="py-3 px-4 text-right">
-                                  <div className="flex items-center justify-end gap-1">
-                                    {/* Tombol Approval Cepat Medkominfo & Super Admin */}
-                                    {canPublishContent(currentUserRole) && item.status === "pending_review" && (
-                                      <>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleApproveBerita(item)}
-                                          className="px-2 py-1 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1"
-                                          title="Setujui dan Terbitkan Sekarang"
-                                        >
-                                          <Check className="w-3 h-3 stroke-[3]" />
-                                          <span>Setujui</span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setRejectingBeritaItem(item);
-                                            setCatatanRevisiBerita(item.catatan_revisi || "");
-                                          }}
-                                          className="px-2 py-1 rounded-none border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] font-semibold uppercase tracking-wider transition-colors cursor-pointer"
-                                          title="Tolak dengan Catatan Revisi"
-                                        >
-                                          <X className="w-3 h-3" />
-                                          <span>Tolak</span>
-                                        </button>
-                                      </>
-                                    )}
-
-                                    <Link
-                                      href={`/berita/${item.slug}`}
-                                      target="_blank"
-                                      className="p-1.5 rounded-none text-slate-500 hover:text-[#00296E] dark:hover:text-[#38BDF8] hover:bg-[#00296E]/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                                      title="Buka halaman baca publik"
-                                    >
-                                      <ArrowSquareOut className="w-3.5 h-3.5" />
-                                    </Link>
-                                    {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenEditBerita(item)}
-                                        className="p-1.5 rounded-none text-slate-600 dark:text-slate-300 hover:text-[#00296E] dark:hover:text-[#38BDF8] hover:bg-[#00296E]/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                                        title="Edit Berita"
-                                      >
-                                        <NotePencil className="w-3.5 h-3.5" />
-                                      </button>
-                                    ) : null}
-                                    {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => setBeritaToDelete(item)}
-                                        className="p-1.5 rounded-none text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                                        title="Hapus Berita"
-                                      >
-                                        <Trash className="w-3.5 h-3.5" />
-                                      </button>
-                                    ) : (
-                                      <span className="text-[10px] font-mono text-slate-400 px-2 py-0.5 rounded-none bg-slate-100 dark:bg-white/5 uppercase">
-                                        Terkurasi
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Responsive Card Format for Mobile */}
-                      <div className="md:hidden p-3 divide-y divide-slate-100 space-y-3">
-                        {filteredBeritaList.map((item) => (
-                          <div key={item.id} className="pt-3 first:pt-0">
-                            <div className="flex items-start gap-2.5">
-                              <div className="w-16 h-14 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                                <img
-                                  src={item.image_url}
-                                  alt={item.title}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
-                                  }}
-                                />
-                              </div>
-                              <div className="flex-1 overflow-hidden">
-                                <div className="flex items-center justify-between gap-1 mb-1">
-                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                                    {item.category_label}
-                                  </span>
-                                  {item.status === "pending_review" ? (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                                      Menunggu ACC
-                                    </span>
-                                  ) : item.status === "rejected" ? (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700">
-                                      Perlu Revisi
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      disabled={!canPublishContent(currentUserRole)}
-                                      onClick={() => handleQuickToggleBeritaStatus(item)}
-                                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                                        item.is_published
-                                          ? "bg-emerald-50 text-emerald-700"
-                                          : "bg-slate-100 text-slate-500"
-                                      }`}
-                                    >
-                                      {item.is_published ? "Terbit" : "Draft"}
-                                    </button>
-                                  )}
-                                </div>
-                                <h4 className="text-xs font-bold text-slate-900 line-clamp-2">
-                                  {item.title}
-                                </h4>
-                                {item.status === "rejected" && item.catatan_revisi && (
-                                  <p className="text-[10px] text-rose-600 mt-0.5 font-medium">
-                                    Revisi: {item.catatan_revisi}
-                                  </p>
-                                )}
-                                <p className="text-[10px] text-slate-400 mt-0.5">
-                                  {item.author} &bull; {new Date(item.published_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-2.5 pt-2 border-t border-slate-50 flex items-center justify-end gap-1.5">
-                              {canPublishContent(currentUserRole) && item.status === "pending_review" && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleApproveBerita(item)}
-                                    className="px-2 py-1 rounded bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1"
-                                  >
-                                    <Check className="w-3 h-3 stroke-[3]" />
-                                    <span>Setujui</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setRejectingBeritaItem(item);
-                                      setCatatanRevisiBerita(item.catatan_revisi || "");
-                                    }}
-                                    className="px-2 py-1 rounded border border-rose-200 text-rose-600 text-[10px] font-bold"
-                                  >
-                                    Tolak
-                                  </button>
-                                </>
-                              )}
-                              <Link
-                                href={`/berita/${item.slug}`}
-                                target="_blank"
-                                className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center gap-1"
-                              >
-                                <ArrowSquareOut className="w-3 h-3" />
-                                <span>Lihat</span>
-                              </Link>
-                              {(canEditPublishedContent(currentUserRole) || (!item.is_published && item.status !== "published")) && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenEditBerita(item)}
-                                    className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center gap-1"
-                                  >
-                                    <NotePencil className="w-3 h-3" />
-                                    <span>Edit</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setBeritaToDelete(item)}
-                                    className="p-1 rounded text-rose-500 hover:bg-rose-50"
-                                  >
-                                    <Trash className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+              <BeritaManager
+                currentUserRole={currentUserRole}
+                currentUserName={currentUserName}
+                showToast={showToast}
+                beritaList={beritaList}
+                onBeritaUpdated={setBeritaList}
+              />
             )}
 
-            {/* TAB 7: KALENDER AGENDA TERPADU (DUAL-PANE MASTER-DETAIL) */}
+            {/* TAB 7: KALENDER AGENDA KEGIATAN */}
             {activeTab === "kalender" && (
-              <div className="space-y-6 animate-in fade-in duration-200">
-                {/* Header Kalender Dashboard */}
-                <div className="bg-white dark:bg-[#001438] p-4 sm:p-5 border border-[#00296E]/15 dark:border-white/10 shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-[#00296E]/15 dark:border-white/10 shrink-0">
-                      <CalendarBlank className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider flex items-center gap-2">
-                        <span>Kalender Agenda Organisasi & Kampus</span>
-                        <span className="px-2 py-0.5 rounded-none text-[10px] font-mono border border-[#00296E]/20 dark:border-sky-400/30 bg-[#00296E]/5 dark:bg-sky-500/10 text-[#00296E] dark:text-[#38BDF8]">
-                          {agendaList.length} AGENDAS
-                        </span>
-                      </h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Kelola jadwal kegiatan HIMASI, agenda akademik kampus, dan hari libur nasional secara terpusat.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 w-full md:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => fetchAgendaList()}
-                      disabled={loadingAgenda}
-                      className="p-2.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer disabled:opacity-50 transition-colors shadow-none"
-                      title="Segarkan Data Kalender"
-                    >
-                      <ArrowsClockwise className={`w-4 h-4 ${loadingAgenda ? "animate-spin text-[#00296E] dark:text-[#38BDF8]" : ""}`} />
-                    </button>
-                    <Link
-                      href="/kalender"
-                      target="_blank"
-                      className="px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider transition-colors shadow-none flex items-center gap-1.5"
-                    >
-                      <ArrowSquareOut className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                      <span>Halaman Publik</span>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenTambahAgenda()}
-                      className="flex-1 md:flex-none px-4 py-2.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-none flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4 text-sky-300" />
-                      <span>+ Tambah Acara</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* DUAL-PANE CONTAINER: KALENDER VISUAL (KIRI) & PANEL DETAIL HARI TERPILIH (KANAN) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  {/* SISI KIRI: KALENDER BULANAN INTERAKTIF (7 KOLOM) */}
-                  <div className="lg:col-span-7 bg-white dark:bg-[#001438] p-5 sm:p-6 border border-[#00296E]/15 dark:border-white/10 shadow-none">
-                    {/* Header Navigasi Bulan */}
-                    <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/10 dark:border-white/10 mb-4">
-                      <div>
-                        <h3 className="text-base sm:text-lg font-semibold text-[#00296E] dark:text-white uppercase tracking-wider">
-                          {NAMA_BULAN_ID[adminCalMonth]} {adminCalYear}
-                        </h3>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
-                          Klik tanggal untuk melihat atau menambahkan agenda
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleAdminToday}
-                          className="px-2.5 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer"
-                        >
-                          Hari Ini
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleAdminPrevMonth}
-                          className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
-                          title="Bulan Sebelumnya"
-                        >
-                          <CaretLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleAdminNextMonth}
-                          className="p-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
-                          title="Bulan Selanjutnya"
-                        >
-                          <CaretRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Legend / Keterangan Kategori */}
-                    <div className="flex items-center gap-4 py-2 px-3 mb-3 bg-[#00296E]/5 dark:bg-white/5 border border-[#00296E]/10 dark:border-white/10 text-[11px] font-mono text-slate-600 dark:text-slate-300 flex-wrap">
-                      <span className="text-slate-400 font-bold uppercase">Kategori:</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 bg-[#1E88E5]" />
-                        <span>HIMASI</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 bg-[#F2B705]" />
-                        <span>Akademik</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 bg-[#8E24AA]" />
-                        <span>Libur</span>
-                      </div>
-                    </div>
-
-                    {/* Hari Singkat (Sen - Min) */}
-                    <div className="grid grid-cols-7 gap-1 text-center font-mono uppercase text-xs text-slate-400 dark:text-slate-500 mb-2">
-                      {HARI_SINGKAT.map((h) => (
-                        <div key={h} className="py-1">
-                          {h}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Grid Sel Kalender */}
-                    <div className="grid grid-cols-7 gap-1.5">
-                      {adminCalendarCells.map((cell, idx) => {
-                        const isDiffMonth = cell.monthOffset !== 0;
-                        const isSelected = cell.fullDate === adminSelectedDate;
-
-                        return (
-                          <div
-                            key={idx}
-                            onClick={() => {
-                              if (cell.monthOffset === -1) handleAdminPrevMonth();
-                              if (cell.monthOffset === 1) handleAdminNextMonth();
-                              setAdminSelectedDate(cell.fullDate);
-                            }}
-                            className={`min-h-[72px] sm:min-h-[82px] p-2 border transition-colors cursor-pointer flex flex-col justify-between ${
-                              isSelected
-                                ? "bg-[#00296E]/10 dark:bg-white/10 border-2 border-[#00296E] dark:border-[#38BDF8]"
-                                : cell.isToday
-                                ? "bg-amber-500/10 border-amber-400 dark:border-amber-500/50"
-                                : isDiffMonth
-                                ? "bg-slate-50/40 dark:bg-white/[0.02] border-[#00296E]/5 dark:border-white/5 opacity-30 hover:opacity-70"
-                                : "bg-white dark:bg-[#001438] border-[#00296E]/15 dark:border-white/10 hover:border-[#00296E] dark:hover:border-[#38BDF8]"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span
-                                className={`text-xs font-mono leading-none ${
-                                  isSelected
-                                    ? "text-[#00296E] dark:text-[#38BDF8] font-bold"
-                                    : cell.isToday
-                                    ? "text-amber-700 dark:text-amber-400 font-bold"
-                                    : "text-slate-700 dark:text-slate-300 font-medium"
-                                }`}
-                              >
-                                {cell.dayNumber}
-                              </span>
-                              {cell.isToday && (
-                                <span className="w-1.5 h-1.5 bg-amber-500" title="Hari Ini" />
-                              )}
-                            </div>
-
-                            {/* Dots Indikator Agenda */}
-                            <div className="flex items-center gap-1 flex-wrap mt-1">
-                              {cell.events.slice(0, 3).map((e) => {
-                                const meta = getCategoryMeta(e.kategori);
-                                return (
-                                  <span
-                                    key={e.id}
-                                    className={`w-2 h-2 ${meta.dot}`}
-                                    title={`${e.judul} (${meta.label})`}
-                                  />
-                                );
-                              })}
-                              {cell.events.length > 3 && (
-                                <span className="text-[9px] font-mono text-slate-400 leading-none">
-                                  +{cell.events.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* SISI KANAN: PANEL DETAIL HARI TERPILIH (5 KOLOM) */}
-                  <div className="lg:col-span-5 bg-white dark:bg-[#001438] p-5 sm:p-6 border border-[#00296E]/15 dark:border-white/10 shadow-none space-y-4">
-                    {/* Header Panel Tanggal */}
-                    <div className="flex items-center justify-between pb-3 border-b border-[#00296E]/10 dark:border-white/10">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-[#00296E]/15 dark:border-white/10">
-                          <CalendarBlank className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500">Agenda Tanggal:</h4>
-                          <p className="text-sm font-semibold text-[#00296E] dark:text-white">
-                            {formatTanggalIndoFull(adminSelectedDate)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleOpenTambahAgenda(adminSelectedDate)}
-                        className="px-3 py-1.5 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-sky-300" />
-                        <span>Tambah</span>
-                      </button>
-                    </div>
-
-                    {/* Daftar Acara pada Hari Terpilih */}
-                    {selectedDateEvents.length === 0 ? (
-                      <div className="py-12 px-4 bg-[#00296E]/5 dark:bg-white/5 border border-dashed border-[#00296E]/15 dark:border-white/10 text-center flex flex-col items-center justify-center">
-                        <div className="w-12 h-12 rounded-none bg-white dark:bg-[#001740] border border-[#00296E]/15 dark:border-white/10 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
-                          <CalendarBlank className="w-6 h-6" />
-                        </div>
-                        <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                          Tidak ada agenda di tanggal ini
-                        </h5>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-xs mt-1">
-                          Belum ada kegiatan organisasi HIMASI, agenda akademik kampus, maupun libur nasional yang dijadwalkan.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenTambahAgenda(adminSelectedDate)}
-                          className="mt-4 px-4 py-2 rounded-none bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5 text-sky-300" />
-                          <span>Buat Acara di Hari Ini</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 max-h-[560px] overflow-y-auto pr-1">
-                        {selectedDateEvents.map((event) => {
-                          const meta = getCategoryMeta(event.kategori);
-                          const isMultiDay = Boolean(
-                            event.tanggal_selesai && event.tanggal_selesai !== event.tanggal_mulai
-                          );
-
-                          return (
-                            <div
-                              key={event.id}
-                              className={`p-4 border ${meta.border} bg-white dark:bg-[#001740] shadow-none transition-colors flex flex-col justify-between gap-3`}
-                            >
-                              <div>
-                                <div className="flex items-center justify-between gap-2 mb-1.5">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span
-                                      className={`px-2 py-0.5 rounded-none text-[10px] font-mono uppercase tracking-wider ${meta.bgBadge} ${meta.textBadge}`}
-                                    >
-                                      {meta.label}
-                                    </span>
-                                    {event.status === "pending_review" && (
-                                      <span className="text-[10px] font-mono uppercase text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 border border-amber-500/20">
-                                        Menunggu ACC
-                                      </span>
-                                    )}
-                                    {event.status === "rejected" && (
-                                      <span className="text-[10px] font-mono uppercase text-rose-700 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 border border-rose-500/20">
-                                        Ditolak
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {isMultiDay && (
-                                    <span className="text-[10px] font-mono uppercase text-indigo-700 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 border border-indigo-500/20">
-                                      Rentang Hari
-                                    </span>
-                                  )}
-                                </div>
-
-                                <h5 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white leading-snug">
-                                  {event.judul}
-                                </h5>
-
-                                <div className="mt-2 space-y-1 text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                                  {isMultiDay && (
-                                    <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
-                                      <CalendarBlank className="w-3.5 h-3.5 shrink-0" />
-                                      <span>
-                                        {event.tanggal_mulai} s/d {event.tanggal_selesai}
-                                      </span>
-                                    </div>
-                                  )}
-                                  <div className="flex items-center gap-1.5">
-                                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                    <span>{event.waktu}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                    <span className="truncate">{event.lokasi}</span>
-                                  </div>
-                                </div>
-
-                                {event.deskripsi && (
-                                  <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed bg-[#00296E]/5 dark:bg-white/5 p-2 border border-[#00296E]/10 dark:border-white/10">
-                                    {event.deskripsi}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="pt-2.5 border-t border-[#00296E]/10 dark:border-white/10 flex items-center justify-end gap-1.5">
-                                {canPublishContent(currentUserRole) && event.status === "pending_review" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleApproveAgenda(event)}
-                                    className="px-2.5 py-1.5 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Check className="w-3 h-3 stroke-[3]" />
-                                    <span>Setujui Agenda</span>
-                                  </button>
-                                )}
-                                {(canEditPublishedContent(currentUserRole) || event.status !== "published") ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenEditAgenda(event)}
-                                      className="px-2.5 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/20 bg-white dark:bg-[#001740] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
-                                    >
-                                      <NotePencil className="w-3 h-3 text-[#00296E] dark:text-[#38BDF8]" />
-                                      <span>Edit</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setAgendaToDelete(event)}
-                                      className="px-2.5 py-1.5 rounded-none border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
-                                    >
-                                      <Trash className="w-3 h-3" />
-                                      <span>Hapus</span>
-                                    </button>
-                                  </>
-                                ) : (
-                                  <span className="text-[10px] font-mono text-slate-400 px-2 py-1 bg-[#00296E]/5 dark:bg-white/5 border border-[#00296E]/10 dark:border-white/10 uppercase">
-                                    Terkurasi Medkominfo
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <KalenderManager
+                currentUserRole={currentUserRole}
+                currentUserName={currentUserName}
+                showToast={showToast}
+              />
             )}
 
             {/* TAB 8: SUPABASE DATABASE HUB */}
@@ -5585,6 +4291,7 @@ NOTIFY pgrst, 'reload schema';`;
             )}
 
           </div>
+          </DashboardTabErrorBoundary>
         </main>
 
       </div>
@@ -6267,295 +4974,6 @@ NOTIFY pgrst, 'reload schema';`;
         </div>
       )}
 
-      {/* POPUP MODAL: TAMBAH / EDIT AGENDA KALENDER */}
-      {isAgendaModalOpen && (
-        <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200"
-          onClick={() => !savingAgenda && setIsAgendaModalOpen(false)}
-        >
-          <div
-            className="relative w-full max-w-lg rounded-none bg-white dark:bg-[#001438] p-6 sm:p-7 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 my-8 text-slate-900 dark:text-white"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header Modal */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#00296E]/15 dark:border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-none bg-sky-50 dark:bg-sky-950/40 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-sky-100 dark:border-sky-800/40">
-                  <CalendarBlank className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-[#00296E] dark:text-white">
-                    {editingAgenda ? "Edit Agenda Acara" : "Tambah Agenda Baru"}
-                  </h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-400">
-                    Jadwalkan kegiatan organisasi, agenda akademik, atau libur nasional
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={savingAgenda}
-                onClick={() => setIsAgendaModalOpen(false)}
-                className="p-1.5 rounded-none text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Form Agenda */}
-            <form onSubmit={handleSaveAgenda} className="mt-5 space-y-4">
-              {/* Judul Agenda */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Judul Agenda / Acara <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formAgendaJudul}
-                  onChange={(e) => setFormAgendaJudul(e.target.value)}
-                  placeholder="Contoh: Malam Keakraban (MAKRAB) HIMASI 2026"
-                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                />
-              </div>
-
-              {/* Kategori Agenda */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Kategori Agenda <span className="text-rose-500">*</span>
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["HIMASI", "Akademik", "Libur"] as EventCategory[]).map((cat) => {
-                    const isSelected = formAgendaKategori === cat;
-                    const meta = getCategoryMeta(cat);
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setFormAgendaKategori(cat)}
-                        className={`p-2.5 rounded-none border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                          isSelected
-                            ? `${meta.border} ${meta.bgBadge} ${meta.textBadge} ring-1 ring-[#0094E0]/40 shadow-none`
-                            : "border-slate-200 dark:border-white/15 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10"
-                        }`}
-                      >
-                        <span className={`w-2.5 h-2.5 rounded-full ${meta.dot}`} />
-                        <span>{meta.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Checkbox Rentang Tanggal */}
-              <div className="p-3 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formAgendaIsMultiDay}
-                    onChange={(e) => setFormAgendaIsMultiDay(e.target.checked)}
-                    className="w-4 h-4 rounded-none text-[#0094E0] focus:ring-[#0094E0] border-slate-300 dark:border-white/20"
-                  />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Acara berlangsung beberapa hari (Rentang Tanggal)
-                  </span>
-                </label>
-                <p className="text-[11px] text-slate-400 dark:text-slate-400 ml-6 mt-0.5">
-                  Centang jika acara memakan waktu lebih dari 1 hari (contoh: UTS, Sidang Gelombang I).
-                </p>
-              </div>
-
-              {/* Input Tanggal */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    {formAgendaIsMultiDay ? "Tanggal Mulai" : "Tanggal Pelaksanaan"}{" "}
-                    <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formAgendaTanggalMulai}
-                    onChange={(e) => {
-                      setFormAgendaTanggalMulai(e.target.value);
-                      if (!formAgendaTanggalSelesai || formAgendaTanggalSelesai < e.target.value) {
-                        setFormAgendaTanggalSelesai(e.target.value);
-                      }
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all"
-                  />
-                </div>
-
-                {formAgendaIsMultiDay && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Tanggal Selesai <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      min={formAgendaTanggalMulai}
-                      value={formAgendaTanggalSelesai}
-                      onChange={(e) => setFormAgendaTanggalSelesai(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Waktu & Lokasi */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Waktu / Jam Pelaksanaan
-                  </label>
-                  <input
-                    type="text"
-                    value={formAgendaWaktu}
-                    onChange={(e) => setFormAgendaWaktu(e.target.value)}
-                    placeholder="Contoh: 08.30 - 15.00 WIB atau Sepanjang Hari"
-                    className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Lokasi Pelaksanaan
-                  </label>
-                  <input
-                    type="text"
-                    value={formAgendaLokasi}
-                    onChange={(e) => setFormAgendaLokasi(e.target.value)}
-                    placeholder="Contoh: Auditorium Utama / Online (Zoom)"
-                    className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                  />
-                </div>
-              </div>
-
-              {/* Deskripsi */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Keterangan / Deskripsi Acara
-                </label>
-                <textarea
-                  rows={2}
-                  value={formAgendaDeskripsi}
-                  onChange={(e) => setFormAgendaDeskripsi(e.target.value)}
-                  placeholder="Keterangan singkat mengenai agenda atau sasaran kegiatan..."
-                  className="w-full px-3.5 py-2.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white text-xs font-normal focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-3 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  disabled={savingAgenda}
-                  onClick={() => setIsAgendaModalOpen(false)}
-                  className="px-4 py-2.5 rounded-none border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingAgenda}
-                  className="px-5 py-2.5 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {savingAgenda ? (
-                    <>
-                      <ArrowsClockwise className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
-                      <span>Menyimpan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-[#38BDF8] dark:text-[#001740]" />
-                      <span>{editingAgenda ? "Simpan Perubahan" : "Terbitkan Agenda"}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* POPUP MODAL: KONFIRMASI HAPUS AGENDA KALENDER */}
-      {agendaToDelete && (
-        <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={() => !deletingAgenda && setAgendaToDelete(null)}
-        >
-          <div
-            className="relative w-full max-w-sm rounded-none bg-white dark:bg-[#001438] p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-center text-slate-900 dark:text-white"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-12 h-12 rounded-none bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto mb-4">
-              <Trash className="w-6 h-6" />
-            </div>
-
-            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-              Hapus Agenda Kalender?
-            </h3>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-              Anda akan menghapus agenda berikut dari kalender organisasi:
-            </p>
-
-            {/* Preview Agenda yang akan dihapus */}
-            <div className="mt-4 p-3 bg-slate-50 dark:bg-white/5 rounded-none border border-[#00296E]/15 dark:border-white/10 text-left">
-              <span
-                className={`inline-block px-2 py-0.5 rounded-none text-[9px] font-bold mb-1 ${
-                  getCategoryMeta(agendaToDelete.kategori).bgBadge
-                } ${getCategoryMeta(agendaToDelete.kategori).textBadge}`}
-              >
-                {getCategoryMeta(agendaToDelete.kategori).label}
-              </span>
-              <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug">
-                {agendaToDelete.judul}
-              </h4>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                {agendaToDelete.tanggal_mulai}
-                {agendaToDelete.tanggal_selesai && ` s/d ${agendaToDelete.tanggal_selesai}`} &bull; {agendaToDelete.waktu}
-              </p>
-            </div>
-
-            <div className="mt-4 p-2.5 rounded-none bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-[11px] font-medium text-left">
-              Agenda ini tidak akan tampil lagi di kalender publik HIMASI.
-            </div>
-
-            <div className="mt-6 flex items-center gap-2.5">
-              <button
-                type="button"
-                disabled={deletingAgenda}
-                onClick={() => setAgendaToDelete(null)}
-                className="flex-1 py-2.5 rounded-none border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={deletingAgenda}
-                onClick={handleConfirmDeleteAgenda}
-                className="flex-1 py-2.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {deletingAgenda ? (
-                  <>
-                    <ArrowsClockwise className="w-3.5 h-3.5 animate-spin" />
-                    <span>Menghapus...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash className="w-3.5 h-3.5" />
-                    <span>Ya, Hapus</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-
       {/* POPUP MODAL: TAMBAH KEGIATAN BARU */}
       {isTambahKegiatanModalOpen && (
         <div
@@ -6794,538 +5212,17 @@ NOTIFY pgrst, 'reload schema';`;
         </div>
       )}
 
-      {/* POPUP MODAL: TAMBAH / EDIT BERITA */}
-      {isBeritaModalOpen && (
-        <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200"
-          onClick={() => !savingBerita && setIsBeritaModalOpen(false)}
-        >
-          <div
-            className="relative w-full max-w-2xl rounded-none bg-white dark:bg-[#001438] p-5 sm:p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 my-8 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-[#00296E]/15 dark:border-white/10">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-none bg-slate-100 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10">
-                  {editingBerita ? (
-                    <NotePencil className="w-4 h-4 text-slate-700 dark:text-[#38BDF8]" />
-                  ) : (
-                    <Newspaper className="w-4 h-4 text-slate-700 dark:text-[#38BDF8]" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-[#00296E] dark:text-white">
-                    {editingBerita ? "Edit Artikel Berita" : "Tulis Artikel Berita Baru"}
-                  </h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
-                    {editingBerita
-                      ? `Perbarui rincian artikel: ${editingBerita.title}`
-                      : "Publikasikan Berita, kegiatan, atau pengumuman resmi himpunan."}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={savingBerita}
-                onClick={() => setIsBeritaModalOpen(false)}
-                className="p-1.5 rounded-none text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSaveBerita} className="mt-4 space-y-4">
-              {/* Field 1: Judul Berita */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Judul Berita <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Pelantikan Pengurus Kabinet REKSABUDAYA 2026"
-                  value={formBeritaTitle}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                />
-              </div>
-
-              {/* Field 2 & 3: Slug URL & Kategori */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-                    <span>Slug URL Khusus:</span>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">Otomatis dari judul</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 select-none">
-                      /berita/
-                    </span>
-                    <input
-                      type="text"
-                      required
-                      placeholder="pelantikan-pengurus-2026"
-                      value={formBeritaSlug}
-                      onChange={(e) => {
-                        setFormBeritaSlug(e.target.value);
-                        setSlugManuallyEdited(true);
-                      }}
-                      className="w-full pl-16 pr-3 py-2 text-xs font-mono rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Kategori Berita:
-                  </label>
-                  <select
-                    value={formBeritaCategoryKey}
-                    onChange={(e) => {
-                      const selected = KATEGORI_BERITA.find((k) => k.key === e.target.value);
-                      if (selected) {
-                        setFormBeritaCategoryKey(selected.key);
-                        setFormBeritaCategoryLabel(selected.label);
-                      }
-                    }}
-                    className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] bg-slate-50 dark:bg-[#001740] cursor-pointer font-medium text-slate-900 dark:text-white"
-                  >
-                    {KATEGORI_BERITA.map((k) => (
-                      <option key={k.key} value={k.key}>
-                        {k.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Field 4 & 5: Penulis & Waktu Baca */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Penulis / Departemen:
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Departemen Medkominfo"
-                    value={formBeritaAuthor}
-                    onChange={(e) => setFormBeritaAuthor(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Estimasi Waktu Baca:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: 5 min read"
-                    value={formBeritaReadTime}
-                    onChange={(e) => setFormBeritaReadTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                  />
-                </div>
-              </div>
-
-              {/* Field 6: Sistem Unggah Foto Sampul Berita */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-[#0094E0] dark:text-[#38BDF8]" />
-                    <span>Foto Sampul Berita (Cover Image):</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">
-                    Format: JPG, PNG, WebP (Rasio ideal 16:9)
-                  </span>
-                </label>
-
-                {/* Input File Tersembunyi */}
-                <input
-                  type="file"
-                  ref={beritaFileInputRef}
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      processAndUploadBeritaPhoto(file);
-                    }
-                    e.target.value = "";
-                  }}
-                />
-
-                {formBeritaImage ? (
-                  /* Kartu Pratinjau Foto Sampul Terpasang */
-                  <div className="relative rounded-none border border-[#00296E]/20 dark:border-white/10 overflow-hidden bg-slate-100 dark:bg-black/30 group shadow-none">
-                    <div className="relative w-full aspect-[16/8] sm:aspect-[16/7] overflow-hidden">
-                      <img
-                        src={formBeritaImage}
-                        alt="Preview Sampul Berita"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = "/DSC01203.jpg";
-                        }}
-                      />
-
-                      {/* Badge Status Terpasang */}
-                      <div className="absolute top-3 left-3 bg-[#00296E]/90 dark:bg-[#001438]/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-none border border-white/20 shadow-none flex items-center gap-1.5">
-                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Foto Sampul Terpasang</span>
-                      </div>
-
-                      {/* Overlay Tombol Aksi Desktop */}
-                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4">
-                        <button
-                          type="button"
-                          disabled={uploadingBeritaImage}
-                          onClick={() => beritaFileInputRef.current?.click()}
-                          className="px-4 py-2 rounded-none bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-white text-xs font-bold shadow-none flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 border border-slate-200 dark:border-white/10"
-                        >
-                          <UploadSimple className="w-3.5 h-3.5 text-[#0094E0]" />
-                          <span>Ganti Foto</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormBeritaImage("")}
-                          className="px-4 py-2 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-none flex items-center gap-1.5 transition-all cursor-pointer"
-                        >
-                          <Trash className="w-3.5 h-3.5" />
-                          <span>Hapus</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Tombol Aksi Mobile / Sentuh */}
-                    <div className="flex sm:hidden items-center justify-between p-2.5 bg-white dark:bg-[#001438] border-t border-[#00296E]/15 dark:border-white/10">
-                      <button
-                        type="button"
-                        onClick={() => beritaFileInputRef.current?.click()}
-                        className="text-xs font-bold text-[#0094E0] dark:text-[#38BDF8] flex items-center gap-1 py-1 px-2 cursor-pointer"
-                      >
-                        <UploadSimple className="w-3.5 h-3.5" />
-                        <span>Ganti Foto</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormBeritaImage("")}
-                        className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 py-1 px-2 cursor-pointer"
-                      >
-                        <Trash className="w-3.5 h-3.5" />
-                        <span>Hapus Foto</span>
-                      </button>
-                    </div>
-
-                    {/* Indikator Loading saat Unggah Ulang */}
-                    {uploadingBeritaImage && (
-                      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-bold gap-2">
-                        <ArrowsClockwise className="w-6 h-6 animate-spin text-sky-300" />
-                        <span>Sedang mengompresi & mengunggah foto...</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* Area Dropzone Unggah Berkas */
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDraggingOverBerita(true);
-                    }}
-                    onDragLeave={(e) => {
-                      e.preventDefault();
-                      setIsDraggingOverBerita(false);
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setIsDraggingOverBerita(false);
-                      const file = e.dataTransfer.files?.[0];
-                      if (file) {
-                        processAndUploadBeritaPhoto(file);
-                      }
-                    }}
-                    onClick={() => beritaFileInputRef.current?.click()}
-                    className={`relative rounded-none border border-dashed p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
-                      isDraggingOverBerita
-                        ? "border-[#0094E0] bg-sky-50/80 dark:bg-sky-950/30"
-                        : "border-[#00296E]/20 dark:border-white/15 hover:border-[#0094E0] bg-slate-50 dark:bg-white/5"
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-none bg-sky-50 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shadow-none">
-                      <UploadSimple className="w-6 h-6 text-[#0094E0] dark:text-[#38BDF8]" />
-                    </div>
-
-                    <div>
-                      <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                        {uploadingBeritaImage
-                          ? "Sedang memproses foto..."
-                          : "Klik atau seret (drag & drop) berkas foto ke sini"}
-                      </p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-1">
-                        Format: PNG, JPG, JPEG, atau WebP (otomatis dikompresi)
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={uploadingBeritaImage}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        beritaFileInputRef.current?.click();
-                      }}
-                      className="mt-1 px-4 py-2 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                    >
-                      <UploadSimple className="w-3.5 h-3.5 text-sky-300 dark:text-[#001740]" />
-                      <span>{uploadingBeritaImage ? "Memproses..." : "Pilih Foto dari Perangkat"}</span>
-                    </button>
-
-                    {/* Loading Overlay */}
-                    {uploadingBeritaImage && (
-                      <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 rounded-none flex flex-col items-center justify-center gap-2">
-                        <ArrowsClockwise className="w-6 h-6 animate-spin text-[#00296E] dark:text-[#38BDF8]" />
-                        <span className="text-xs font-bold text-slate-800 dark:text-white">Mengompresi & mengunggah gambar...</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Field 7: Ringkasan / Excerpt */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-                  <span>Ringkasan Singkat (Excerpt):</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">Tampil pada kartu beranda/katalog</span>
-                </label>
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="Ringkasan 1-2 kalimat pengantar isi berita..."
-                  value={formBeritaExcerpt}
-                  onChange={(e) => setFormBeritaExcerpt(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white leading-relaxed placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
-                />
-              </div>
-
-              {/* Field 8: Konten Berita Lengkap */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-                  <span>Isi Konten Artikel Lengkap:</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-400 font-mono">
-                    {formBeritaContent.split(/\s+/).filter(Boolean).length} kata &bull; {formBeritaReadTime}
-                  </span>
-                </label>
-                <textarea
-                  rows={7}
-                  required
-                  placeholder="Tuliskan berita lengkap di sini. Gunakan baris baru antar paragraf..."
-                  value={formBeritaContent}
-                  onChange={(e) => handleContentChange(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white leading-relaxed placeholder:text-slate-400 dark:placeholder:text-slate-500 font-normal"
-                />
-              </div>
-
-              {/* Checkbox Status Terbit */}
-              <div className="flex items-center justify-between p-3 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10">
-                <label htmlFor="formBeritaIsPublished" className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    id="formBeritaIsPublished"
-                    checked={formBeritaIsPublished}
-                    onChange={(e) => setFormBeritaIsPublished(e.target.checked)}
-                    className="w-4 h-4 rounded-none text-[#00296E] focus:ring-[#00296E] cursor-pointer"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Publikasikan Sekarang (Status Terbit)
-                    </span>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-400">
-                      Jika dinonaktifkan, berita disimpan sebagai Draf dan tidak muncul di halaman publik.
-                    </p>
-                  </div>
-                </label>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-none ${
-                    formBeritaIsPublished
-                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40"
-                      : "bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400"
-                  }`}
-                >
-                  {formBeritaIsPublished ? "Terbit" : "Draft"}
-                </span>
-              </div>
-
-              {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#00296E]/15 dark:border-white/10">
-                <button
-                  type="button"
-                  disabled={savingBerita}
-                  onClick={() => setIsBeritaModalOpen(false)}
-                  className="px-4 py-2 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingBerita}
-                  className="px-5 py-2 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {savingBerita ? (
-                    <>
-                      <ArrowsClockwise className="w-3.5 h-3.5 animate-spin text-white dark:text-[#001740]" />
-                      <span>Menyimpan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-[#38BDF8] dark:text-[#001740]" />
-                      <span>{editingBerita ? "Perbarui Berita" : "Terbitkan Berita"}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* POPUP MODAL: KONFIRMASI HAPUS BERITA */}
-      {beritaToDelete && (
-        <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={() => !deletingBerita && setBeritaToDelete(null)}
-        >
-          <div
-            className="relative w-full max-w-md rounded-none bg-white dark:bg-[#001438] p-5 sm:p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-slate-900 dark:text-white"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 pb-3 border-b border-[#00296E]/15 dark:border-white/10">
-              <div className="w-10 h-10 rounded-none bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center shrink-0">
-                <Trash className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  Hapus Artikel Berita?
-                </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
-                  Tindakan ini tidak dapat dibatalkan.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3.5 p-3 rounded-none bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 text-xs">
-              <p className="text-slate-700 dark:text-slate-300 font-bold line-clamp-2">
-                &ldquo;{beritaToDelete.title}&rdquo;
-              </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-mono">
-                /berita/{beritaToDelete.slug}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-4 mt-2">
-              <button
-                type="button"
-                disabled={deletingBerita}
-                onClick={() => setBeritaToDelete(null)}
-                className="px-4 py-2 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={deletingBerita}
-                onClick={handleConfirmDeleteBerita}
-                className="px-4 py-2 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {deletingBerita ? (
-                  <>
-                    <ArrowsClockwise className="w-3.5 h-3.5 animate-spin text-white" />
-                    <span>Menghapus...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash className="w-3.5 h-3.5 text-rose-200" />
-                    <span>Ya, Hapus Artikel</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* POPUP MODAL: TOLAK Berita DENGAN CATATAN REVISI */}
-      {rejectingBeritaItem && (
-        <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={() => setRejectingBeritaItem(null)}
-        >
-          <div
-            className="relative w-full max-w-md rounded-none bg-white dark:bg-[#001438] p-5 sm:p-6 shadow-none animate-in zoom-in-95 duration-200 border border-[#00296E]/20 dark:border-white/10 text-slate-900 dark:text-white"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 pb-3 border-b border-[#00296E]/15 dark:border-white/10">
-              <div className="w-10 h-10 rounded-none bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center shrink-0">
-                <WarningCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  Kembalikan Berita untuk Revisi
-                </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
-                  Berikan catatan perbaikan kepada kontributor Berita.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3.5 p-3 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 text-xs">
-              <p className="text-slate-700 dark:text-slate-300 font-bold line-clamp-1">
-                &ldquo;{rejectingBeritaItem.title}&rdquo;
-              </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Penulis: {rejectingBeritaItem.author} &bull; /berita/{rejectingBeritaItem.slug}
-              </p>
-            </div>
-
-            <div className="mt-3">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Catatan Revisi / Alasan Penolakan: <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                rows={3}
-                required
-                value={catatanRevisiBerita}
-                onChange={(e) => setCatatanRevisiBerita(e.target.value)}
-                placeholder="Contoh: Tolong perbaiki resolusi foto sampul dan lengkapi rincian narasumber..."
-                className="w-full p-2.5 text-xs rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 leading-relaxed resize-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-4 mt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setRejectingBeritaItem(null);
-                  setCatatanRevisiBerita("");
-                }}
-                className="px-4 py-2 rounded-none text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={!catatanRevisiBerita.trim()}
-                onClick={handleConfirmRejectBerita}
-                className="px-4 py-2 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                <span>Kirim Catatan &amp; Tolak</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
+      {/* COMMAND PALETTE POPUP MODAL (CTRL + K / CMD + K - Tahap 3) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNavigateTab={handleTabChange}
+        currentUserRole={currentUserRole}
+        onToggleTheme={toggleTheme}
+        isDarkMode={theme === "dark"}
+        onRefreshData={fetchAspirasi}
+        showToast={showToast}
+      />
 
       {/* FLOATING TOAST NOTIFICATION */}
       {toastMessage && (

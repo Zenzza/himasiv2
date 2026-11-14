@@ -41,7 +41,13 @@ export default function StepConfirmation({
     setErrorMessage(null);
 
     try {
-      const res = await castStudentVote(sesiId, voter.id, selectedKandidat.id);
+      const res = await castStudentVote(
+        sesiId,
+        voter.id,
+        selectedKandidat.id,
+        voter.nim,
+        voter.tanggal_lahir
+      );
       if (res.success && res.receiptId) {
         onSuccess(res.receiptId);
       } else {

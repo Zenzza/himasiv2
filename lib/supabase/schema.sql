@@ -580,6 +580,99 @@ BEGIN
   END;
 END $$;
 
+-- ===================================================================
+-- 16. SISTEM E-VOTING KETUA HIMPUNAN (BILIK SUARA & CMS EVOTE)
+-- ===================================================================
+
+-- 1. Tabel Sesi Pemilihan
+CREATE TABLE IF NOT EXISTS public.voting_sesi (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  judul TEXT NOT NULL,
+  tahun_periode VARCHAR(20) NOT NULL,
+  deskripsi TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'draft',         -- 'draft', 'open', 'closed', 'archived'
+  is_results_unlocked BOOLEAN NOT NULL DEFAULT false,  -- blind vote status flag
+  opened_at TIMESTAMPTZ,
+  closed_at TIMESTAMPTZ,
+  unlocked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. Tabel Kandidat Calon (Paslon / Alternatif Kotak Kosong)
+CREATE TABLE IF NOT EXISTS public.voting_kandidat (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sesi_id UUID NOT NULL REFERENCES public.voting_sesi(id) ON DELETE CASCADE,
+  nomor_urut INT NOT NULL,
+  nama_calon TEXT NOT NULL,
+  foto_url TEXT,
+  visi TEXT,
+  misi TEXT,
+  program_kerja TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. Tabel Daftar Pemilih Tetap (DPT) Mahasiswa
+CREATE TABLE IF NOT EXISTS public.voting_dpt (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sesi_id UUID NOT NULL REFERENCES public.voting_sesi(id) ON DELETE CASCADE,
+  nim VARCHAR(20) NOT NULL,
+  nama_lengkap TEXT NOT NULL,
+  tanggal_lahir DATE NOT NULL,
+  sudah_memilih BOOLEAN NOT NULL DEFAULT false,
+  voted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(sesi_id, nim)
+);
+
+-- 4. Tabel Kotak Suara Digital Anonim (Asas Luber Jurdil - Tanpa Kolom NIM / Pemilih)
+CREATE TABLE IF NOT EXISTS public.voting_suara (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sesi_id UUID NOT NULL REFERENCES public.voting_sesi(id) ON DELETE CASCADE,
+  kandidat_id UUID NOT NULL REFERENCES public.voting_kandidat(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_voting_sesi_status ON public.voting_sesi(status);
+CREATE INDEX IF NOT EXISTS idx_voting_kandidat_sesi ON public.voting_kandidat(sesi_id, nomor_urut);
+CREATE INDEX IF NOT EXISTS idx_voting_dpt_lookup ON public.voting_dpt(sesi_id, nim, tanggal_lahir);
+CREATE INDEX IF NOT EXISTS idx_voting_dpt_status ON public.voting_dpt(sesi_id, sudah_memilih);
+CREATE INDEX IF NOT EXISTS idx_voting_suara_sesi ON public.voting_suara(sesi_id, kandidat_id);
+
+-- Hak Akses API & Izin Akses CRUD Publik & Admin
+GRANT ALL ON TABLE public.voting_sesi TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.voting_kandidat TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.voting_dpt TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.voting_suara TO anon, authenticated, service_role;
+
+-- Nonaktifkan RLS agar operasi voting & CMS admin berjalan konsisten di semua browser
+ALTER TABLE public.voting_sesi DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_kandidat DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_dpt DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_suara DISABLE ROW LEVEL SECURITY;
+
+-- Kebijakan Permisif Cadangan (Bila administrator menyalakan kembali RLS)
+DROP POLICY IF EXISTS "voting_sesi_all" ON public.voting_sesi;
+CREATE POLICY "voting_sesi_all" ON public.voting_sesi FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "voting_kandidat_all" ON public.voting_kandidat;
+CREATE POLICY "voting_kandidat_all" ON public.voting_kandidat FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "voting_dpt_all" ON public.voting_dpt;
+CREATE POLICY "voting_dpt_all" ON public.voting_dpt FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "voting_suara_all" ON public.voting_suara;
+CREATE POLICY "voting_suara_all" ON public.voting_suara FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.voting_sesi, public.voting_kandidat, public.voting_dpt;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+END $$;
+
 NOTIFY pgrst, 'reload schema';
 
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAspirasiById, updateAspirasiEmailStatus } from "@/lib/supabase/aspirasi";
 import { sendAspirasiEmail } from "@/lib/email/aspirasi-mailer";
 import { maskEmail } from "@/lib/utils/mask-email";
+import { verifyServerAdminAuth } from "@/lib/supabase/auth-guard";
 
 /**
  * POST /api/aspirasi/retry-email
@@ -11,6 +12,20 @@ import { maskEmail } from "@/lib/utils/mask-email";
  */
 export async function POST(request: Request) {
   try {
+    // 0. Autentikasi Pengurus (Server-side Session & Role Guard)
+    const authCheck = await verifyServerAdminAuth(request);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            authCheck.error ||
+            "Akses ditolak: Anda harus login sebagai pengurus untuk mengirim ulang email.",
+        },
+        { status: 401 }
+      );
+    }
+
     let body: any;
     try {
       body = await request.json();

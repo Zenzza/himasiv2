@@ -499,12 +499,12 @@ const dashboardSrc = fs.readFileSync(dashboardPagePath, "utf-8");
 
 assert.match(
   dashboardSrc,
-  /import\s+AspirasiManager\s+from\s+["']@\/components\/dashboard\/aspirasi-manager["']/,
+  /(?:import\s+AspirasiManager\s+from\s+["']@\/components\/dashboard\/aspirasi-manager["']|import\(["']@\/components\/dashboard\/aspirasi-manager["']\))/,
   "app/dashboard/page.tsx must import AspirasiManager"
 );
 assert.ok(
-  dashboardSrc.includes("<AspirasiManager currentUserRole={currentUserRole} />"),
-  "app/dashboard/page.tsx must mount <AspirasiManager currentUserRole={currentUserRole} />"
+  dashboardSrc.includes("<AspirasiManager currentUserRole={currentUserRole}"),
+  "app/dashboard/page.tsx must mount <AspirasiManager currentUserRole={currentUserRole} ... />"
 );
 assert.ok(
   !dashboardSrc.includes("Pesan dan masukan mahasiswa melalui form aspirasi beranda."),

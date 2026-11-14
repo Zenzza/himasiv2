@@ -32,23 +32,23 @@ export default function BeritaAcaraSignatoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white dark:bg-[#001438] border border-[#00296E]/20 dark:border-white/15 rounded-none max-w-lg w-full shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#00296E]/15 dark:border-white/10">
           <div className="flex items-center gap-2">
-            <PenNib className="w-5 h-5 text-[#00296E] dark:text-blue-400" />
+            <PenNib className="w-5 h-5 text-[#00296E] dark:text-[#38BDF8]" />
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white font-mono uppercase tracking-wider">
+              <h3 className="text-sm font-bold text-[#00296E] dark:text-white font-mono uppercase tracking-wider">
                 Konfigurasi Penandatangan Berita Acara
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Atur nama &amp; NIM panitia KPU dan saksi resmi yang tercetak di lembar Berita Acara
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            className="p-1 rounded-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -56,8 +56,8 @@ export default function BeritaAcaraSignatoryModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Ketua KPU */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#00296E] dark:text-blue-400 block">
+          <div className="p-4 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 space-y-2">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#00296E] dark:text-[#38BDF8] block">
               1. Ketua Panitia Pemilihan / KPU
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -66,7 +66,7 @@ export default function BeritaAcaraSignatoryModal({
                 placeholder="Nama Lengkap"
                 value={signatories.nama_ketua_kpu}
                 onChange={(e) => handleChange("nama_ketua_kpu", e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg"
+                className="px-3 py-1.5 text-xs bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white"
                 required
               />
               <input
@@ -74,14 +74,14 @@ export default function BeritaAcaraSignatoryModal({
                 placeholder="NIM"
                 value={signatories.nim_ketua_kpu}
                 onChange={(e) => handleChange("nim_ketua_kpu", e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-mono"
+                className="px-3 py-1.5 text-xs bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white font-mono"
                 required
               />
             </div>
           </div>
 
           {/* Saksi Paslon 1 */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+          <div className="p-4 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 space-y-2">
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
               2. Saksi Kandidat 01
             </span>
@@ -91,7 +91,7 @@ export default function BeritaAcaraSignatoryModal({
                 placeholder="Nama Saksi 1"
                 value={signatories.nama_saksi_1}
                 onChange={(e) => handleChange("nama_saksi_1", e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg"
+                className="px-3 py-1.5 text-xs bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white"
                 required
               />
               <input
@@ -99,14 +99,14 @@ export default function BeritaAcaraSignatoryModal({
                 placeholder="NIM Saksi 1"
                 value={signatories.nim_saksi_1}
                 onChange={(e) => handleChange("nim_saksi_1", e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-mono"
+                className="px-3 py-1.5 text-xs bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white font-mono"
                 required
               />
             </div>
           </div>
 
           {/* Saksi Kotak Kosong / Alternatif */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+          <div className="p-4 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 space-y-2">
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
               3. Saksi Kotak Kosong / Saksi Independen
             </span>
@@ -116,7 +116,7 @@ export default function BeritaAcaraSignatoryModal({
                 placeholder="Nama Saksi 2"
                 value={signatories.nama_saksi_2}
                 onChange={(e) => handleChange("nama_saksi_2", e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg"
+                className="px-3 py-1.5 text-xs bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white"
                 required
               />
               <input
@@ -124,14 +124,14 @@ export default function BeritaAcaraSignatoryModal({
                 placeholder="NIM Saksi 2"
                 value={signatories.nim_saksi_2}
                 onChange={(e) => handleChange("nim_saksi_2", e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-mono"
+                className="px-3 py-1.5 text-xs bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white font-mono"
                 required
               />
             </div>
           </div>
 
           {/* Ketua Umum HIMASI */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+          <div className="p-4 rounded-none bg-slate-50 dark:bg-white/5 border border-[#00296E]/15 dark:border-white/10 space-y-2">
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
               4. Mengetahui: Ketua Umum HIMASI
             </span>
@@ -141,7 +141,7 @@ export default function BeritaAcaraSignatoryModal({
                 placeholder="Nama Ketua Umum"
                 value={signatories.nama_ketua_umum}
                 onChange={(e) => handleChange("nama_ketua_umum", e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg"
+                className="px-3 py-1.5 text-xs bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white"
                 required
               />
               <input
@@ -149,23 +149,23 @@ export default function BeritaAcaraSignatoryModal({
                 placeholder="NIM"
                 value={signatories.nim_ketua_umum}
                 onChange={(e) => handleChange("nim_ketua_umum", e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-mono"
+                className="px-3 py-1.5 text-xs bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white font-mono"
                 required
               />
             </div>
           </div>
 
-          <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="pt-4 flex items-center justify-end gap-2 border-t border-[#00296E]/15 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+              className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 border border-[#00296E]/20 dark:border-white/20 rounded-none transition cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#00296E] hover:bg-[#002055] rounded-lg shadow-sm transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-[#00296E] hover:bg-[#001f54] rounded-none shadow-none transition cursor-pointer"
             >
               <Check className="w-3.5 h-3.5" />
               Simpan Konfigurasi

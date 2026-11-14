@@ -74,7 +74,7 @@ function getActionMeta(actionType: AuthEmailActionType, fullName?: string): Acti
           "Kami menerima permintaan untuk mengatur ulang kata sandi akun portal pengurus Anda. Jika Anda yang mengajukan permintaan ini, silakan klik tombol di bawah untuk membuat kata sandi baru.",
         ctaText: "Atur Ulang Kata Sandi Sekarang →",
         securityNotice:
-          "Tautan pemulihan ini berlaku selama 60 menit. Jika Anda tidak merasa meminta reset kata sandi, abaikan email ini dengan aman. Kata sandi lama Anda tidak akan berubah.",
+          "Tautan pemulihan ini berlaku hingga 24 jam (atau 60 menit sesuai pengaturan keamanan aktif). Jika Anda tidak merasa meminta reset kata sandi, abaikan email ini dengan aman. Kata sandi lama Anda tidak akan berubah.",
         subject: "[HIMASI] Permintaan Atur Ulang Kata Sandi Akun",
       };
 
@@ -167,6 +167,11 @@ export function generateAuthEmailHtml(params: SendAuthEmailParams): string {
           <!-- GRADIENT BRANDING CARD HEADER (Identik dengan form-aspirasi & login beranda) -->
           <tr>
             <td style="background-color: #00296E; background-image: linear-gradient(135deg, #00296E 0%, #002257 55%, #00173d 100%); padding: 36px 32px 30px 32px; text-align: left;">
+
+              <!-- Pill Badge -->
+              <div style="display: inline-block; padding: 4px 12px; background-color: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 9999px; font-size: 11px; font-weight: 700; color: #38BDF8; letter-spacing: 0.5px; margin-bottom: 14px; text-transform: uppercase;">
+                ${meta.badgeLabel}
+              </div>
 
               <!-- Header Headline -->
               <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px; line-height: 1.3;">

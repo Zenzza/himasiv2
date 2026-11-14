@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Trophy,
@@ -32,7 +32,10 @@ import {
   PaperPlaneTilt,
   Phone,
   Sparkle,
+  UploadSimple,
 } from "@phosphor-icons/react";
+import { supabase } from "@/lib/supabase/client";
+import { slugify } from "@/lib/utils/slug";
 import {
   type ApresiasiItem,
   type ApresiasiSubmisiItem,
@@ -1132,19 +1135,14 @@ export default function ApresiasiManager({
                 </span>
               </div>
 
-              <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
-                  URL Foto Banner / Dokumentasi <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={approveCustomImage}
-                  onChange={(e) => setApproveCustomImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/... atau URL foto"
-                  className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
-                />
-              </div>
+              {/* Unggah Foto Banner / Dokumentasi Showcase */}
+              <ApresiasiImageUpload
+                label="Foto Banner / Dokumentasi Showcase"
+                image={approveCustomImage}
+                onChange={setApproveCustomImage}
+                slugHint={approveModalSubmisi.title}
+                required
+              />
 
               <div className="pt-3 border-t border-[#00296E]/15 dark:border-white/10 flex items-center justify-end gap-2">
                 <button
@@ -1399,6 +1397,386 @@ export default function ApresiasiManager({
   );
 }
 
+// Sub-komponen Unggah Foto Apresiasi (Storage Supabase + Canvas Compression + Fallback)
+function ApresiasiImageUpload({
+  label = "Foto Dokumentasi / Banner",
+  image,
+  onChange,
+  slugHint = "karya",
+  required = true,
+}: {
+  label?: string;
+  image: string;
+  onChange: (val: string) => void;
+  slugHint?: string;
+  required?: boolean;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [showUrlField, setShowUrlField] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const setStatusWithTimeout = (
+    type: "success" | "error",
+    text: string,
+    durationMs = 3500
+  ) => {
+    setUploadStatus({ type, text });
+    if (durationMs > 0) {
+      setTimeout(() => {
+        setUploadStatus((prev) => (prev?.text === text ? null : prev));
+      }, durationMs);
+    }
+  };
+
+  const processAndUpload = async (file: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setStatusWithTimeout("error", "Hanya berkas gambar (JPG, PNG, WebP) yang diperbolehkan.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setStatusWithTimeout("error", "Ukuran berkas maksimal 5MB.");
+      return;
+    }
+
+    setUploading(true);
+    setUploadStatus(null);
+
+    try {
+      // 1. Kompresi gambar client-side dengan Canvas HTML5 (max 1200x800, JPEG 0.85)
+      const { optimizedBlob, base64Url } = await new Promise<{
+        optimizedBlob: Blob;
+        base64Url: string;
+      }>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.createElement("img");
+          img.onload = () => {
+            const maxW = 1200;
+            const maxH = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxW) {
+              height = Math.round((height * maxW) / width);
+              width = maxW;
+            }
+            if (height > maxH) {
+              width = Math.round((width * maxH) / height);
+              height = maxH;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              resolve({
+                optimizedBlob: file,
+                base64Url: (e.target?.result as string) || "",
+              });
+              return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+            const b64 = canvas.toDataURL("image/jpeg", 0.85);
+            canvas.toBlob(
+              (blob) => {
+                resolve({
+                  optimizedBlob: blob || file,
+                  base64Url: b64,
+                });
+              },
+              "image/jpeg",
+              0.85
+            );
+          };
+          img.onerror = reject;
+          img.src = (e.target?.result as string) || "";
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Tampilkan pratinjau instan langsung di UI
+      onChange(base64Url);
+
+      // 2. Unggah ke Supabase Storage (bucket 'foto-berita' dengan fallback ke 'foto-pengurus')
+      const cleanSlug = slugify(slugHint || "showcase") || "showcase";
+      const filePath = `apresiasi_${cleanSlug}_${Date.now()}.jpg`;
+
+      let uploadedUrl = "";
+      try {
+        const { data, error } = await supabase.storage
+          .from("foto-berita")
+          .upload(filePath, optimizedBlob, {
+            contentType: "image/jpeg",
+            cacheControl: "3600",
+            upsert: true,
+          });
+
+        if (!error && data) {
+          const { data: pubData } = supabase.storage
+            .from("foto-berita")
+            .getPublicUrl(filePath);
+          uploadedUrl = pubData?.publicUrl || "";
+        } else {
+          // Fallback ke bucket foto-pengurus
+          const { data: pData, error: pError } = await supabase.storage
+            .from("foto-pengurus")
+            .upload(`apresiasi_${filePath}`, optimizedBlob, {
+              contentType: "image/jpeg",
+              cacheControl: "3600",
+              upsert: true,
+            });
+          if (!pError && pData) {
+            const { data: pubData } = supabase.storage
+              .from("foto-pengurus")
+              .getPublicUrl(`apresiasi_${filePath}`);
+            uploadedUrl = pubData?.publicUrl || "";
+          }
+        }
+      } catch (storageErr) {
+        console.warn("Catatan upload storage apresiasi (fallback ke base64):", storageErr);
+      }
+
+      if (uploadedUrl) {
+        onChange(uploadedUrl);
+        setStatusWithTimeout("success", "Foto dokumentasi berhasil diunggah ke Supabase Storage!");
+      } else {
+        setStatusWithTimeout("success", "Foto berhasil diproses & siap disimpan!");
+      }
+    } catch (err) {
+      console.error("Gagal memproses upload foto apresiasi:", err);
+      setStatusWithTimeout("error", "Gagal memproses berkas foto.");
+    } finally {
+      setUploading(false);
+      setIsDragging(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-slate-700 dark:text-slate-300 font-bold text-xs">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        <button
+          type="button"
+          onClick={() => setShowUrlField(!showUrlField)}
+          className="text-[11px] font-semibold text-[#0094E0] dark:text-[#38BDF8] hover:underline cursor-pointer"
+        >
+          {showUrlField ? "Sembunyikan Input URL" : "Input URL Manual"}
+        </button>
+      </div>
+
+      {/* Input File Tersembunyi */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            processAndUpload(file);
+          }
+          e.target.value = "";
+        }}
+      />
+
+      {image ? (
+        /* Pratinjau Foto Terpasang */
+        <div className="relative rounded-none border border-[#00296E]/20 dark:border-white/10 overflow-hidden bg-slate-100 dark:bg-black/30 group">
+          <div className="relative w-full aspect-[16/8] sm:aspect-[16/7] overflow-hidden bg-slate-200 dark:bg-slate-900">
+            <img
+              src={image}
+              alt="Preview Dokumentasi"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop";
+              }}
+            />
+
+            {/* Status Badge */}
+            <div className="absolute top-2.5 left-2.5 bg-[#00296E]/90 dark:bg-[#001438]/90 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-none border border-white/20 flex items-center gap-1.5">
+              <CheckCircle className="w-3 h-3 text-emerald-400" />
+              <span>Foto Siap Ditampilkan</span>
+            </div>
+
+            {/* Desktop Overlay Actions */}
+            <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-3">
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-1.5 rounded-none bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 border border-slate-300 shadow-none"
+              >
+                <UploadSimple className="w-3.5 h-3.5 text-[#0094E0]" />
+                <span>Ganti Foto</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange("")}
+                className="px-3 py-1.5 rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-none"
+              >
+                <Trash className="w-3.5 h-3.5" />
+                <span>Hapus</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Tombol Aksi Mobile */}
+          <div className="flex sm:hidden items-center justify-between p-2 bg-white dark:bg-[#001438] border-t border-[#00296E]/15 dark:border-white/10">
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs font-bold text-[#0094E0] dark:text-[#38BDF8] flex items-center gap-1 py-1 px-2 cursor-pointer disabled:opacity-50"
+            >
+              <UploadSimple className="w-3.5 h-3.5" />
+              <span>Ganti Foto</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 py-1 px-2 cursor-pointer"
+            >
+              <Trash className="w-3.5 h-3.5" />
+              <span>Hapus Foto</span>
+            </button>
+          </div>
+
+          {/* Overlay Animasi Loading */}
+          {uploading && (
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-bold gap-2">
+              <ArrowsClockwise className="w-6 h-6 animate-spin text-sky-300" />
+              <span>Sedang mengompresi & mengunggah foto...</span>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Area Dropzone Unggah Foto */
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) {
+              processAndUpload(file);
+            }
+          }}
+          onClick={() => fileInputRef.current?.click()}
+          className={`relative rounded-none border border-dashed p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2 ${
+            isDragging
+              ? "border-[#0094E0] bg-sky-50/80 dark:bg-sky-950/30"
+              : "border-[#00296E]/20 dark:border-white/15 hover:border-[#0094E0] bg-slate-50 dark:bg-white/5"
+          }`}
+        >
+          <div className="w-10 h-10 rounded-none bg-sky-50 dark:bg-white/10 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center shadow-none">
+            <UploadSimple className="w-5 h-5 text-[#0094E0] dark:text-[#38BDF8]" />
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              {uploading ? "Sedang memproses foto..." : "Klik atau seret (drag & drop) berkas foto ke sini"}
+            </p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-0.5">
+              Format: PNG, JPG, JPEG, atau WebP (maks. 5MB, otomatis dikompresi)
+            </p>
+          </div>
+
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={(e) => {
+              e.stopPropagation();
+              fileInputRef.current?.click();
+            }}
+            className="mt-1 px-3.5 py-1.5 rounded-none bg-[#00296E] dark:bg-[#38BDF8] hover:bg-[#001f54] dark:hover:bg-[#0284C7] text-white dark:text-[#001740] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-none"
+          >
+            <UploadSimple className="w-3.5 h-3.5 text-sky-300 dark:text-[#001740]" />
+            <span>{uploading ? "Memproses..." : "Pilih Foto dari Perangkat"}</span>
+          </button>
+
+          {uploading && (
+            <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 rounded-none flex flex-col items-center justify-center gap-2">
+              <ArrowsClockwise className="w-6 h-6 animate-spin text-[#00296E] dark:text-[#38BDF8]" />
+              <span className="text-xs font-bold text-slate-800 dark:text-white">
+                Mengompresi & mengunggah gambar...
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Banner Notifikasi Status Upload */}
+      {uploadStatus && (
+        <div
+          className={`p-2 rounded-none text-[11px] flex items-center gap-1.5 ${
+            uploadStatus.type === "success"
+              ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300"
+              : "bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300"
+          }`}
+        >
+          {uploadStatus.type === "success" ? (
+            <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+          ) : (
+            <WarningCircle className="w-3.5 h-3.5 shrink-0" />
+          )}
+          <span>{uploadStatus.text}</span>
+        </div>
+      )}
+
+      {/* Field Input URL Manual (Opsional / Toggle) */}
+      {showUrlField && (
+        <div className="mt-2 pt-2 border-t border-[#00296E]/10 dark:border-white/10 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+              Atau tempel tautan gambar langsung (URL):
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                onChange(
+                  "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&auto=format&fit=crop"
+                )
+              }
+              className="text-[10px] text-[#0094E0] dark:text-[#38BDF8] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <Sparkle className="w-3 h-3" />
+              <span>Gunakan Foto Contoh</span>
+            </button>
+          </div>
+          <input
+            type="url"
+            value={image}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="https://images.unsplash.com/... atau tautan gambar langsung"
+            className="w-full px-3 py-1.5 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Sub-komponen Modal Form Tambah/Edit Showcase
 function ShowcaseFormModal({
   initialItem,
@@ -1437,6 +1815,10 @@ function ShowcaseFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!image.trim()) {
+      alert("Foto dokumentasi / banner wajib diunggah atau diisi.");
+      return;
+    }
     setSaving(true);
 
     try {
@@ -1681,20 +2063,14 @@ function ShowcaseFormModal({
             </div>
           </div>
 
-          {/* Gambar Banner */}
-          <div>
-            <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
-              URL Foto Dokumentasi / Banner <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="url"
-              required
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="https://images.unsplash.com/... atau tautan gambar"
-              className="w-full px-3 py-2 rounded-none border border-[#00296E]/20 dark:border-white/15 bg-slate-50 dark:bg-[#001740] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-[#001740] focus:outline-none focus:ring-1 focus:ring-[#00296E] dark:focus:ring-[#38BDF8] text-xs"
-            />
-          </div>
+          {/* Gambar Banner / Unggah Dokumentasi */}
+          <ApresiasiImageUpload
+            label="Foto Dokumentasi / Banner"
+            image={image}
+            onChange={setImage}
+            slugHint={title || studentName || "karya"}
+            required
+          />
 
           {/* Deskripsi Singkat */}
           <div>

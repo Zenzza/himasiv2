@@ -14,8 +14,14 @@ import {
   IdentificationCard,
   X,
   Check,
+  Copy,
+  WarningCircle,
+  ArrowSquareOut,
+  ArrowsClockwise,
+  Trash,
 } from "@phosphor-icons/react";
 import DashboardMetricStrip, { type MetricItem } from "@/components/dashboard/ui/dashboard-metric-strip";
+import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
 import type {
   VotingSesi,
   VotingKandidat,
@@ -27,6 +33,7 @@ import type {
 import {
   fetchVotingSessions,
   createVotingSession,
+  deleteVotingSession,
   updateVotingSessionStatus,
   unlockSessionResults,
   fetchCandidates,
@@ -38,6 +45,8 @@ import {
   importBatchDPT,
   fetchVotingResults,
   getVotingSummaryMetrics,
+  checkVotingRLSStatus,
+  syncLocalSessionsToSupabase,
   DEFAULT_SIGNATORIES,
 } from "@/lib/supabase/voting";
 import { recordAuditLog } from "@/lib/supabase/audit-log";
@@ -82,6 +91,97 @@ export default function VotingManager({
   const [newDeskripsi, setNewDeskripsi] = useState("");
   const [isCreatingSesi, setIsCreatingSesi] = useState(false);
 
+  // Cloud database status & sync state
+  const [dbStatus, setDbStatus] = useState<{
+    checked: boolean;
+    isReady: boolean;
+    needsMigration: boolean;
+    message: string;
+  }>({
+    checked: false,
+    isReady: true,
+    needsMigration: false,
+    message: "",
+  });
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
+  const [copiedMigrationSQL, setCopiedMigrationSQL] = useState(false);
+
+  const MIGRATION_SQL_SNIPPET = `-- Skrip Izin Akses Tabel E-Voting Supabase (Jalankan di SQL Editor Supabase)
+GRANT ALL ON TABLE public.voting_sesi TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.voting_kandidat TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.voting_dpt TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.voting_suara TO anon, authenticated, service_role;
+
+ALTER TABLE public.voting_sesi DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_kandidat DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_dpt DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voting_suara DISABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "voting_sesi_all" ON public.voting_sesi;
+CREATE POLICY "voting_sesi_all" ON public.voting_sesi FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "voting_kandidat_all" ON public.voting_kandidat;
+CREATE POLICY "voting_kandidat_all" ON public.voting_kandidat FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "voting_dpt_all" ON public.voting_dpt;
+CREATE POLICY "voting_dpt_all" ON public.voting_dpt FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "voting_suara_all" ON public.voting_suara;
+CREATE POLICY "voting_suara_all" ON public.voting_suara FOR ALL TO anon, authenticated, service_role USING (true) WITH CHECK (true);
+
+NOTIFY pgrst, 'reload schema';`;
+
+  const verifyDbHealth = useCallback(async () => {
+    try {
+      const status = await checkVotingRLSStatus();
+      setDbStatus({
+        checked: true,
+        isReady: status.isReady,
+        needsMigration: status.needsMigration,
+        message: status.message,
+      });
+      return status;
+    } catch {
+      return { isReady: false, needsMigration: false, message: "" };
+    }
+  }, []);
+
+  const handleCopyMigrationSQL = () => {
+    navigator.clipboard.writeText(MIGRATION_SQL_SNIPPET);
+    setCopiedMigrationSQL(true);
+    setTimeout(() => setCopiedMigrationSQL(false), 2500);
+  };
+
+  const handleSyncToCloud = async () => {
+    setIsSyncing(true);
+    setSyncSuccessMsg(null);
+    try {
+      const res = await syncLocalSessionsToSupabase();
+      if (res.success) {
+        setSyncSuccessMsg(
+          `Sinkronisasi berhasil! ${res.syncedSessions} sesi, ${res.syncedCandidates} kandidat, dan ${res.syncedDPT} DPT telah diunggah ke cloud Supabase.`
+        );
+        const all = await fetchVotingSessions();
+        setSessions(all);
+        if (all.length > 0) {
+          const active = all[0];
+          setSelectedSesi(active);
+          await loadSessionData(active);
+        }
+        await verifyDbHealth();
+      } else {
+        alert(
+          `Gagal sinkronisasi: ${
+            res.error || "Pastikan skrip SQL sudah dijalankan di SQL Editor Supabase."
+          }`
+        );
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // 1. Load active session data
   const loadSessionData = useCallback(async (sesi: VotingSesi) => {
     setLoading(true);
@@ -120,6 +220,7 @@ export default function VotingManager({
         } else {
           setLoading(false);
         }
+        await verifyDbHealth();
       } catch (err) {
         console.error("[VotingManager] Gagal inisialisasi sesi:", err);
         if (isMounted) setLoading(false);
@@ -129,7 +230,7 @@ export default function VotingManager({
     return () => {
       isMounted = false;
     };
-  }, [loadSessionData]);
+  }, [loadSessionData, verifyDbHealth]);
 
   // Switch session
   const handleSelectSesi = async (sesiId: string) => {
@@ -137,6 +238,43 @@ export default function VotingManager({
     if (target) {
       setSelectedSesi(target);
       await loadSessionData(target);
+    }
+  };
+
+  // Delete current session
+  const handleDeleteCurrentSesi = async () => {
+    if (!selectedSesi) return;
+    if (
+      !confirm(
+        `Apakah Anda yakin ingin menghapus sesi "${selectedSesi.judul}" (${selectedSesi.tahun_periode}) beserta seluruh kandidat dan DPT-nya? Tindakan ini permanen.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteVotingSession(selectedSesi.id);
+      await recordAuditLog({
+        pengurus_nama: currentUserName,
+        pengurus_role: currentUserRole,
+        modul: "voting",
+        aksi: `Menghapus sesi pemilihan: "${selectedSesi.judul}"`,
+        status: "berhasil",
+      }).catch(() => {});
+
+      const all = await fetchVotingSessions();
+      setSessions(all);
+      if (all.length > 0) {
+        setSelectedSesi(all[0]);
+        await loadSessionData(all[0]);
+      } else {
+        setSelectedSesi(null);
+        setCandidates([]);
+        setDptList([]);
+        setResults([]);
+      }
+    } catch (err) {
+      console.error("[VotingManager] Gagal menghapus sesi:", err);
     }
   };
 
@@ -170,6 +308,7 @@ export default function VotingManager({
       setSessions(all);
       setSelectedSesi(created);
       await loadSessionData(created);
+      await verifyDbHealth();
     } catch (err) {
       console.error("[VotingManager] Gagal membuat sesi baru:", err);
     } finally {
@@ -330,7 +469,7 @@ export default function VotingManager({
     {
       order: "01.",
       label: "STATUS BILIK SUARA",
-      value: metrics.status_label,
+      value: loading ? "MEMUAT..." : metrics.status_label,
       sublabel:
         selectedSesi?.status === "open"
           ? "Aktif Menerima Suara"
@@ -338,11 +477,12 @@ export default function VotingManager({
             ? "Pemilihan Ditutup"
             : "Persiapan Pemilihan",
       variant: selectedSesi?.status === "open" ? "success" : "info",
+      loading,
       icon:
         selectedSesi?.status === "open" ? (
-          <LockOpen className="w-5 h-5" />
+          <LockOpen className="w-4 h-4" />
         ) : (
-          <Lock className="w-5 h-5" />
+          <Lock className="w-4 h-4" />
         ),
     },
     {
@@ -351,7 +491,8 @@ export default function VotingManager({
       value: metrics.total_dpt,
       sublabel: "Mahasiswa Terdaftar",
       variant: "default",
-      icon: <Users className="w-5 h-5" />,
+      loading,
+      icon: <Users className="w-4 h-4" />,
     },
     {
       order: "03.",
@@ -359,86 +500,173 @@ export default function VotingManager({
       value: metrics.suara_masuk,
       sublabel: `${metrics.belum_memilih} Belum Memilih`,
       variant: "success",
-      icon: <CheckCircle className="w-5 h-5" />,
+      loading,
+      icon: <CheckCircle className="w-4 h-4" />,
     },
     {
       order: "04.",
-      label: "PARTISIPASI",
+      label: "TINGKAT PARTISIPASI",
       value: `${metrics.persentase_partisipasi}%`,
       sublabel:
         metrics.persentase_partisipasi >= 50
           ? "Kuorum Terpenuhi (>=50%)"
           : "Di Bawah Target Kuorum",
       variant: metrics.persentase_partisipasi >= 50 ? "success" : "warning",
-      icon: <ChartBar className="w-5 h-5" />,
+      loading,
+      icon: <ChartBar className="w-4 h-4" />,
     },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header Standard & Sesi Switcher */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs print:hidden">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-[#00296E]/10 text-[#00296E] dark:bg-blue-500/10 dark:text-blue-400 border border-[#00296E]/20">
-                E-VOTING ENGINE
-              </span>
-              <span className="text-[10px] font-mono text-slate-400">
-                Sistem Pemungutan Suara Berintegritas
-              </span>
+    <div className="space-y-5 animate-in fade-in duration-200">
+      {/* 1. Header Standar Swiss Grid & Sesi Switcher */}
+      <DashboardPageHeader
+        title="Pusat Kendali E-Voting Pemilihan Ketua Himpunan"
+        subtitle="Manajemen sesi pemilihan, profil calon ketua himpunan, verifikasi DPT berbasis NIM & tanggal lahir, dan pencetakan Berita Acara resmi ber-kop surat."
+        publicUrl="/voting"
+        publicLabel="Bilik Suara Publik"
+        onRefresh={async () => {
+          setLoading(true);
+          try {
+            const all = await fetchVotingSessions();
+            setSessions(all);
+            if (selectedSesi) {
+              const current = all.find((s) => s.id === selectedSesi.id) || all[0];
+              setSelectedSesi(current || null);
+              if (current) await loadSessionData(current);
+            } else if (all.length > 0) {
+              setSelectedSesi(all[0]);
+              await loadSessionData(all[0]);
+            }
+          } finally {
+            setLoading(false);
+          }
+        }}
+        refreshLoading={loading}
+      >
+        {/* Sesi Switcher Dropdown */}
+        <div className="relative">
+          <select
+            value={selectedSesi?.id || ""}
+            onChange={(e) => handleSelectSesi(e.target.value)}
+            className="appearance-none pl-3 pr-8 py-2 text-xs font-mono font-bold bg-white dark:bg-[#001740] border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] text-slate-800 dark:text-slate-200 cursor-pointer"
+          >
+            {sessions.length === 0 ? (
+              <option value="">(Belum Ada Sesi Pemilihan)</option>
+            ) : (
+              sessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.tahun_periode} — {s.judul.slice(0, 32)}... [{s.status.toUpperCase()}]
+                </option>
+              ))
+            )}
+          </select>
+          <CaretDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
+        </div>
+
+        {/* Button Sesi Baru */}
+        <button
+          type="button"
+          onClick={() => setShowNewSesiModal(true)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-[#00296E] hover:bg-[#001f54] rounded-none transition cursor-pointer"
+          title="Buat Sesi Pemilihan Periode Baru"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Sesi Baru</span>
+        </button>
+
+        {/* Button Hapus Sesi */}
+        {selectedSesi && (
+          <button
+            type="button"
+            onClick={handleDeleteCurrentSesi}
+            className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-500/30 rounded-none transition cursor-pointer"
+            title="Hapus Sesi Ini"
+          >
+            <Trash className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Hapus</span>
+          </button>
+        )}
+      </DashboardPageHeader>
+
+      {/* Cloud Database Alert Banner if RLS needs update */}
+      {dbStatus.needsMigration && (
+        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 p-4 rounded-none flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs shadow-none print:hidden">
+          <div className="flex items-start gap-2.5">
+            <WarningCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Perhatian: Izin Akses Tabel Supabase Terbatas (RLS Error 42501)</p>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
+                Data sesi pemilihan saat ini disimpan di browser lokal. Agar data tersimpan permanen di cloud Supabase dan sinkron di semua perangkat, jalankan skrip SQL izin akses di SQL Editor Supabase.
+              </p>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              PUSAT KENDALI E-VOTING PEMILIHAN KETUA HIMPUNAN
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-              Manajemen sesi pemilihan, profil calon ketua himpunan, verifikasi DPT berbasis NIM &amp;
-              tanggal lahir, dan pencetakan Berita Acara resmi ber-kop surat.
-            </p>
           </div>
-
-          {/* Sesi Switcher Dropdown & Add Button */}
-          <div className="flex items-center gap-2 self-start lg:self-auto">
-            <div className="relative">
-              <select
-                value={selectedSesi?.id || ""}
-                onChange={(e) => handleSelectSesi(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 text-xs font-mono font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#00296E] text-slate-800 dark:text-slate-200 cursor-pointer shadow-xs"
-              >
-                {sessions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.tahun_periode} — {s.judul.slice(0, 32)}... [{s.status.toUpperCase()}]
-                  </option>
-                ))}
-              </select>
-              <CaretDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
-            </div>
-
+          <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
             <button
-              onClick={() => setShowNewSesiModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-[#00296E] hover:bg-[#002055] rounded-xl shadow-xs transition cursor-pointer"
-              title="Buat Sesi Pemilihan Periode Baru"
+              type="button"
+              onClick={handleCopyMigrationSQL}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold uppercase tracking-wider rounded-none transition text-xs flex items-center gap-1.5 cursor-pointer shadow-none"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sesi Baru</span>
+              {copiedMigrationSQL ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedMigrationSQL ? "Tersalin!" : "Salin Skrip SQL"}</span>
+            </button>
+            <a
+              href="https://supabase.com/dashboard/project/rtbtgmtxyhljbltroyra/sql"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-white dark:bg-[#001438] border border-amber-500/30 text-amber-900 dark:text-amber-200 font-semibold uppercase tracking-wider rounded-none hover:bg-amber-50 dark:hover:bg-white/5 transition text-xs flex items-center gap-1"
+            >
+              <span>Buka SQL Editor</span>
+              <ArrowSquareOut className="w-3.5 h-3.5" />
+            </a>
+            <button
+              type="button"
+              onClick={handleSyncToCloud}
+              disabled={isSyncing}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold uppercase tracking-wider rounded-none transition text-xs flex items-center gap-1.5 cursor-pointer shadow-none"
+            >
+              {isSyncing ? (
+                <ArrowClockwise className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <ArrowsClockwise className="w-3.5 h-3.5" />
+              )}
+              <span>Cek &amp; Sinkronkan</span>
             </button>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Sync Success Message */}
+      {syncSuccessMsg && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 p-3.5 rounded-none flex items-center justify-between text-xs print:hidden">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{syncSuccessMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSyncSuccessMsg(null)}
+            className="p-1 hover:bg-emerald-500/20 rounded-none cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* 2. Standard Metric Strip (4 Columns) */}
       <div className="print:hidden">
         <DashboardMetricStrip metrics={metricItems} columns={4} />
       </div>
 
-      {/* 3. Segmented Sub-tab Navigation */}
-      <div className="border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar print:hidden">
+      {/* 3. Segmented Sub-tab Navigation (Swiss Minimalist Grid) */}
+      <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 flex items-stretch overflow-x-auto no-scrollbar print:hidden">
         <button
+          type="button"
           onClick={() => setActiveSubTab("session")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-mono font-bold uppercase tracking-wider border-b-2 transition -mb-px whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-3 text-xs font-mono uppercase tracking-wider border-r border-[#00296E]/15 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
             activeSubTab === "session"
-              ? "border-[#00296E] text-[#00296E] dark:border-blue-400 dark:text-blue-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+              ? "font-extrabold bg-slate-50 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8]"
+              : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50/50 dark:hover:bg-white/[0.02]"
           }`}
         >
           <ChartBar className="w-4 h-4" />
@@ -446,11 +674,12 @@ export default function VotingManager({
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveSubTab("candidates")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-mono font-bold uppercase tracking-wider border-b-2 transition -mb-px whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-3 text-xs font-mono uppercase tracking-wider border-r border-[#00296E]/15 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
             activeSubTab === "candidates"
-              ? "border-[#00296E] text-[#00296E] dark:border-blue-400 dark:text-blue-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+              ? "font-extrabold bg-slate-50 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8]"
+              : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50/50 dark:hover:bg-white/[0.02]"
           }`}
         >
           <IdentificationCard className="w-4 h-4" />
@@ -458,11 +687,12 @@ export default function VotingManager({
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveSubTab("dpt")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-mono font-bold uppercase tracking-wider border-b-2 transition -mb-px whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-3 text-xs font-mono uppercase tracking-wider border-r border-[#00296E]/15 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
             activeSubTab === "dpt"
-              ? "border-[#00296E] text-[#00296E] dark:border-blue-400 dark:text-blue-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+              ? "font-extrabold bg-slate-50 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8]"
+              : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50/50 dark:hover:bg-white/[0.02]"
           }`}
         >
           <Users className="w-4 h-4" />
@@ -470,11 +700,12 @@ export default function VotingManager({
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveSubTab("berita_acara")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-mono font-bold uppercase tracking-wider border-b-2 transition -mb-px whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-3 text-xs font-mono uppercase tracking-wider border-r border-[#00296E]/15 dark:border-white/10 transition-colors whitespace-nowrap cursor-pointer select-none ${
             activeSubTab === "berita_acara"
-              ? "border-[#00296E] text-[#00296E] dark:border-blue-400 dark:text-blue-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+              ? "font-extrabold bg-slate-50 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] border-b-2 border-b-[#00296E] dark:border-b-[#38BDF8]"
+              : "font-semibold text-slate-600 dark:text-slate-400 hover:text-[#00296E] dark:hover:text-white hover:bg-slate-50/50 dark:hover:bg-white/[0.02]"
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -483,7 +714,7 @@ export default function VotingManager({
       </div>
 
       {/* 4. Sub-Tab Active View */}
-      {selectedSesi && (
+      {selectedSesi ? (
         <div>
           {activeSubTab === "session" && (
             <VotingSessionTab
@@ -527,19 +758,42 @@ export default function VotingManager({
             />
           )}
         </div>
-      )}
+      ) : !loading ? (
+        <div className="bg-white dark:bg-[#001438] border border-[#00296E]/15 dark:border-white/10 rounded-none p-12 text-center space-y-4 shadow-none">
+          <div className="w-12 h-12 mx-auto rounded-none bg-[#00296E]/5 dark:bg-white/5 text-[#00296E] dark:text-[#38BDF8] flex items-center justify-center border border-[#00296E]/20 dark:border-white/15">
+            <ChartBar className="w-6 h-6" />
+          </div>
+          <div className="max-w-md mx-auto space-y-1">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider font-poppins">
+              Belum Ada Sesi Pemilihan Terdaftar
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Saat ini belum ada data sesi pemilihan e-voting di database. Klik tombol di bawah untuk membuat sesi pemilihan baru bagi himpunan.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNewSesiModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#00296E] hover:bg-[#001f54] text-white text-xs font-semibold uppercase tracking-wider rounded-none transition cursor-pointer mx-auto shadow-none"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Buat Sesi Pemilihan Baru</span>
+          </button>
+        </div>
+      ) : null}
 
-      {/* Modal Buat Sesi Baru */}
+      {/* Modal Buat Sesi Baru (Swiss Minimalist Grid) */}
       {showNewSesiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white font-mono uppercase tracking-wider">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#001438] border border-[#00296E]/20 dark:border-white/15 rounded-none max-w-md w-full shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-[#00296E]/15 dark:border-white/10">
+              <h3 className="text-sm font-bold text-[#00296E] dark:text-white font-mono uppercase tracking-wider">
                 Buat Sesi Pemilihan Baru
               </h3>
               <button
+                type="button"
                 onClick={() => setShowNewSesiModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                className="p-1 rounded-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -555,7 +809,7 @@ export default function VotingManager({
                   placeholder="misal: Pemilihan Ketua HIMASI Periode 2026/2027"
                   value={newJudul}
                   onChange={(e) => setNewJudul(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00296E]"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-white/5 border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white"
                   required
                 />
               </div>
@@ -569,7 +823,7 @@ export default function VotingManager({
                   placeholder="misal: 2026/2027"
                   value={newPeriode}
                   onChange={(e) => setNewPeriode(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00296E] font-mono"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-white/5 border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white font-mono"
                   required
                 />
               </div>
@@ -583,23 +837,23 @@ export default function VotingManager({
                   placeholder="Keterangan singkat seputar pelaksanaan pemilihan..."
                   value={newDeskripsi}
                   onChange={(e) => setNewDeskripsi(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00296E]"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-white/5 border border-[#00296E]/20 dark:border-white/20 rounded-none focus:outline-none focus:border-[#00296E] dark:focus:border-[#38BDF8] text-slate-900 dark:text-white"
                 />
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-[#00296E]/15 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setShowNewSesiModal(false)}
                   disabled={isCreatingSesi}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+                  className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 border border-[#00296E]/20 dark:border-white/20 rounded-none transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isCreatingSesi}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#00296E] hover:bg-[#002055] rounded-lg shadow-sm transition"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-[#00296E] hover:bg-[#001f54] rounded-none transition cursor-pointer disabled:opacity-50"
                 >
                   {isCreatingSesi ? (
                     <ArrowClockwise className="w-3.5 h-3.5 animate-spin" />

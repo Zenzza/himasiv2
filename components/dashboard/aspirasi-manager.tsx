@@ -34,6 +34,7 @@ import {
 } from "@/lib/supabase/aspirasi";
 import { maskEmail } from "@/lib/utils/mask-email";
 import { type UserRole } from "@/lib/types/auth";
+import { supabase } from "@/lib/supabase/client";
 import DashboardPageHeader from "@/components/dashboard/ui/dashboard-page-header";
 import DashboardMetricStrip from "@/components/dashboard/ui/dashboard-metric-strip";
 
@@ -215,10 +216,19 @@ export default function AspirasiManager({
     setResolutionError(null);
 
     try {
+      // Ambil token sesi aktif untuk header otorisasi server-side
+      let authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          authHeaders["Authorization"] = `Bearer ${session.access_token}`;
+        }
+      } catch {}
+
       // Panggil server route POST /api/aspirasi/selesai
       const response = await fetch("/api/aspirasi/selesai", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
           id: resolvingItem.id,
           jawaban_admin: trimmedJawaban,
@@ -284,9 +294,18 @@ export default function AspirasiManager({
   const handleRetryEmail = async (id: string) => {
     setRetryingEmailId(id);
     try {
+      // Ambil token sesi aktif untuk header otorisasi server-side
+      let authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          authHeaders["Authorization"] = `Bearer ${session.access_token}`;
+        }
+      } catch {}
+
       const res = await fetch("/api/aspirasi/retry-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({ id }),
       });
       const data = await res.json();
