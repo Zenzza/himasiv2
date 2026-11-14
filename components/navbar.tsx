@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { List, X, EnvelopeSimple } from "@phosphor-icons/react";
 import { getMaintenanceMode } from "@/lib/supabase/system-settings";
 import { supabase } from "@/lib/supabase/client";
+import { isKnownRoute, normalizePath } from "@/lib/utils/route-matcher";
 
 // Nav items mapped for desktop and mobile
 const himasiNavItems = [
@@ -65,7 +66,14 @@ export default function Navbar() {
 
   // Guard Mode Pemeliharaan (503) untuk seluruh rute publik
   useEffect(() => {
-    if (!pathname || pathname === "/login" || pathname.startsWith("/dashboard") || pathname.startsWith("/error")) {
+    const normalized = normalizePath(pathname);
+    if (
+      !pathname ||
+      normalized === "/login" ||
+      normalized.startsWith("/dashboard") ||
+      normalized.startsWith("/error") ||
+      !isKnownRoute(pathname)
+    ) {
       return;
     }
 
@@ -179,8 +187,14 @@ export default function Navbar() {
   // Kondisi: jika bukan homepage dan sedang di posisi paling atas, background putih transparan
   const isTransparentWhite = !isHomepage && !isScrolled;
 
-  // Sembunyikan navbar di halaman login pengurus dan dashboard
-  if (pathname === "/login" || pathname?.startsWith("/dashboard")) {
+  // Sembunyikan navbar di halaman login pengurus, dashboard, dan halaman error / rute tidak dikenal (404)
+  const normalized = normalizePath(pathname);
+  if (
+    normalized === "/login" ||
+    normalized.startsWith("/dashboard") ||
+    normalized.startsWith("/error") ||
+    !isKnownRoute(pathname)
+  ) {
     return null;
   }
 

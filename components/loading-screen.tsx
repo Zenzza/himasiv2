@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { isExcludedFromLoadingScreen } from "@/lib/utils/route-matcher";
 
 interface LoadingScreenProps {
   children?: React.ReactNode;
@@ -23,13 +24,7 @@ const SEGMENT_INDICES = Array.from({ length: TOTAL_SEGMENTS }, (_, i) => i);
 
 export default function LoadingScreen({ children, forceShow = false, onComplete }: LoadingScreenProps) {
   const pathname = usePathname();
-  const isExcludedPath = Boolean(
-    pathname &&
-      (pathname.startsWith("/dashboard") ||
-        pathname === "/login" ||
-        pathname.startsWith("/error") ||
-        pathname === "/_not-found")
-  );
+  const isExcludedPath = isExcludedFromLoadingScreen(pathname);
 
   // State fase: 'idle' (delay awal) -> 'animating' (bar jalan) -> 'exiting' (seluruh kontainer naik) -> 'hidden' (selesai)
   const [phase, setPhase] = useState<"idle" | "animating" | "exiting" | "hidden">("idle");
@@ -251,7 +246,7 @@ export default function LoadingScreen({ children, forceShow = false, onComplete 
     <div
       className="w-full relative overflow-hidden"
       style={{
-        transform: isExiting ? "translate3d(0, -100vh, 0)" : "translate3d(0, 0, 0)",
+        transform: isExiting ? "translate3d(0, -100vh, 0)" : "none",
         transition: isExiting ? `transform ${EXIT_DURATION_MS}ms cubic-bezier(0.76, 0, 0.24, 1)` : "none",
         willChange: isExiting ? "transform" : "auto",
         backfaceVisibility: "hidden",
