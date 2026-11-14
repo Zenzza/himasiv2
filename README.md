@@ -13,7 +13,6 @@
   [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
   [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?style=flat&logo=supabase)](https://supabase.com/)
   [![Tests](https://img.shields.io/badge/Unit_Tests-95%20Passing-brightgreen?style=flat)](#pengujian--kualitas-kode)
-  [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 </div>
 
 ---
@@ -290,7 +289,7 @@ Untuk menjaga kualitas kode, keamanan data, dan konsistensi arsitektur sistem, s
 ## 👥 Tim Pengembang & Kontak
 
 Platform ini dikembangkan dan dikelola oleh:
-- **Departemen Komunikasi, Informasi & Teknologi (KOMINFO)**  
+- **Jordi Venzen**  
   **Himpunan Mahasiswa Sistem Informasi (HIMASI)**  
   **Institut Sains dan Bisnis (ISB) Atma Luhur Pangkalpinang**
 - **Situs Resmi**: [himasi.atmaluhur.ac.id](https://himasi.atmaluhur.ac.id)
