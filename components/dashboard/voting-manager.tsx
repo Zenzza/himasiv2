@@ -46,6 +46,7 @@ import {
   fetchVotingResults,
   getVotingSummaryMetrics,
   checkVotingRLSStatus,
+  clearLegacyVotingLocalCache,
   syncLocalSessionsToSupabase,
   DEFAULT_SIGNATORIES,
 } from "@/lib/supabase/voting";
@@ -208,6 +209,7 @@ NOTIFY pgrst, 'reload schema';`;
 
   useEffect(() => {
     let isMounted = true;
+    clearLegacyVotingLocalCache();
     async function init() {
       try {
         const allSessions = await fetchVotingSessions();

@@ -42,20 +42,6 @@ function AuthRedirectParamReader({
   return null;
 }
 
-function ActionIcon({ code }: { code: string }) {
-  const iconProps = { className: "w-4 h-4 text-sky-300" };
-  switch (code) {
-    case "404":
-      return <House {...iconProps} />;
-    case "403":
-      return <SquaresFour {...iconProps} />;
-    case "401":
-      return <SignIn {...iconProps} />;
-    default:
-      return <House {...iconProps} />;
-  }
-}
-
 function ErrorLayoutContent({ code, error, reset }: ErrorLayoutProps) {
   const router = useRouter();
   const config = getErrorConfig(code);
@@ -183,7 +169,15 @@ function ErrorLayoutContent({ code, error, reset }: ErrorLayoutProps) {
                 href={primaryHref}
                 className="rounded-full px-8 py-3.5 bg-[#00296E] hover:bg-[#001f54] text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 inline-flex items-center justify-center gap-2 cursor-pointer"
               >
-                <ActionIcon code={config.code} />
+                {config.code === "404" ? (
+                  <House className="w-4 h-4 text-sky-300" />
+                ) : config.code === "403" ? (
+                  <SquaresFour className="w-4 h-4 text-sky-300" />
+                ) : config.code === "401" ? (
+                  <SignIn className="w-4 h-4 text-sky-300" />
+                ) : (
+                  <House className="w-4 h-4 text-sky-300" />
+                )}
                 <span>{config.primaryAction.label}</span>
               </Link>
             ) : (

@@ -35,101 +35,97 @@ export {
 };
 
 // ============================================================================
-// DATA STORAGE & EMPTY INITIALIZERS (Pure Database Mode - No Mock Fixtures)
+// PURE SUPABASE MODE — LEGACY LOCALSTORAGE CACHE PURGE
 // ============================================================================
 
 export const INITIAL_MOCK_SESI: VotingSesi[] = [];
 export const INITIAL_MOCK_KANDIDAT: VotingKandidat[] = [];
 export const INITIAL_MOCK_DPT: VotingDPT[] = [];
 
-// Persistent local storage cache keys for preview environment
-const STORAGE_PREFIX = "himasi_evoting_";
+const LEGACY_VOTING_STORAGE_KEYS = [
+  "himasi_evoting_sessions",
+  "himasi_evoting_candidates",
+  "himasi_evoting_dpt",
+  "himasi_evoting_suara",
+] as const;
 
-function getLocalStore<T>(key: string, initialData: T): T {
-  if (typeof window === "undefined") return initialData;
-  try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-    if (!raw) return initialData;
-    const parsed = JSON.parse(raw);
-    // Otomatis bersihkan sesi tiruan lama (sesi-2026-utama / sesi-2025-arsip) dari cache klien
-    if (Array.isArray(parsed)) {
-      const filtered = parsed.filter(
-        (item: { id?: string; sesi_id?: string }) =>
-          item?.id !== "sesi-2026-utama" &&
-          item?.id !== "sesi-2025-arsip" &&
-          item?.sesi_id !== "sesi-2026-utama" &&
-          item?.sesi_id !== "sesi-2025-arsip"
-      );
-      if (filtered.length !== parsed.length) {
-        localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(filtered));
-      }
-      return filtered as T;
-    }
-    return parsed;
-  } catch {
-    return initialData;
-  }
-}
-
-function setLocalStore<T>(key: string, data: T): void {
+/**
+ * Purges any legacy himasi_evoting_* keys from browser localStorage so that
+ * devices that previously cached an open session can never resurrect stale data.
+ */
+export function clearLegacyVotingLocalCache(): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(data));
+    for (const key of LEGACY_VOTING_STORAGE_KEYS) {
+      localStorage.removeItem(key);
+    }
   } catch {
-    // Ignore storage quota errors
+    // Ignore storage access errors in restricted environments
   }
 }
 
 // ============================================================================
-// DATA ACCESS LAYER (Supabase with Local Cache Fallback)
+// DATA ACCESS LAYER (100% Pure Supabase Database — Single Source of Truth)
 // ============================================================================
 
 /**
- * Fetch all voting sessions
+ * Fetch all voting sessions strictly from Supabase
  */
 export async function fetchVotingSessions(): Promise<VotingSesi[]> {
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from("voting_sesi")
-        .select("*")
-        .order("created_at", { ascending: false });
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from("voting_sesi")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (!error && Array.isArray(data)) {
-        if (data.length > 0) {
-          // Cloud Supabase has live sessions: update localStore cache
-          setLocalStore("sessions", data);
-          return data as VotingSesi[];
-        }
+    if (!error && Array.isArray(data)) {
+      return data as VotingSesi[];
+    }
 
-        // Supabase has 0 rows: check if there are local sessions from prior input
-        const local = getLocalStore<VotingSesi[]>("sessions", []);
-        if (local.length > 0) {
-          return local;
-        }
-
-        return [];
-      }
-
-      if (error) {
-        console.warn("[Voting] Supabase fetchVotingSessions query error:", error.message);
-      }
+    if (error) {
+      console.warn("[Voting] Supabase fetchVotingSessions query error:", error.message);
     }
   } catch (err) {
     console.warn("[Voting] Exception in fetchVotingSessions:", err);
   }
 
-  return getLocalStore<VotingSesi[]>("sessions", []);
+  return [];
 }
 
 /**
- * Create a new voting session
+ * Create a new voting session in Supabase
  */
 export async function createVotingSession(
   payload: Pick<VotingSesi, "judul" | "tahun_periode" | "deskripsi">
 ): Promise<VotingSesi> {
-  const newSesi: VotingSesi = {
-    id: generateUuid(),
+  const newId = generateUuid();
+  const now = new Date().toISOString();
+
+  if (!supabase) {
+    throw new Error("Koneksi Supabase tidak tersedia.");
+  }
+
+  const { data, error } = await supabase
+    .from("voting_sesi")
+    .insert({
+      id: newId,
+      judul: payload.judul,
+      tahun_periode: payload.tahun_periode,
+      deskripsi: payload.deskripsi || null,
+      status: "draft",
+      is_results_unlocked: false,
+    })
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error("[Voting] Gagal insert voting_sesi ke Supabase:", error);
+    throw new Error(error?.message || "Gagal membuat sesi pemilihan di database Supabase.");
+  }
+
+  return (data as VotingSesi) || {
+    id: newId,
     judul: payload.judul,
     tahun_periode: payload.tahun_periode,
     deskripsi: payload.deskripsi || null,
@@ -138,81 +134,35 @@ export async function createVotingSession(
     opened_at: null,
     closed_at: null,
     unlocked_at: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: now,
+    updated_at: now,
   };
-
-  let savedToSupabase = false;
-
-  try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from("voting_sesi")
-        .insert({
-          id: newSesi.id,
-          judul: newSesi.judul,
-          tahun_periode: newSesi.tahun_periode,
-          deskripsi: newSesi.deskripsi,
-          status: newSesi.status,
-          is_results_unlocked: false,
-        })
-        .select()
-        .single();
-
-      if (!error && data) {
-        savedToSupabase = true;
-        // Merge with existing localStore cache
-        const existing = getLocalStore<VotingSesi[]>("sessions", []);
-        const filtered = existing.filter((s) => s.id !== data.id && s.id !== "sesi-2026-utama");
-        setLocalStore("sessions", [data as VotingSesi, ...filtered]);
-        return data as VotingSesi;
-      }
-
-      if (error) {
-        console.error("[Voting] Gagal insert voting_sesi ke Supabase:", error);
-      }
-    }
-  } catch (err) {
-    console.error("[Voting] Exception insert voting_sesi:", err);
-  }
-
-  // Fallback to localStore if Supabase is offline or RLS is pending
-  const existing = getLocalStore<VotingSesi[]>("sessions", []);
-  const updated = [newSesi, ...existing.filter((s) => s.id !== newSesi.id)];
-  setLocalStore("sessions", updated);
-  return newSesi;
 }
 
 /**
- * Delete voting session and its cascading data
+ * Delete voting session and its cascading data from Supabase
  */
 export async function deleteVotingSession(sesiId: string): Promise<boolean> {
+  clearLegacyVotingLocalCache();
+
   try {
     if (supabase && isValidUuid(sesiId)) {
       const { error } = await supabase.from("voting_sesi").delete().eq("id", sesiId);
       if (error) {
         console.error("[Voting] Gagal menghapus sesi dari Supabase:", error);
+        return false;
       }
+      return true;
     }
   } catch (err) {
     console.error("[Voting] Exception delete voting_sesi:", err);
   }
 
-  // Clean from localStore
-  const sessions = getLocalStore<VotingSesi[]>("sessions", []);
-  setLocalStore("sessions", sessions.filter((s) => s.id !== sesiId));
-
-  const cand = getLocalStore<VotingKandidat[]>("candidates", []);
-  setLocalStore("candidates", cand.filter((c) => c.sesi_id !== sesiId));
-
-  const dpt = getLocalStore<VotingDPT[]>("dpt", []);
-  setLocalStore("dpt", dpt.filter((d) => d.sesi_id !== sesiId));
-
-  return true;
+  return false;
 }
 
 /**
- * Update voting session status
+ * Update voting session status in Supabase
  */
 export async function updateVotingSessionStatus(
   sesiId: string,
@@ -242,22 +192,19 @@ export async function updateVotingSessionStatus(
       if (!error && data) {
         return data as VotingSesi;
       }
+      if (error) {
+        console.error("[Voting] Gagal memperbarui status voting_sesi:", error);
+      }
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.error("[Voting] Exception updateVotingSessionStatus:", err);
   }
 
-  const sessions = getLocalStore<VotingSesi[]>("sessions", []);
-  const target = sessions.find((s) => s.id === sesiId);
-  if (!target) return null;
-
-  Object.assign(target, updatePayload);
-  setLocalStore("sessions", sessions);
-  return target;
+  return null;
 }
 
 /**
- * Unlock session results (Blind Vote Reveal)
+ * Unlock session results (Blind Vote Reveal) in Supabase
  */
 export async function unlockSessionResults(sesiId: string): Promise<boolean> {
   const now = new Date().toISOString();
@@ -274,98 +221,74 @@ export async function unlockSessionResults(sesiId: string): Promise<boolean> {
         .eq("id", sesiId);
 
       if (!error) return true;
+      console.error("[Voting] Gagal membuka segel hasil voting_sesi:", error);
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.error("[Voting] Exception unlockSessionResults:", err);
   }
 
-  const sessions = getLocalStore<VotingSesi[]>("sessions", []);
-  const target = sessions.find((s) => s.id === sesiId);
-  if (target) {
-    target.is_results_unlocked = true;
-    target.unlocked_at = now;
-    target.updated_at = now;
-    setLocalStore("sessions", sessions);
-    return true;
-  }
   return false;
 }
 
 /**
- * Fetch candidates for a session
+ * Fetch candidates for a session strictly from Supabase
  */
 export async function fetchCandidates(sesiId: string): Promise<VotingKandidat[]> {
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from("voting_kandidat")
-        .select("*")
-        .eq("sesi_id", sesiId)
-        .order("nomor_urut", { ascending: true });
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from("voting_kandidat")
+      .select("*")
+      .eq("sesi_id", sesiId)
+      .order("nomor_urut", { ascending: true });
 
-      if (!error && Array.isArray(data)) {
-        if (data.length > 0) {
-          return data as VotingKandidat[];
-        }
-        // If 0 candidates found in Supabase for this session, check localStore
-        const all = getLocalStore<VotingKandidat[]>("candidates", []);
-        return all.filter((c) => c.sesi_id === sesiId);
-      }
+    if (!error && Array.isArray(data)) {
+      return data as VotingKandidat[];
+    }
 
-      if (error) {
-        console.warn("[Voting] Supabase fetchCandidates query error:", error.message);
-      }
+    if (error) {
+      console.warn("[Voting] Supabase fetchCandidates query error:", error.message);
     }
   } catch (err) {
     console.warn("[Voting] Exception in fetchCandidates:", err);
   }
 
-  const all = getLocalStore<VotingKandidat[]>("candidates", []);
-  return all.filter((c) => c.sesi_id === sesiId);
+  return [];
 }
 
 /**
- * Save candidate (create or edit)
+ * Save candidate (create or edit) in Supabase
  */
 export async function saveCandidate(
   candidate: Partial<VotingKandidat> & { sesi_id: string; nama_calon: string; nomor_urut: number }
 ): Promise<VotingKandidat> {
-  if (candidate.id) {
-    // Update
-    try {
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("voting_kandidat")
-          .update({
-            nama_calon: candidate.nama_calon,
-            nomor_urut: candidate.nomor_urut,
-            foto_url: candidate.foto_url,
-            visi: candidate.visi,
-            misi: candidate.misi,
-            program_kerja: candidate.program_kerja,
-          })
-          .eq("id", candidate.id)
-          .select()
-          .single();
-
-        if (!error && data) return data as VotingKandidat;
-      }
-    } catch {
-      // fallback
-    }
-
-    const all = getLocalStore<VotingKandidat[]>("candidates", []);
-    const item = all.find((c) => c.id === candidate.id);
-    if (item) {
-      Object.assign(item, candidate);
-      setLocalStore("candidates", all);
-      return item;
-    }
+  if (!supabase) {
+    throw new Error("Koneksi Supabase tidak tersedia.");
   }
 
-  // Insert
+  if (candidate.id) {
+    const { data, error } = await supabase
+      .from("voting_kandidat")
+      .update({
+        nama_calon: candidate.nama_calon,
+        nomor_urut: candidate.nomor_urut,
+        foto_url: candidate.foto_url,
+        visi: candidate.visi,
+        misi: candidate.misi,
+        program_kerja: candidate.program_kerja,
+      })
+      .eq("id", candidate.id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || "Gagal memperbarui data kandidat di Supabase.");
+    }
+    return data as VotingKandidat;
+  }
+
   const newItem: VotingKandidat = {
-    id: candidate.id || generateUuid(),
+    id: generateUuid(),
     sesi_id: candidate.sesi_id,
     nomor_urut: candidate.nomor_urut,
     nama_calon: candidate.nama_calon,
@@ -376,46 +299,38 @@ export async function saveCandidate(
     created_at: new Date().toISOString(),
   };
 
-  try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from("voting_kandidat")
-        .insert(newItem)
-        .select()
-        .single();
-      if (!error && data) return data as VotingKandidat;
-    }
-  } catch {
-    // fallback
+  const { data, error } = await supabase
+    .from("voting_kandidat")
+    .insert(newItem)
+    .select()
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message || "Gagal menambahkan kandidat ke Supabase.");
   }
 
-  const all = getLocalStore<VotingKandidat[]>("candidates", []);
-  all.push(newItem);
-  setLocalStore("candidates", all);
-  return newItem;
+  return data as VotingKandidat;
 }
 
 /**
- * Delete candidate
+ * Delete candidate from Supabase
  */
 export async function deleteCandidate(candidateId: string): Promise<boolean> {
   try {
     if (supabase) {
       const { error } = await supabase.from("voting_kandidat").delete().eq("id", candidateId);
       if (!error) return true;
+      console.error("[Voting] Gagal menghapus kandidat:", error);
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.error("[Voting] Exception deleteCandidate:", err);
   }
 
-  const all = getLocalStore<VotingKandidat[]>("candidates", []);
-  const filtered = all.filter((c) => c.id !== candidateId);
-  setLocalStore("candidates", filtered);
-  return true;
+  return false;
 }
 
 /**
- * Fetch DPT for a session with optional filter and search
+ * Fetch DPT for a session strictly from Supabase with optional filter and search
  */
 export async function fetchDPT(
   sesiId: string,
@@ -424,82 +339,43 @@ export async function fetchDPT(
     status?: "all" | "voted" | "not_voted";
   }
 ): Promise<VotingDPT[]> {
-  let list: VotingDPT[] = [];
-
   try {
-    if (supabase) {
-      let query = supabase
-        .from("voting_dpt")
-        .select("*")
-        .eq("sesi_id", sesiId)
-        .order("created_at", { ascending: true });
+    if (!supabase) return [];
+    let query = supabase
+      .from("voting_dpt")
+      .select("*")
+      .eq("sesi_id", sesiId)
+      .order("created_at", { ascending: true });
 
-      if (options?.status === "voted") {
-        query = query.eq("sudah_memilih", true);
-      } else if (options?.status === "not_voted") {
-        query = query.eq("sudah_memilih", false);
-      }
+    if (options?.status === "voted") {
+      query = query.eq("sudah_memilih", true);
+    } else if (options?.status === "not_voted") {
+      query = query.eq("sudah_memilih", false);
+    }
 
-      if (options?.search) {
-        query = query.or(
-          `nim.ilike.%${options.search}%,nama_lengkap.ilike.%${options.search}%`
-        );
-      }
+    if (options?.search) {
+      query = query.or(
+        `nim.ilike.%${options.search}%,nama_lengkap.ilike.%${options.search}%`
+      );
+    }
 
-      const { data, error } = await query;
-      if (!error && Array.isArray(data)) {
-        if (data.length > 0) {
-          return data as VotingDPT[];
-        }
-        // If 0 DPT in Supabase for this session, check localStore
-        const all = getLocalStore<VotingDPT[]>("dpt", []);
-        list = all.filter((d) => d.sesi_id === sesiId);
+    const { data, error } = await query;
+    if (!error && Array.isArray(data)) {
+      return data as VotingDPT[];
+    }
 
-        if (options?.status === "voted") {
-          list = list.filter((d) => d.sudah_memilih);
-        } else if (options?.status === "not_voted") {
-          list = list.filter((d) => !d.sudah_memilih);
-        }
-
-        if (options?.search) {
-          const q = options.search.toLowerCase();
-          list = list.filter(
-            (d) => d.nim.toLowerCase().includes(q) || d.nama_lengkap.toLowerCase().includes(q)
-          );
-        }
-
-        return list;
-      }
-
-      if (error) {
-        console.warn("[Voting] Supabase fetchDPT query error:", error.message);
-      }
+    if (error) {
+      console.warn("[Voting] Supabase fetchDPT query error:", error.message);
     }
   } catch (err) {
     console.warn("[Voting] Exception in fetchDPT:", err);
   }
 
-  const all = getLocalStore<VotingDPT[]>("dpt", []);
-  list = all.filter((d) => d.sesi_id === sesiId);
-
-  if (options?.status === "voted") {
-    list = list.filter((d) => d.sudah_memilih);
-  } else if (options?.status === "not_voted") {
-    list = list.filter((d) => !d.sudah_memilih);
-  }
-
-  if (options?.search) {
-    const q = options.search.toLowerCase();
-    list = list.filter(
-      (d) => d.nim.toLowerCase().includes(q) || d.nama_lengkap.toLowerCase().includes(q)
-    );
-  }
-
-  return list;
+  return [];
 }
 
 /**
- * Add a single voter to DPT
+ * Add a single voter to DPT in Supabase
  */
 export async function addDPTVoter(
   voter: Pick<VotingDPT, "sesi_id" | "nim" | "nama_lengkap" | "tanggal_lahir">
@@ -507,6 +383,10 @@ export async function addDPTVoter(
   const normalizedDate = normalizeBirthDate(voter.tanggal_lahir);
   if (!normalizedDate) {
     return { success: false, error: "Format tanggal lahir tidak valid." };
+  }
+
+  if (!supabase) {
+    return { success: false, error: "Koneksi Supabase tidak tersedia." };
   }
 
   const newItem: VotingDPT = {
@@ -521,37 +401,30 @@ export async function addDPTVoter(
   };
 
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from("voting_dpt")
-        .insert(newItem)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("voting_dpt")
+      .insert(newItem)
+      .select()
+      .single();
 
-      if (!error && data) {
-        return { success: true, data: data as VotingDPT };
-      }
-      if (error && error.code === "23505") {
-        return { success: false, error: "NIM tersebut sudah terdaftar pada sesi ini." };
-      }
+    if (!error && data) {
+      return { success: true, data: data as VotingDPT };
     }
-  } catch {
-    // fallback
+    if (error && error.code === "23505") {
+      return { success: false, error: "NIM tersebut sudah terdaftar pada sesi ini." };
+    }
+    return {
+      success: false,
+      error: error?.message || "Gagal menambahkan pemilih ke database Supabase.",
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Terjadi kesalahan jaringan.";
+    return { success: false, error: msg };
   }
-
-  const all = getLocalStore<VotingDPT[]>("dpt", []);
-  const exists = all.some((d) => d.sesi_id === voter.sesi_id && d.nim === voter.nim);
-  if (exists) {
-    return { success: false, error: "NIM tersebut sudah terdaftar pada sesi ini." };
-  }
-
-  all.unshift(newItem);
-  setLocalStore("dpt", all);
-  return { success: true, data: newItem };
 }
 
 /**
- * Delete a voter from DPT (Only if voter has NOT voted yet)
+ * Delete a voter from DPT in Supabase (Only if voter has NOT voted yet)
  */
 export async function deleteDPTVoter(voterId: string): Promise<boolean> {
   try {
@@ -560,28 +433,20 @@ export async function deleteDPTVoter(voterId: string): Promise<boolean> {
         .from("voting_dpt")
         .delete()
         .eq("id", voterId)
-        .eq("sudah_memilih", false); // Integrity check
+        .eq("sudah_memilih", false);
 
       if (!error) return true;
+      console.error("[Voting] Gagal menghapus DPT:", error);
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.error("[Voting] Exception deleteDPTVoter:", err);
   }
 
-  const all = getLocalStore<VotingDPT[]>("dpt", []);
-  const target = all.find((d) => d.id === voterId);
-  if (target && target.sudah_memilih) {
-    // Disallow deleting voted DPT
-    return false;
-  }
-
-  const filtered = all.filter((d) => d.id !== voterId);
-  setLocalStore("dpt", filtered);
-  return true;
+  return false;
 }
 
 /**
- * Import batch DPT from parsed items
+ * Import batch DPT from parsed items directly into Supabase
  */
 export async function importBatchDPT(
   sesiId: string,
@@ -589,6 +454,10 @@ export async function importBatchDPT(
 ): Promise<{ inserted: number; skipped: number }> {
   let inserted = 0;
   let skipped = 0;
+
+  if (!supabase) {
+    return { inserted: 0, skipped: items.length };
+  }
 
   const existingDPT = await fetchDPT(sesiId);
   const existingNims = new Set(existingDPT.map((d) => d.nim.toLowerCase()));
@@ -622,16 +491,11 @@ export async function importBatchDPT(
   }
 
   if (toInsert.length > 0) {
-    try {
-      if (supabase) {
-        await supabase.from("voting_dpt").insert(toInsert);
-      }
-    } catch {
-      // fallback
+    const { error } = await supabase.from("voting_dpt").insert(toInsert);
+    if (error) {
+      console.error("[Voting] Gagal import batch DPT ke Supabase:", error);
+      return { inserted: 0, skipped: items.length };
     }
-
-    const all = getLocalStore<VotingDPT[]>("dpt", []);
-    setLocalStore("dpt", [...toInsert, ...all]);
   }
 
   return { inserted, skipped };
@@ -664,8 +528,8 @@ export async function fetchVotingResults(
         );
       }
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.warn("[Voting] Exception in fetchVotingResults:", err);
   }
 
   const totalSuara = Object.values(tallies).reduce((sum, n) => sum + n, 0);
@@ -685,7 +549,6 @@ export async function fetchVotingResults(
     };
   });
 
-  // Mark winner (if votes exist and not tied with 0)
   if (totalSuara > 0) {
     results.forEach((r) => {
       if (r.total_suara === highestVotes && highestVotes > 0) {
@@ -787,7 +650,7 @@ export async function getBeritaAcaraData(
 }
 
 // ============================================================================
-// DIAGNOSTICS & CLOUD SYNCHRONIZATION HELPERS
+// DIAGNOSTICS & CLOUD HEALTH HELPERS
 // ============================================================================
 
 /**
@@ -808,7 +671,6 @@ export async function checkVotingRLSStatus(): Promise<{
       };
     }
 
-    // Attempt a probe insert to verify RLS permissions
     const probeId = generateUuid();
     const { error: insertErr } = await supabase.from("voting_sesi").insert({
       id: probeId,
@@ -833,7 +695,6 @@ export async function checkVotingRLSStatus(): Promise<{
       };
     }
 
-    // Clean up probe row immediately
     await supabase.from("voting_sesi").delete().eq("id", probeId);
 
     return {
@@ -852,8 +713,8 @@ export async function checkVotingRLSStatus(): Promise<{
 }
 
 /**
- * Synchronize any locally created voting sessions, candidates, and DPT voters
- * to Supabase cloud database once RLS permissions are active.
+ * Legacy compatibility helper: purges any leftover localStorage keys without
+ * resurrecting stale client-side sessions into Supabase.
  */
 export async function syncLocalSessionsToSupabase(): Promise<{
   success: boolean;
@@ -862,131 +723,33 @@ export async function syncLocalSessionsToSupabase(): Promise<{
   syncedDPT: number;
   error?: string;
 }> {
-  if (!supabase) {
-    return {
-      success: false,
-      syncedSessions: 0,
-      syncedCandidates: 0,
-      syncedDPT: 0,
-      error: "Supabase client tidak tersedia.",
-    };
-  }
-
-  let syncedSessions = 0;
-  let syncedCandidates = 0;
-  let syncedDPT = 0;
-
-  try {
-    const localSessions = getLocalStore<VotingSesi[]>("sessions", []);
-    const { data: dbSessions, error: sessErr } = await supabase
-      .from("voting_sesi")
-      .select("id");
-
-    if (sessErr) {
-      return {
-        success: false,
-        syncedSessions: 0,
-        syncedCandidates: 0,
-        syncedDPT: 0,
-        error: sessErr.message,
-      };
-    }
-
-    const dbSessionIds = new Set((dbSessions || []).map((s: { id: string }) => s.id));
-
-    // 1. Sync custom sessions (ignore hardcoded mock IDs)
-    for (const s of localSessions) {
-      if (!dbSessionIds.has(s.id) && isValidUuid(s.id)) {
-        const { error } = await supabase.from("voting_sesi").insert({
-          id: s.id,
-          judul: s.judul,
-          tahun_periode: s.tahun_periode,
-          deskripsi: s.deskripsi,
-          status: s.status,
-          is_results_unlocked: s.is_results_unlocked,
-          opened_at: s.opened_at,
-          closed_at: s.closed_at,
-          unlocked_at: s.unlocked_at,
-          created_at: s.created_at,
-          updated_at: s.updated_at,
-        });
-        if (!error) {
-          syncedSessions++;
-          dbSessionIds.add(s.id);
-        }
-      }
-    }
-
-    // 2. Sync candidates for known sessions
-    const localCandidates = getLocalStore<VotingKandidat[]>("candidates", []);
-    const { data: dbCand } = await supabase.from("voting_kandidat").select("id");
-    const dbCandIds = new Set((dbCand || []).map((c: { id: string }) => c.id));
-
-    for (const c of localCandidates) {
-      if (!dbCandIds.has(c.id) && isValidUuid(c.id) && dbSessionIds.has(c.sesi_id)) {
-        const { error } = await supabase.from("voting_kandidat").insert({
-          id: c.id,
-          sesi_id: c.sesi_id,
-          nomor_urut: c.nomor_urut,
-          nama_calon: c.nama_calon,
-          foto_url: c.foto_url,
-          visi: c.visi,
-          misi: c.misi,
-          program_kerja: c.program_kerja,
-          created_at: c.created_at,
-        });
-        if (!error) syncedCandidates++;
-      }
-    }
-
-    // 3. Sync DPT voters for known sessions
-    const localDPT = getLocalStore<VotingDPT[]>("dpt", []);
-    const { data: dbDpt } = await supabase.from("voting_dpt").select("id");
-    const dbDptIds = new Set((dbDpt || []).map((d: { id: string }) => d.id));
-
-    for (const d of localDPT) {
-      if (!dbDptIds.has(d.id) && isValidUuid(d.id) && dbSessionIds.has(d.sesi_id)) {
-        const { error } = await supabase.from("voting_dpt").insert({
-          id: d.id,
-          sesi_id: d.sesi_id,
-          nim: d.nim,
-          nama_lengkap: d.nama_lengkap,
-          tanggal_lahir: d.tanggal_lahir,
-          sudah_memilih: d.sudah_memilih,
-          voted_at: d.voted_at,
-          created_at: d.created_at,
-        });
-        if (!error) syncedDPT++;
-      }
-    }
-
-    return {
-      success: true,
-      syncedSessions,
-      syncedCandidates,
-      syncedDPT,
-    };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return {
-      success: false,
-      syncedSessions,
-      syncedCandidates,
-      syncedDPT,
-      error: msg,
-    };
-  }
+  clearLegacyVotingLocalCache();
+  return {
+    success: true,
+    syncedSessions: 0,
+    syncedCandidates: 0,
+    syncedDPT: 0,
+  };
 }
 
 // ============================================================================
-// PUBLIC E-VOTING BOOTH CLIENT-SAFE DATA ACCESSORS
+// PUBLIC E-VOTING BOOTH CLIENT-SAFE DATA ACCESSORS (100% Pure Supabase)
 // ============================================================================
 
+export type ActiveVotingSessionStatus =
+  | { ok: true; session: VotingSesi | null }
+  | { ok: false; error: string };
+
 /**
- * Fetches the currently active / open voting session for students
+ * Fetches the currently active / open voting session strictly from Supabase,
+ * distinguishing authoritative "no open session" (`ok: true, session: null`)
+ * from transient network/query errors (`ok: false`).
  */
-export async function fetchActiveVotingSession(): Promise<VotingSesi | null> {
+export async function fetchActiveVotingSessionStatus(): Promise<ActiveVotingSessionStatus> {
   try {
+    if (!supabase) {
+      return { ok: false, error: "Supabase client tidak tersedia." };
+    }
     const { data, error } = await supabase
       .from("voting_sesi")
       .select("*")
@@ -995,20 +758,66 @@ export async function fetchActiveVotingSession(): Promise<VotingSesi | null> {
       .limit(1)
       .maybeSingle();
 
-    if (!error && data) {
-      return data as VotingSesi;
+    if (error) {
+      console.warn("[VotingClient] Supabase active session lookup error:", error.message);
+      return { ok: false, error: error.message };
     }
-  } catch (err) {
-    console.warn("[VotingClient] Supabase active session lookup failed, using fallback:", err);
-  }
 
-  // Fallback to active local store session
-  const sessions = getLocalStore<VotingSesi[]>("sessions", []);
-  return sessions.find((s) => s.status === "open") || null;
+    return { ok: true, session: (data as VotingSesi) || null };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[VotingClient] Supabase active session lookup exception:", err);
+    return { ok: false, error: msg };
+  }
 }
 
 /**
- * 2FA student identity verification via NIM + Tanggal Lahir against DPT table
+ * Fetches the currently active / open voting session strictly from Supabase.
+ * Never falls back to browser localStorage so closed or deleted sessions
+ * immediately stop appearing on all devices.
+ */
+export async function fetchActiveVotingSession(): Promise<VotingSesi | null> {
+  const res = await fetchActiveVotingSessionStatus();
+  return res.ok ? res.session : null;
+}
+
+/**
+ * Defense-in-depth guard: verifies directly against Supabase that the target
+ * voting session still exists and has status === "open".
+ */
+async function ensureSessionOpen(
+  sesiId: string
+): Promise<{ open: true } | { open: false; error: string }> {
+  if (!supabase) {
+    return { open: false, error: "Koneksi ke server pemilihan tidak tersedia." };
+  }
+
+  const { data: sesiRow, error: sesiErr } = await supabase
+    .from("voting_sesi")
+    .select("id, status")
+    .eq("id", sesiId)
+    .maybeSingle();
+
+  if (sesiErr) {
+    return {
+      open: false,
+      error: "Terjadi gangguan saat memeriksa status sesi pemilihan. Silakan coba kembali.",
+    };
+  }
+
+  if (!sesiRow || sesiRow.status !== "open") {
+    return {
+      open: false,
+      error: "Sesi pemilihan telah ditutup atau tidak lagi tersedia.",
+    };
+  }
+
+  return { open: true };
+}
+
+/**
+ * 2FA student identity verification via NIM + Tanggal Lahir against live Supabase DPT table.
+ * Also confirms that the target voting session is still strictly "open" in Supabase.
  */
 export async function verifyDPTVoter(
   sesiId: string,
@@ -1028,7 +837,21 @@ export async function verifyDPTVoter(
     };
   }
 
+  if (!supabase) {
+    return {
+      success: false,
+      error: "Koneksi ke server verifikasi tidak tersedia.",
+    };
+  }
+
   try {
+    // 1. Pastikan sesi pemilihan masih benar-benar berstatus 'open' di Supabase
+    const sessionCheck = await ensureSessionOpen(sesiId);
+    if (!sessionCheck.open) {
+      return { success: false, error: sessionCheck.error };
+    }
+
+    // 2. Verifikasi data DPT langsung terhadap Supabase
     const { data, error } = await supabase
       .from("voting_dpt")
       .select("*")
@@ -1036,37 +859,50 @@ export async function verifyDPTVoter(
       .ilike("nim", cleanNIM)
       .maybeSingle();
 
-    if (!error && data) {
-      const voter = data as VotingDPT;
-      if (voter.sudah_memilih) {
-        return {
-          success: false,
-          error: "Hak suara untuk NIM ini telah digunakan (sudah memilih).",
-        };
-      }
-
-      const normalizedDbDate = normalizeBirthDate(voter.tanggal_lahir);
-      if (normalizedDbDate !== normalizedDate) {
-        return {
-          success: false,
-          error: "Tanggal lahir tidak sesuai dengan data DPT terdaftar.",
-        };
-      }
-
-      return { success: true, voter };
+    if (error) {
+      console.warn("[VotingClient] Supabase DPT check error:", error.message);
+      return {
+        success: false,
+        error: "Terjadi kesalahan saat memverifikasi data DPT. Silakan coba lagi.",
+      };
     }
-  } catch (err) {
-    console.warn("[VotingClient] Supabase DPT check failed, falling back to local:", err);
-  }
 
-  // Fallback to local DPT store if not found in Supabase or if Supabase query failed
-  const allDPT = getLocalStore<VotingDPT[]>("dpt", []);
-  const sessionDPT = allDPT.filter((v) => v.sesi_id === sesiId);
-  return validateDPTVoterCredentials(sessionDPT, cleanNIM, normalizedDate);
+    if (!data) {
+      return {
+        success: false,
+        error: "NIM Anda tidak terdaftar dalam Daftar Pemilih Tetap (DPT) sesi ini.",
+      };
+    }
+
+    const voter = data as VotingDPT;
+    if (voter.sudah_memilih) {
+      return {
+        success: false,
+        error: "Hak suara untuk NIM ini telah digunakan (sudah memilih).",
+      };
+    }
+
+    const normalizedDbDate = normalizeBirthDate(voter.tanggal_lahir);
+    if (normalizedDbDate !== normalizedDate) {
+      return {
+        success: false,
+        error: "Tanggal lahir tidak sesuai dengan data DPT terdaftar.",
+      };
+    }
+
+    return { success: true, voter };
+  } catch (err) {
+    console.warn("[VotingClient] Supabase DPT check exception:", err);
+    return {
+      success: false,
+      error: "Terjadi gangguan jaringan saat menghubungi server verifikasi.",
+    };
+  }
 }
 
 /**
- * Atomic ballot casting: records anonymous vote and locks voter's DPT status
+ * Atomic ballot casting: records anonymous vote and locks voter's DPT status in Supabase.
+ * Strictly verifies that the voting session is open and never falls back to localStorage.
  */
 export async function castStudentVote(
   sesiId: string,
@@ -1078,31 +914,64 @@ export async function castStudentVote(
   const now = new Date().toISOString();
   const receiptId = generateReceiptCode();
 
-  // 1. Jalur Utama: Jika RPC cast_student_vote tersedia di Supabase, jalankan secara atomik di sisi server
-  if (isValidUuid(sesiId) && isValidUuid(kandidatId) && voterNim && voterDob) {
-    try {
-      const { data: rpcRes, error: rpcErr } = await supabase.rpc("cast_student_vote", {
-        p_sesi_id: sesiId,
-        p_nim: voterNim,
-        p_tanggal_lahir: voterDob,
-        p_kandidat_id: kandidatId,
-      });
+  if (!supabase) {
+    return {
+      success: false,
+      error: "Koneksi ke kotak suara server tidak tersedia.",
+    };
+  }
 
-      if (!rpcErr && rpcRes && typeof rpcRes === "object") {
-        const parsed = rpcRes as { success: boolean; receiptId?: string; error?: string };
-        if (parsed.success) {
-          return { success: true, receiptId: parsed.receiptId || receiptId };
-        } else if (parsed.error) {
-          return { success: false, error: parsed.error };
-        }
+  // Defense-in-depth: pastikan sesi masih berstatus 'open' sebelum RPC maupun jalur sekunder
+  try {
+    const sessionCheck = await ensureSessionOpen(sesiId);
+    if (!sessionCheck.open) {
+      return { success: false, error: sessionCheck.error };
+    }
+  } catch (err) {
+    console.warn("[VotingClient] Session open check exception:", err);
+    return {
+      success: false,
+      error: "Terjadi gangguan jaringan saat memeriksa status sesi pemilihan.",
+    };
+  }
+
+  // 1. Jalur Utama: RPC cast_student_vote atomik di sisi server (memvalidasi sesi.status = 'open')
+  if (isValidUuid(sesiId) && isValidUuid(kandidatId) && voterNim && voterDob) {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc("cast_student_vote", {
+      p_sesi_id: sesiId,
+      p_nim: voterNim,
+      p_tanggal_lahir: voterDob,
+      p_kandidat_id: kandidatId,
+    });
+
+    if (!rpcErr && rpcRes && typeof rpcRes === "object") {
+      const parsed = rpcRes as { success: boolean; receiptId?: string; error?: string };
+      if (parsed.success) {
+        return { success: true, receiptId: parsed.receiptId || receiptId };
       }
-    } catch {
-      // Fallback ke optimistic locking langsung di bawah jika RPC belum dideploy di Supabase
+      return {
+        success: false,
+        error: parsed.error || "Gagal memasukkan surat suara. Silakan coba kembali.",
+      };
+    }
+
+    // Hanya fallback ke jalur sekunder jika RPC memang belum dideploy di Supabase
+    const isRpcMissing =
+      rpcErr?.code === "42883" ||
+      rpcErr?.code === "PGRST202" ||
+      rpcErr?.message?.includes("Could not find the function");
+
+    if (rpcErr && !isRpcMissing) {
+      console.warn("[VotingClient] RPC cast_student_vote error:", rpcErr);
+      return {
+        success: false,
+        error: "Gagal memproses surat suara di server. Silakan coba kembali.",
+      };
     }
   }
 
-  // 2. Jalur Sekunder: Optimistic locking langsung di tabel Supabase
-  if (isValidUuid(dptId)) {
+  // 2. Jalur Sekunder: Optimistic locking langsung di tabel Supabase (hanya bila RPC belum dideploy)
+  if (isValidUuid(sesiId) && isValidUuid(dptId)) {
     try {
       const { data: lockedVoter, error: updateErr } = await supabase
         .from("voting_dpt")
@@ -1111,12 +980,12 @@ export async function castStudentVote(
           voted_at: now,
         })
         .eq("id", dptId)
+        .eq("sesi_id", sesiId)
         .eq("sudah_memilih", false)
         .select("id")
         .maybeSingle();
 
       if (!updateErr && lockedVoter) {
-        // Successfully locked DPT in Supabase! Now insert anonymous ballot
         const { error: voteErr } = await supabase.from("voting_suara").insert({
           sesi_id: sesiId,
           kandidat_id: kandidatId,
@@ -1124,11 +993,11 @@ export async function castStudentVote(
         });
 
         if (voteErr) {
-          // Rollback DPT lock if ballot insert fails
           await supabase
             .from("voting_dpt")
             .update({ sudah_memilih: false, voted_at: null })
-            .eq("id", dptId);
+            .eq("id", dptId)
+            .eq("sesi_id", sesiId);
           console.error("[VotingClient] Gagal memasukkan suara ke voting_suara:", voteErr);
           return {
             success: false,
@@ -1141,63 +1010,32 @@ export async function castStudentVote(
 
       if (updateErr) {
         console.warn("[VotingClient] Supabase DPT update failed:", updateErr);
-        throw updateErr;
-      }
-
-      // If zero rows updated with no error: verify if voter actually exists in Supabase
-      const { data: existingVoter } = await supabase
-        .from("voting_dpt")
-        .select("id, sudah_memilih")
-        .eq("id", dptId)
-        .maybeSingle();
-
-      if (existingVoter) {
-        if (existingVoter.sudah_memilih) {
-          return {
-            success: false,
-            error: "Hak suara untuk pemilih ini telah digunakan sebelumnya.",
-          };
-        }
         return {
           success: false,
           error: "Gagal memperbarui status hak suara. Silakan coba kembali.",
         };
       }
 
-      // Not found in Supabase database, fall through to local store
-      throw new Error("Voter not found in Supabase database");
-    } catch (err) {
-      console.warn("[VotingClient] Supabase vote submission failed, using local store:", err);
-    }
-  }
+      const { data: existingVoter } = await supabase
+        .from("voting_dpt")
+        .select("id, sudah_memilih")
+        .eq("id", dptId)
+        .eq("sesi_id", sesiId)
+        .maybeSingle();
 
-  // 2. Offline / Local Storage fallback with strict atomic lock
-  const allDPT = getLocalStore<VotingDPT[]>("dpt", []);
-  const voterIdx = allDPT.findIndex((v) => v.id === dptId || v.nim === dptId);
-  if (voterIdx !== -1) {
-    if (allDPT[voterIdx].sudah_memilih) {
+      if (existingVoter?.sudah_memilih) {
+        return {
+          success: false,
+          error: "Hak suara untuk pemilih ini telah digunakan sebelumnya.",
+        };
+      }
+    } catch (err) {
+      console.warn("[VotingClient] Supabase vote submission exception:", err);
       return {
         success: false,
-        error: "Hak suara untuk pemilih ini telah digunakan sebelumnya.",
+        error: "Terjadi gangguan jaringan saat memasukkan surat suara.",
       };
     }
-
-    allDPT[voterIdx].sudah_memilih = true;
-    allDPT[voterIdx].voted_at = now;
-    setLocalStore("dpt", allDPT);
-
-    const existingVotes = getLocalStore<
-      Array<{ id: string; sesi_id: string; kandidat_id: string; created_at: string }>
-    >("suara", []);
-    existingVotes.push({
-      id: `suara-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      sesi_id: sesiId,
-      kandidat_id: kandidatId,
-      created_at: now,
-    });
-    setLocalStore("suara", existingVotes);
-
-    return { success: true, receiptId };
   }
 
   return {
@@ -1205,4 +1043,3 @@ export async function castStudentVote(
     error: "Data pemilih tidak ditemukan atau sesi pemilihan telah berakhir.",
   };
 }
-

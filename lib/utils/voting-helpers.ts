@@ -258,4 +258,66 @@ export function isValidUuid(id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 }
 
+export type ActiveSessionFetchResult<TSession extends { id: string; status: string }> =
+  | { ok: true; session: TSession | null }
+  | { ok: false; error: string };
+
+export type VotingSyncDecision<TSession extends { id: string; status: string }> =
+  | { action: "preserve_completed"; session: TSession | null }
+  | { action: "keep_current_on_network_error" }
+  | { action: "close_and_reset" }
+  | { action: "load_session"; session: TSession; resetIncompleteVoter: boolean }
+  | { action: "update_metadata_only"; session: TSession };
+
+/**
+ * Pure state-transition resolver for E-Voting realtime/polling session sync.
+ * Guarantees Step 4 receipts are preserved even on close/delete, Steps 1–3 close
+ * immediately on authoritative Supabase close/delete, and transient network errors
+ * during background sync do not wrongly evict active voters.
+ */
+export function resolveVotingSyncTransition<TSession extends { id: string; status: string }>(input: {
+  currentStep: number;
+  hasVoter: boolean;
+  hasReceipt: boolean;
+  currentSesiId: string | null;
+  isInitialLoad: boolean;
+  fetchResult: ActiveSessionFetchResult<TSession>;
+}): VotingSyncDecision<TSession> {
+  const { currentStep, hasVoter, hasReceipt, currentSesiId, isInitialLoad, fetchResult } = input;
+
+  if (currentStep === 4 && hasVoter && hasReceipt) {
+    return {
+      action: "preserve_completed",
+      session: fetchResult.ok ? fetchResult.session : null,
+    };
+  }
+
+  if (!fetchResult.ok) {
+    if (isInitialLoad) {
+      return { action: "close_and_reset" };
+    }
+    return { action: "keep_current_on_network_error" };
+  }
+
+  const activeSesi = fetchResult.session;
+  if (!activeSesi || activeSesi.status !== "open") {
+    return { action: "close_and_reset" };
+  }
+
+  const isSameSession = activeSesi.id === currentSesiId;
+  if (!isSameSession || isInitialLoad) {
+    return {
+      action: "load_session",
+      session: activeSesi,
+      resetIncompleteVoter: !isInitialLoad && Boolean(currentSesiId) && !isSameSession,
+    };
+  }
+
+  return {
+    action: "update_metadata_only",
+    session: activeSesi,
+  };
+}
+
+
 
